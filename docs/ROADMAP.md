@@ -1,6 +1,6 @@
 # Roadmap
 
-## Phase 1 — Foundation (Current)
+## Phase 1 — Foundation
 
 - [x] Monorepo scaffold
 - [x] Clean Architecture layers
@@ -12,36 +12,36 @@
 
 ## Phase 2 — Core Operations
 
-- [ ] Customers module
-- [ ] Vehicles/Tasks with state machine
-- [ ] Audit log UI
-- [ ] Notifications plumbing
+- [x] Customers module
+- [x] Vehicles/Tasks with state machine
+- [x] Audit log UI
+- [x] Notifications plumbing
 
 ## Phase 3 — Workforce & Stock
 
-- [ ] Inventory module
-- [ ] Employees module
-- [ ] Mechanics module
+- [x] Inventory module
+- [x] Employees module
+- [x] Mechanics module
 
 ## Phase 4 — Commerce & Payroll
 
-- [ ] POS module
-- [ ] Payroll module
-- [ ] Receipt generation (Cloud Functions)
+- [x] POS module
+- [x] Payroll module
+- [x] Receipt generation (Cloud Functions + client fallback)
 
 ## Phase 5 — Hardening
 
-- [ ] Analytics module
-- [ ] App Check production enforcement
-- [ ] Security scans → blocking
-- [ ] 90%+ test coverage across all modules
+- [x] Analytics module
+- [x] App Check production enforcement (opt-in via env)
+- [x] Security scans → blocking in CI
+- [ ] 90%+ test coverage across all modules (ongoing)
 
-## Future Module Placeholders
+## Modules
 
-Scaffolded in `apps/web/src/features/`:
+Implemented in `apps/web/src/features/`:
 
 - `customers/`
-- `vehicles/`
+- `vehicles/` (includes tasks)
 - `inventory/`
 - `pos/`
 - `employees/`

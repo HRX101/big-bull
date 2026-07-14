@@ -4,4 +4,6 @@ export * from './repositories/organization.repository';
 export * from './repositories/membership.repository';
 export * from './repositories/user.repository';
 export * from './repositories/audit.repository';
+export * from './repositories/operations.repository';
 export * from './services/claims.service';
+export * from './services/receipt.service';

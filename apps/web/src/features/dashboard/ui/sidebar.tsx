@@ -2,14 +2,38 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Settings } from 'lucide-react';
+import {
+  BarChart3,
+  Bell,
+  Car,
+  ClipboardList,
+  LayoutDashboard,
+  Package,
+  Receipt,
+  ScrollText,
+  Settings,
+  Users,
+  Wrench,
+  Wallet,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { PROTECTED_ROUTES } from '@car-spa/shared';
+import { NAV_ITEMS } from '@car-spa/shared';
 
-const navItems = [
-  { href: PROTECTED_ROUTES.dashboard, label: 'Dashboard', icon: LayoutDashboard },
-  { href: PROTECTED_ROUTES.settings, label: 'Settings', icon: Settings },
-];
+const iconMap = {
+  Dashboard: LayoutDashboard,
+  Customers: Users,
+  Vehicles: Car,
+  Tasks: ClipboardList,
+  'Audit Logs': ScrollText,
+  Notifications: Bell,
+  Inventory: Package,
+  Employees: Users,
+  Mechanics: Wrench,
+  POS: Receipt,
+  Payroll: Wallet,
+  Analytics: BarChart3,
+  Settings: Settings,
+} as const;
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -20,9 +44,9 @@ export function Sidebar() {
         <p className="font-display text-2xl tracking-tight">Big Bull Car Spa</p>
         <p className="text-muted-foreground text-xs">Workshop ERP</p>
       </div>
-      <nav className="flex flex-1 flex-col gap-1" aria-label="Main navigation">
-        {navItems.map((item) => {
-          const Icon = item.icon;
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto" aria-label="Main navigation">
+        {NAV_ITEMS.map((item) => {
+          const Icon = iconMap[item.label as keyof typeof iconMap] ?? LayoutDashboard;
           const active = pathname === item.href;
           return (
             <Link
@@ -41,7 +65,7 @@ export function Sidebar() {
           );
         })}
       </nav>
-      <p className="text-muted-foreground px-2 text-xs">Phase 1 — Foundation</p>
+      <p className="text-muted-foreground px-2 text-xs">Phases 2–5 — Operations</p>
     </aside>
   );
 }

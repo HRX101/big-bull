@@ -6,6 +6,15 @@
   "storage": {
     "rules": "firebase/storage.rules"
   },
+  "auth": {
+    "providers": {
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "Big Bull Car Spa",
+        "supportEmail": "nicecareofficial@gmail.com"
+      }
+    }
+  },
   "functions": [
     {
       "source": "functions",

@@ -6,8 +6,12 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function orgId() {
-      return request.auth.token.orgId;
+    function effectiveOrgId() {
+      return request.auth.token.orgId != null
+        ? request.auth.token.orgId
+        : (exists(/databases/$(database)/documents/users/$(request.auth.uid))
+            ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.orgId
+            : null);
     }
 
     function role() {
@@ -19,7 +23,23 @@ service cloud.firestore {
     }
 
     function belongsToOrg(docOrgId) {
-      return isAuthenticated() && orgId() == docOrgId;
+      return isAuthenticated() && effectiveOrgId() == docOrgId;
+    }
+
+    function orgScopedRead() {
+      return belongsToOrg(resource.data.orgId);
+    }
+
+    function orgScopedCreate() {
+      return belongsToOrg(request.resource.data.orgId);
+    }
+
+    function orgScopedUpdate() {
+      return belongsToOrg(resource.data.orgId);
+    }
+
+    function orgScopedDelete() {
+      return belongsToOrg(resource.data.orgId) && isOwner();
     }
 
     match /organizations/{orgDocId} {
@@ -49,8 +69,74 @@ service cloud.firestore {
 
     match /auditLogs/{logId} {
       allow read: if belongsToOrg(resource.data.orgId);
-      allow create: if belongsToOrg(request.resource.data.orgId);
+      allow create: if isAuthenticated() && (
+        belongsToOrg(request.resource.data.orgId) ||
+        request.resource.data.actorId == request.auth.uid
+      );
       allow update, delete: if false;
+    }
+
+    match /customers/{docId} {
+      allow read: if orgScopedRead();
+      allow create: if orgScopedCreate();
+      allow update: if orgScopedUpdate();
+      allow delete: if orgScopedDelete();
+    }
+
+    match /vehicles/{docId} {
+      allow read: if orgScopedRead();
+      allow create: if orgScopedCreate();
+      allow update: if orgScopedUpdate();
+      allow delete: if orgScopedDelete();
+    }
+
+    match /vehicleTasks/{docId} {
+      allow read: if orgScopedRead();
+      allow create: if orgScopedCreate();
+      allow update: if orgScopedUpdate();
+      allow delete: if orgScopedDelete();
+    }
+
+    match /inventoryItems/{docId} {
+      allow read: if orgScopedRead();
+      allow create: if orgScopedCreate();
+      allow update: if orgScopedUpdate();
+      allow delete: if orgScopedDelete();
+    }
+
+    match /employees/{docId} {
+      allow read: if orgScopedRead();
+      allow create: if orgScopedCreate();
+      allow update: if orgScopedUpdate();
+      allow delete: if orgScopedDelete();
+    }
+
+    match /mechanics/{docId} {
+      allow read: if orgScopedRead();
+      allow create: if orgScopedCreate();
+      allow update: if orgScopedUpdate();
+      allow delete: if orgScopedDelete();
+    }
+
+    match /posOrders/{docId} {
+      allow read: if orgScopedRead();
+      allow create: if orgScopedCreate();
+      allow update: if orgScopedUpdate();
+      allow delete: if false;
+    }
+
+    match /payrollEntries/{docId} {
+      allow read: if orgScopedRead();
+      allow create: if orgScopedCreate();
+      allow update: if orgScopedUpdate();
+      allow delete: if false;
+    }
+
+    match /notifications/{docId} {
+      allow read: if belongsToOrg(resource.data.orgId) && resource.data.userId == request.auth.uid;
+      allow create: if orgScopedCreate();
+      allow update: if belongsToOrg(resource.data.orgId) && resource.data.userId == request.auth.uid;
+      allow delete: if false;
     }
 
     match /{document=**} {

@@ -19,8 +19,6 @@
 | createdAt | timestamp | Creation time            |
 | updatedAt | timestamp | Last update              |
 
-**Indexes:** `userId` + `orgId`
-
 ## users
 
 | Field         | Type      | Description               |
@@ -46,7 +44,53 @@
 | metadata     | map       | Additional context        |
 | createdAt    | timestamp | Immutable creation time   |
 
-**Indexes:** `orgId` + `createdAt` DESC
+## customers
+
+| Field     | Type      | Description    |
+| --------- | --------- | -------------- |
+| orgId     | string    | Tenant scope   |
+| name      | string    | Customer name  |
+| phone     | string    | Phone number   |
+| email     | string?   | Email          |
+| notes     | string?   | Notes          |
+| createdAt | timestamp | Creation time  |
+| updatedAt | timestamp | Last update    |
+
+## vehicles
+
+| Field       | Type      | Description      |
+| ----------- | --------- | ---------------- |
+| orgId       | string    | Tenant scope     |
+| customerId  | string    | Owner customer   |
+| make        | string    | Vehicle make     |
+| model       | string    | Vehicle model    |
+| year        | number    | Model year       |
+| plateNumber | string    | License plate    |
+| color       | string?   | Color            |
+| vin         | string?   | VIN              |
+| createdAt   | timestamp | Creation time    |
+| updatedAt   | timestamp | Last update      |
+
+## vehicleTasks
+
+| Field               | Type      | Description                          |
+| ------------------- | --------- | ------------------------------------ |
+| orgId               | string    | Tenant scope                         |
+| vehicleId           | string    | Linked vehicle                       |
+| customerId          | string    | Linked customer                      |
+| title               | string    | Task title                           |
+| description         | string?   | Details                              |
+| status              | string    | State machine status                 |
+| assignedMechanicId  | string?   | Assigned mechanic                  |
+| estimatedCompletion | timestamp?| ETA                                  |
+| createdAt           | timestamp | Creation time                        |
+| updatedAt           | timestamp | Last update                          |
+
+**Status values:** `received` → `inspection` → `in_progress` → `quality_check` → `ready` → `completed`
+
+## inventoryItems, employees, mechanics, posOrders, payrollEntries, notifications
+
+All org-scoped with `orgId`, `createdAt`, `updatedAt`. See domain entities in `packages/domain/src/entities.ts`.
 
 ## Custom Claims (Auth Token)
 
@@ -56,3 +100,5 @@
   "role": "owner | employee"
 }
 ```
+
+**Note:** Firestore rules also fall back to `users/{uid}.orgId` when custom claims are unavailable (Spark plan).

@@ -31,6 +31,11 @@ describe('BootstrapDefaultOrgUseCase', () => {
       signOut: vi.fn(),
       sendPasswordReset: vi.fn(),
       sendEmailVerification: vi.fn(),
+      applyEmailVerification: vi.fn(),
+      inspectActionCode: vi.fn(),
+      verifyPasswordResetCode: vi.fn(),
+      confirmPasswordReset: vi.fn(),
+      subscribe: vi.fn(),
     };
 
     const orgRepo: OrganizationRepository = {
@@ -68,6 +73,7 @@ describe('BootstrapDefaultOrgUseCase', () => {
 
     const auditRepo: AuditRepository = {
       log: vi.fn().mockResolvedValue(undefined),
+      listByOrg: vi.fn().mockResolvedValue([]),
     };
 
     const useCase = new BootstrapDefaultOrgUseCase(
