@@ -1,0 +1,60 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function orgId() {
+      return request.auth.token.orgId;
+    }
+
+    function role() {
+      return request.auth.token.role;
+    }
+
+    function isOwner() {
+      return role() == 'owner';
+    }
+
+    function belongsToOrg(docOrgId) {
+      return isAuthenticated() && orgId() == docOrgId;
+    }
+
+    match /organizations/{orgDocId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.slug is string;
+      allow update, delete: if belongsToOrg(orgDocId) && isOwner();
+    }
+
+    match /memberships/{membershipId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || belongsToOrg(resource.data.orgId)
+      );
+      allow create: if isAuthenticated() && (
+        request.resource.data.userId == request.auth.uid ||
+        (belongsToOrg(request.resource.data.orgId) && isOwner())
+      );
+      allow update, delete: if belongsToOrg(resource.data.orgId) && isOwner();
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (
+        userId == request.auth.uid || belongsToOrg(resource.data.orgId)
+      );
+      allow create, update: if isAuthenticated() && userId == request.auth.uid;
+      allow delete: if belongsToOrg(resource.data.orgId) && isOwner();
+    }
+
+    match /auditLogs/{logId} {
+      allow read: if belongsToOrg(resource.data.orgId);
+      allow create: if belongsToOrg(request.resource.data.orgId);
+      allow update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
