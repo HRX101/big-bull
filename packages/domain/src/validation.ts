@@ -37,7 +37,11 @@ export const vehicleSchema = z.object({
   customerId: z.string().min(1, 'Customer is required'),
   make: z.string().min(1, 'Make is required'),
   model: z.string().min(1, 'Model is required'),
-  year: z.coerce.number().int().min(1900).max(new Date().getFullYear() + 1),
+  year: z.coerce
+    .number()
+    .int()
+    .min(1900)
+    .max(new Date().getFullYear() + 1),
   plateNumber: z.string().min(2, 'Plate number is required'),
   color: z.string().optional(),
   vin: z.string().max(17).optional(),

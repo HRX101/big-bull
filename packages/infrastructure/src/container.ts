@@ -88,14 +88,33 @@ export const bootstrapDefaultOrgUseCase = new BootstrapDefaultOrgUseCase(
 );
 
 export const listCustomersUseCase = new ListCustomersUseCase(authRepository, customerRepository);
-export const createCustomerUseCase = new CreateCustomerUseCase(authRepository, customerRepository, auditRepository);
-export const updateCustomerUseCase = new UpdateCustomerUseCase(authRepository, customerRepository, auditRepository);
-export const deleteCustomerUseCase = new DeleteCustomerUseCase(authRepository, customerRepository, auditRepository);
+export const createCustomerUseCase = new CreateCustomerUseCase(
+  authRepository,
+  customerRepository,
+  auditRepository,
+);
+export const updateCustomerUseCase = new UpdateCustomerUseCase(
+  authRepository,
+  customerRepository,
+  auditRepository,
+);
+export const deleteCustomerUseCase = new DeleteCustomerUseCase(
+  authRepository,
+  customerRepository,
+  auditRepository,
+);
 
 export const listVehiclesUseCase = new ListVehiclesUseCase(authRepository, vehicleRepository);
-export const createVehicleUseCase = new CreateVehicleUseCase(authRepository, vehicleRepository, auditRepository);
+export const createVehicleUseCase = new CreateVehicleUseCase(
+  authRepository,
+  vehicleRepository,
+  auditRepository,
+);
 
-export const listVehicleTasksUseCase = new ListVehicleTasksUseCase(authRepository, vehicleTaskRepository);
+export const listVehicleTasksUseCase = new ListVehicleTasksUseCase(
+  authRepository,
+  vehicleTaskRepository,
+);
 export const createVehicleTaskUseCase = new CreateVehicleTaskUseCase(
   authRepository,
   vehicleTaskRepository,
@@ -116,16 +135,35 @@ export const createInventoryItemUseCase = new CreateInventoryItemUseCase(
 );
 
 export const listEmployeesUseCase = new ListEmployeesUseCase(authRepository, employeeRepository);
-export const createEmployeeUseCase = new CreateEmployeeUseCase(authRepository, employeeRepository, auditRepository);
+export const createEmployeeUseCase = new CreateEmployeeUseCase(
+  authRepository,
+  employeeRepository,
+  auditRepository,
+);
 
 export const listMechanicsUseCase = new ListMechanicsUseCase(authRepository, mechanicRepository);
-export const createMechanicUseCase = new CreateMechanicUseCase(authRepository, mechanicRepository, auditRepository);
+export const createMechanicUseCase = new CreateMechanicUseCase(
+  authRepository,
+  mechanicRepository,
+  auditRepository,
+);
 
 export const listPosOrdersUseCase = new ListPosOrdersUseCase(authRepository, posOrderRepository);
-export const createPosOrderUseCase = new CreatePosOrderUseCase(authRepository, posOrderRepository, auditRepository);
-export const payPosOrderUseCase = new PayPosOrderUseCase(authRepository, posOrderRepository, auditRepository);
+export const createPosOrderUseCase = new CreatePosOrderUseCase(
+  authRepository,
+  posOrderRepository,
+  auditRepository,
+);
+export const payPosOrderUseCase = new PayPosOrderUseCase(
+  authRepository,
+  posOrderRepository,
+  auditRepository,
+);
 
-export const listPayrollEntriesUseCase = new ListPayrollEntriesUseCase(authRepository, payrollRepository);
+export const listPayrollEntriesUseCase = new ListPayrollEntriesUseCase(
+  authRepository,
+  payrollRepository,
+);
 export const createPayrollEntryUseCase = new CreatePayrollEntryUseCase(
   authRepository,
   payrollRepository,
@@ -138,9 +176,18 @@ export const approvePayrollEntryUseCase = new ApprovePayrollEntryUseCase(
 );
 
 export const listAuditLogsUseCase = new ListAuditLogsUseCase(authRepository, auditRepository);
-export const listNotificationsUseCase = new ListNotificationsUseCase(authRepository, notificationRepository);
-export const markNotificationReadUseCase = new MarkNotificationReadUseCase(authRepository, notificationRepository);
-export const getWorkshopAnalyticsUseCase = new GetWorkshopAnalyticsUseCase(authRepository, analyticsRepository);
+export const listNotificationsUseCase = new ListNotificationsUseCase(
+  authRepository,
+  notificationRepository,
+);
+export const markNotificationReadUseCase = new MarkNotificationReadUseCase(
+  authRepository,
+  notificationRepository,
+);
+export const getWorkshopAnalyticsUseCase = new GetWorkshopAnalyticsUseCase(
+  authRepository,
+  analyticsRepository,
+);
 
 export {
   authRepository,

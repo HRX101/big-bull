@@ -46,45 +46,45 @@
 
 ## customers
 
-| Field     | Type      | Description    |
-| --------- | --------- | -------------- |
-| orgId     | string    | Tenant scope   |
-| name      | string    | Customer name  |
-| phone     | string    | Phone number   |
-| email     | string?   | Email          |
-| notes     | string?   | Notes          |
-| createdAt | timestamp | Creation time  |
-| updatedAt | timestamp | Last update    |
+| Field     | Type      | Description   |
+| --------- | --------- | ------------- |
+| orgId     | string    | Tenant scope  |
+| name      | string    | Customer name |
+| phone     | string    | Phone number  |
+| email     | string?   | Email         |
+| notes     | string?   | Notes         |
+| createdAt | timestamp | Creation time |
+| updatedAt | timestamp | Last update   |
 
 ## vehicles
 
-| Field       | Type      | Description      |
-| ----------- | --------- | ---------------- |
-| orgId       | string    | Tenant scope     |
-| customerId  | string    | Owner customer   |
-| make        | string    | Vehicle make     |
-| model       | string    | Vehicle model    |
-| year        | number    | Model year       |
-| plateNumber | string    | License plate    |
-| color       | string?   | Color            |
-| vin         | string?   | VIN              |
-| createdAt   | timestamp | Creation time    |
-| updatedAt   | timestamp | Last update      |
+| Field       | Type      | Description    |
+| ----------- | --------- | -------------- |
+| orgId       | string    | Tenant scope   |
+| customerId  | string    | Owner customer |
+| make        | string    | Vehicle make   |
+| model       | string    | Vehicle model  |
+| year        | number    | Model year     |
+| plateNumber | string    | License plate  |
+| color       | string?   | Color          |
+| vin         | string?   | VIN            |
+| createdAt   | timestamp | Creation time  |
+| updatedAt   | timestamp | Last update    |
 
 ## vehicleTasks
 
-| Field               | Type      | Description                          |
-| ------------------- | --------- | ------------------------------------ |
-| orgId               | string    | Tenant scope                         |
-| vehicleId           | string    | Linked vehicle                       |
-| customerId          | string    | Linked customer                      |
-| title               | string    | Task title                           |
-| description         | string?   | Details                              |
-| status              | string    | State machine status                 |
-| assignedMechanicId  | string?   | Assigned mechanic                  |
-| estimatedCompletion | timestamp?| ETA                                  |
-| createdAt           | timestamp | Creation time                        |
-| updatedAt           | timestamp | Last update                          |
+| Field               | Type       | Description          |
+| ------------------- | ---------- | -------------------- |
+| orgId               | string     | Tenant scope         |
+| vehicleId           | string     | Linked vehicle       |
+| customerId          | string     | Linked customer      |
+| title               | string     | Task title           |
+| description         | string?    | Details              |
+| status              | string     | State machine status |
+| assignedMechanicId  | string?    | Assigned mechanic    |
+| estimatedCompletion | timestamp? | ETA                  |
+| createdAt           | timestamp  | Creation time        |
+| updatedAt           | timestamp  | Last update          |
 
 **Status values:** `received` → `inspection` → `in_progress` → `quality_check` → `ready` → `completed`
 

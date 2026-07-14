@@ -1,4 +1,9 @@
-import type { AuthCredentials, AuthRepository, MembershipRepository, SignUpData } from '@car-spa/application';
+import type {
+  AuthCredentials,
+  AuthRepository,
+  MembershipRepository,
+  SignUpData,
+} from '@car-spa/application';
 import type { AuthSession } from '@car-spa/domain';
 import {
   applyActionCode,
@@ -48,7 +53,11 @@ export class FirebaseAuthRepository implements AuthRepository {
   async signIn(credentials: AuthCredentials) {
     try {
       const auth = getFirebaseAuth();
-      const result = await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
+      const result = await signInWithEmailAndPassword(
+        auth,
+        credentials.email,
+        credentials.password,
+      );
       await result.user.getIdToken(true);
       return this.enrichSession(await mapFirebaseUserToSession(result.user));
     } catch (error) {

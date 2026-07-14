@@ -18,10 +18,7 @@ export const VEHICLE_TASK_TRANSITIONS: Record<VehicleTaskStatus, readonly Vehicl
   completed: [],
 } as const;
 
-export function canTransitionVehicleTask(
-  from: VehicleTaskStatus,
-  to: VehicleTaskStatus,
-): boolean {
+export function canTransitionVehicleTask(from: VehicleTaskStatus, to: VehicleTaskStatus): boolean {
   return VEHICLE_TASK_TRANSITIONS[from].includes(to);
 }
 

@@ -17,10 +17,12 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   'auth/missing-continue-uri': 'Email action URL is misconfigured. Contact support.',
   'auth/unauthorized-continue-uri':
     'Email link domain is not authorized. Add your domain in Firebase Console → Authentication → Settings → Authorized domains.',
-  'auth/invalid-action-code': 'This link is invalid or has expired. Request a new verification email.',
+  'auth/invalid-action-code':
+    'This link is invalid or has expired. Request a new verification email.',
   'auth/expired-action-code': 'This link has expired. Request a new verification email.',
   'auth/internal': 'A server error occurred. Ensure Cloud Functions are deployed and try again.',
-  'functions/not-found': 'Cloud Function not found. Deploy functions with: firebase deploy --only functions',
+  'functions/not-found':
+    'Cloud Function not found. Deploy functions with: firebase deploy --only functions',
   'functions/internal': 'Cloud Function error. Deploy functions and try again.',
   'auth/network-request-failed': 'Network error. Check your connection and try again.',
 };

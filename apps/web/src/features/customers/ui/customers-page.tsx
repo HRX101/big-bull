@@ -17,7 +17,12 @@ export function CustomersPage() {
   const createCustomer = useCreateCustomer();
   const deleteCustomer = useDeleteCustomer();
   const [showForm, setShowForm] = useState(false);
-  const { register, handleSubmit, reset, formState: { errors } } = useForm({
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
     resolver: zodResolver(customerSchema),
   });
 
@@ -42,7 +47,9 @@ export function CustomersPage() {
       />
       {showForm && (
         <Card>
-          <CardHeader><CardTitle>New customer</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>New customer</CardTitle>
+          </CardHeader>
           <CardContent>
             <form onSubmit={onSubmit} className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
@@ -63,7 +70,9 @@ export function CustomersPage() {
                 <Label htmlFor="notes">Notes</Label>
                 <Input id="notes" {...register('notes')} />
               </div>
-              <Button type="submit" disabled={createCustomer.isPending}>Save customer</Button>
+              <Button type="submit" disabled={createCustomer.isPending}>
+                Save customer
+              </Button>
             </form>
           </CardContent>
         </Card>
@@ -76,7 +85,14 @@ export function CustomersPage() {
           c.name,
           c.phone,
           c.email ?? '—',
-          <Button key={c.id} variant="destructive" size="sm" onClick={() => deleteCustomer.mutate(c.id)}>Delete</Button>,
+          <Button
+            key={c.id}
+            variant="destructive"
+            size="sm"
+            onClick={() => deleteCustomer.mutate(c.id)}
+          >
+            Delete
+          </Button>,
         ])}
       />
     </div>

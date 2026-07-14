@@ -17,28 +17,46 @@ export function InventoryPage() {
   const { data: items = [], isLoading } = useInventory();
   const createItem = useCreateInventoryItem();
   const [showForm, setShowForm] = useState(false);
-  const { register, handleSubmit, reset, formState: { errors } } = useForm({
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
     resolver: zodResolver(inventoryItemSchema),
   });
 
   const onSubmit = handleSubmit(async (data) => {
     const result = await createItem.mutateAsync(data);
-    if (result.success) { reset(); setShowForm(false); }
+    if (result.success) {
+      reset();
+      setShowForm(false);
+    }
   });
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Inventory" description="Stock levels, SKUs, and reorder alerts." action={<Button onClick={() => setShowForm((v) => !v)}>{showForm ? 'Cancel' : 'Add item'}</Button>} />
+      <PageHeader
+        title="Inventory"
+        description="Stock levels, SKUs, and reorder alerts."
+        action={
+          <Button onClick={() => setShowForm((v) => !v)}>{showForm ? 'Cancel' : 'Add item'}</Button>
+        }
+      />
       {showForm && (
         <Card>
-          <CardHeader><CardTitle>New inventory item</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>New inventory item</CardTitle>
+          </CardHeader>
           <CardContent>
             <form onSubmit={onSubmit} className="grid gap-4 md:grid-cols-3">
               {(['sku', 'name', 'category'] as const).map((field) => (
                 <div key={field} className="space-y-2">
                   <Label>{field.toUpperCase()}</Label>
                   <Input {...register(field)} />
-                  {errors[field] && <p className="text-destructive text-sm">{errors[field]?.message as string}</p>}
+                  {errors[field] && (
+                    <p className="text-destructive text-sm">{errors[field]?.message as string}</p>
+                  )}
                 </div>
               ))}
               {(['quantity', 'unitPrice', 'reorderLevel'] as const).map((field) => (
@@ -47,7 +65,9 @@ export function InventoryPage() {
                   <Input type="number" step="0.01" {...register(field)} />
                 </div>
               ))}
-              <Button type="submit" disabled={createItem.isPending}>Save item</Button>
+              <Button type="submit" disabled={createItem.isPending}>
+                Save item
+              </Button>
             </form>
           </CardContent>
         </Card>
@@ -60,7 +80,11 @@ export function InventoryPage() {
           i.name,
           String(i.quantity),
           `₹${i.unitPrice.toFixed(2)}`,
-          i.quantity <= i.reorderLevel ? <Badge variant="warning">Low stock</Badge> : <Badge variant="success">OK</Badge>,
+          i.quantity <= i.reorderLevel ? (
+            <Badge variant="warning">Low stock</Badge>
+          ) : (
+            <Badge variant="success">OK</Badge>
+          ),
         ])}
       />
     </div>

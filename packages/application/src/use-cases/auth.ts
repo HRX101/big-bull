@@ -100,9 +100,7 @@ export class BootstrapDefaultOrgUseCase {
           // Optional when Cloud Functions are unavailable.
         }
         const refreshed = await this.authRepo.refreshSession();
-        return ok(
-          refreshed ?? this.withMembershipContext(session, existingMembership),
-        );
+        return ok(refreshed ?? this.withMembershipContext(session, existingMembership));
       }
 
       let organization = await this.orgRepo.findBySlug(DEFAULT_ORG_SLUG);

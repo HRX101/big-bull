@@ -95,8 +95,9 @@ export function initAppCheck(): AppCheck | undefined {
   }
 
   if (debugToken) {
-    (globalThis as unknown as { FIREBASE_APPCHECK_DEBUG_TOKEN?: string | boolean }).FIREBASE_APPCHECK_DEBUG_TOKEN =
-      debugToken === 'true' ? true : debugToken;
+    (
+      globalThis as unknown as { FIREBASE_APPCHECK_DEBUG_TOKEN?: string | boolean }
+    ).FIREBASE_APPCHECK_DEBUG_TOKEN = debugToken === 'true' ? true : debugToken;
   }
 
   appCheck = initializeAppCheck(getFirebaseApp(), {

@@ -36,10 +36,40 @@ export function DashboardHome() {
       </div>
       {analytics && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card><CardHeader className="pb-2"><CardTitle className="text-muted-foreground text-sm font-normal">Active tasks</CardTitle></CardHeader><CardContent><p className="font-display text-3xl">{analytics.activeTaskCount}</p></CardContent></Card>
-          <Card><CardHeader className="pb-2"><CardTitle className="text-muted-foreground text-sm font-normal">Customers</CardTitle></CardHeader><CardContent><p className="font-display text-3xl">{analytics.customerCount}</p></CardContent></Card>
-          <Card><CardHeader className="pb-2"><CardTitle className="text-muted-foreground text-sm font-normal">Revenue</CardTitle></CardHeader><CardContent><p className="font-display text-3xl">₹{analytics.totalRevenue.toFixed(0)}</p></CardContent></Card>
-          <Card><CardHeader className="pb-2"><CardTitle className="text-muted-foreground text-sm font-normal">Low stock</CardTitle></CardHeader><CardContent><p className="font-display text-3xl">{analytics.lowStockCount}</p></CardContent></Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-muted-foreground text-sm font-normal">
+                Active tasks
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="font-display text-3xl">{analytics.activeTaskCount}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-muted-foreground text-sm font-normal">Customers</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="font-display text-3xl">{analytics.customerCount}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-muted-foreground text-sm font-normal">Revenue</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="font-display text-3xl">₹{analytics.totalRevenue.toFixed(0)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-muted-foreground text-sm font-normal">Low stock</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="font-display text-3xl">{analytics.lowStockCount}</p>
+            </CardContent>
+          </Card>
         </div>
       )}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

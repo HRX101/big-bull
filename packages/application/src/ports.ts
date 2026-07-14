@@ -80,8 +80,15 @@ export interface AuditRepository {
 export interface CustomerRepository {
   listByOrg(orgId: string): Promise<Customer[]>;
   findById(orgId: string, id: string): Promise<Customer | null>;
-  create(orgId: string, data: Omit<Customer, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>): Promise<Customer>;
-  update(orgId: string, id: string, data: Partial<Pick<Customer, 'name' | 'phone' | 'email' | 'notes'>>): Promise<Customer>;
+  create(
+    orgId: string,
+    data: Omit<Customer, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>,
+  ): Promise<Customer>;
+  update(
+    orgId: string,
+    id: string,
+    data: Partial<Pick<Customer, 'name' | 'phone' | 'email' | 'notes'>>,
+  ): Promise<Customer>;
   delete(orgId: string, id: string): Promise<void>;
 }
 
@@ -89,15 +96,25 @@ export interface VehicleRepository {
   listByOrg(orgId: string): Promise<Vehicle[]>;
   listByCustomer(orgId: string, customerId: string): Promise<Vehicle[]>;
   findById(orgId: string, id: string): Promise<Vehicle | null>;
-  create(orgId: string, data: Omit<Vehicle, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>): Promise<Vehicle>;
-  update(orgId: string, id: string, data: Partial<Omit<Vehicle, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>>): Promise<Vehicle>;
+  create(
+    orgId: string,
+    data: Omit<Vehicle, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>,
+  ): Promise<Vehicle>;
+  update(
+    orgId: string,
+    id: string,
+    data: Partial<Omit<Vehicle, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>>,
+  ): Promise<Vehicle>;
   delete(orgId: string, id: string): Promise<void>;
 }
 
 export interface VehicleTaskRepository {
   listByOrg(orgId: string): Promise<VehicleTask[]>;
   findById(orgId: string, id: string): Promise<VehicleTask | null>;
-  create(orgId: string, data: Omit<VehicleTask, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>): Promise<VehicleTask>;
+  create(
+    orgId: string,
+    data: Omit<VehicleTask, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>,
+  ): Promise<VehicleTask>;
   updateStatus(orgId: string, id: string, status: VehicleTaskStatus): Promise<VehicleTask>;
   assignMechanic(orgId: string, id: string, mechanicId: string | null): Promise<VehicleTask>;
 }
@@ -105,39 +122,74 @@ export interface VehicleTaskRepository {
 export interface InventoryRepository {
   listByOrg(orgId: string): Promise<InventoryItem[]>;
   findById(orgId: string, id: string): Promise<InventoryItem | null>;
-  create(orgId: string, data: Omit<InventoryItem, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>): Promise<InventoryItem>;
-  update(orgId: string, id: string, data: Partial<Omit<InventoryItem, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>>): Promise<InventoryItem>;
+  create(
+    orgId: string,
+    data: Omit<InventoryItem, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>,
+  ): Promise<InventoryItem>;
+  update(
+    orgId: string,
+    id: string,
+    data: Partial<Omit<InventoryItem, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>>,
+  ): Promise<InventoryItem>;
   delete(orgId: string, id: string): Promise<void>;
 }
 
 export interface EmployeeRepository {
   listByOrg(orgId: string): Promise<Employee[]>;
   findById(orgId: string, id: string): Promise<Employee | null>;
-  create(orgId: string, data: Omit<Employee, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>): Promise<Employee>;
-  update(orgId: string, id: string, data: Partial<Omit<Employee, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>>): Promise<Employee>;
+  create(
+    orgId: string,
+    data: Omit<Employee, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>,
+  ): Promise<Employee>;
+  update(
+    orgId: string,
+    id: string,
+    data: Partial<Omit<Employee, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>>,
+  ): Promise<Employee>;
   delete(orgId: string, id: string): Promise<void>;
 }
 
 export interface MechanicRepository {
   listByOrg(orgId: string): Promise<Mechanic[]>;
   findById(orgId: string, id: string): Promise<Mechanic | null>;
-  create(orgId: string, data: Omit<Mechanic, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>): Promise<Mechanic>;
-  update(orgId: string, id: string, data: Partial<Omit<Mechanic, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>>): Promise<Mechanic>;
+  create(
+    orgId: string,
+    data: Omit<Mechanic, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>,
+  ): Promise<Mechanic>;
+  update(
+    orgId: string,
+    id: string,
+    data: Partial<Omit<Mechanic, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>>,
+  ): Promise<Mechanic>;
   delete(orgId: string, id: string): Promise<void>;
 }
 
 export interface PosOrderRepository {
   listByOrg(orgId: string): Promise<PosOrder[]>;
   findById(orgId: string, id: string): Promise<PosOrder | null>;
-  create(orgId: string, data: Omit<PosOrder, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>): Promise<PosOrder>;
-  update(orgId: string, id: string, data: Partial<Pick<PosOrder, 'status' | 'paymentMethod'>>): Promise<PosOrder>;
+  create(
+    orgId: string,
+    data: Omit<PosOrder, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>,
+  ): Promise<PosOrder>;
+  update(
+    orgId: string,
+    id: string,
+    data: Partial<Pick<PosOrder, 'status' | 'paymentMethod'>>,
+  ): Promise<PosOrder>;
 }
 
 export interface PayrollRepository {
   listByOrg(orgId: string): Promise<PayrollEntry[]>;
   findById(orgId: string, id: string): Promise<PayrollEntry | null>;
-  create(orgId: string, data: Omit<PayrollEntry, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>): Promise<PayrollEntry>;
-  update(orgId: string, id: string, data: Partial<Pick<PayrollEntry, 'status' | 'grossPay' | 'deductions' | 'netPay'>>): Promise<PayrollEntry>;
+  create(
+    orgId: string,
+    data: Omit<PayrollEntry, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>,
+  ): Promise<PayrollEntry>;
+  update(
+    orgId: string,
+    id: string,
+    data: Partial<Pick<PayrollEntry, 'status' | 'grossPay' | 'deductions' | 'netPay'>>,
+  ): Promise<PayrollEntry>;
 }
 
 export interface NotificationRepository {

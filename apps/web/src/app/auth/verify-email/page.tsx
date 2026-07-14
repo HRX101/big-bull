@@ -98,7 +98,11 @@ function VerifyEmailContent() {
       <CardContent className="space-y-3">
         {message && <p className="text-sm text-emerald-400">{message}</p>}
         {error && <p className="text-destructive text-sm">{error}</p>}
-        <Button className="w-full" disabled={checkLoading} onClick={() => void handleCheckVerified()}>
+        <Button
+          className="w-full"
+          disabled={checkLoading}
+          onClick={() => void handleCheckVerified()}
+        >
           {checkLoading ? 'Checking…' : 'I have verified my email'}
         </Button>
         <Button
@@ -118,7 +122,7 @@ function VerifyEmailContent() {
         </p>
         <Link
           href={AUTH_ROUTES.signIn}
-          className="text-muted-foreground block text-center text-sm hover:text-foreground"
+          className="text-muted-foreground hover:text-foreground block text-center text-sm"
         >
           Back to sign in
         </Link>

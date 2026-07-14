@@ -42,7 +42,10 @@ const keys = {
   analytics: ['analytics'] as const,
 };
 
-function useResultQuery<T>(key: readonly string[], fn: () => Promise<{ success: boolean; value?: T; error?: Error }>) {
+function useResultQuery<T>(
+  key: readonly string[],
+  fn: () => Promise<{ success: boolean; value?: T; error?: Error }>,
+) {
   return useQuery({
     queryKey: key,
     queryFn: async () => {
@@ -166,8 +169,13 @@ export function useCreatePosOrder() {
 export function usePayPosOrder() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ orderId, paymentMethod }: { orderId: string; paymentMethod: 'cash' | 'card' | 'upi' | 'other' }) =>
-      payPosOrderUseCase.execute(orderId, paymentMethod),
+    mutationFn: ({
+      orderId,
+      paymentMethod,
+    }: {
+      orderId: string;
+      paymentMethod: 'cash' | 'card' | 'upi' | 'other';
+    }) => payPosOrderUseCase.execute(orderId, paymentMethod),
     onSuccess: (r) => {
       if (r.success) {
         qc.invalidateQueries({ queryKey: keys.pos });

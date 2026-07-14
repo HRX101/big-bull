@@ -119,9 +119,7 @@ function mapMechanic(id: string, data: Record<string, unknown>): Mechanic {
     id,
     orgId: String(data.orgId),
     employeeId: String(data.employeeId),
-    specializations: Array.isArray(data.specializations)
-      ? data.specializations.map(String)
-      : [],
+    specializations: Array.isArray(data.specializations) ? data.specializations.map(String) : [],
     isAvailable: Boolean(data.isAvailable),
     createdAt: fromFirestoreDate(data.createdAt),
     updatedAt: fromFirestoreDate(data.updatedAt),
@@ -188,7 +186,11 @@ export class FirestoreCustomerRepository implements CustomerRepository {
     const { id, data: saved } = await addOrgDoc(COLLECTIONS.customers, orgId, data);
     return mapCustomer(id, saved);
   }
-  async update(orgId: string, id: string, data: Partial<Pick<Customer, 'name' | 'phone' | 'email' | 'notes'>>) {
+  async update(
+    orgId: string,
+    id: string,
+    data: Partial<Pick<Customer, 'name' | 'phone' | 'email' | 'notes'>>,
+  ) {
     const saved = await updateOrgDoc(COLLECTIONS.customers, orgId, id, data);
     return mapCustomer(id, saved);
   }
@@ -214,7 +216,11 @@ export class FirestoreVehicleRepository implements VehicleRepository {
     const { id, data: saved } = await addOrgDoc(COLLECTIONS.vehicles, orgId, data);
     return mapVehicle(id, saved);
   }
-  async update(orgId: string, id: string, data: Partial<Omit<Vehicle, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>>) {
+  async update(
+    orgId: string,
+    id: string,
+    data: Partial<Omit<Vehicle, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>>,
+  ) {
     const saved = await updateOrgDoc(COLLECTIONS.vehicles, orgId, id, data);
     return mapVehicle(id, saved);
   }
@@ -257,11 +263,18 @@ export class FirestoreInventoryRepository implements InventoryRepository {
     const doc = await getOrgDoc(COLLECTIONS.inventoryItems, orgId, id);
     return doc ? mapInventory(doc.id, doc.data) : null;
   }
-  async create(orgId: string, data: Omit<InventoryItem, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>) {
+  async create(
+    orgId: string,
+    data: Omit<InventoryItem, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>,
+  ) {
     const { id, data: saved } = await addOrgDoc(COLLECTIONS.inventoryItems, orgId, data);
     return mapInventory(id, saved);
   }
-  async update(orgId: string, id: string, data: Partial<Omit<InventoryItem, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>>) {
+  async update(
+    orgId: string,
+    id: string,
+    data: Partial<Omit<InventoryItem, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>>,
+  ) {
     const saved = await updateOrgDoc(COLLECTIONS.inventoryItems, orgId, id, data);
     return mapInventory(id, saved);
   }
@@ -286,7 +299,11 @@ export class FirestoreEmployeeRepository implements EmployeeRepository {
     });
     return mapEmployee(id, saved);
   }
-  async update(orgId: string, id: string, data: Partial<Omit<Employee, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>>) {
+  async update(
+    orgId: string,
+    id: string,
+    data: Partial<Omit<Employee, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>>,
+  ) {
     const saved = await updateOrgDoc(COLLECTIONS.employees, orgId, id, data);
     return mapEmployee(id, saved);
   }
@@ -308,7 +325,11 @@ export class FirestoreMechanicRepository implements MechanicRepository {
     const { id, data: saved } = await addOrgDoc(COLLECTIONS.mechanics, orgId, data);
     return mapMechanic(id, saved);
   }
-  async update(orgId: string, id: string, data: Partial<Omit<Mechanic, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>>) {
+  async update(
+    orgId: string,
+    id: string,
+    data: Partial<Omit<Mechanic, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>>,
+  ) {
     const saved = await updateOrgDoc(COLLECTIONS.mechanics, orgId, id, data);
     return mapMechanic(id, saved);
   }
@@ -330,7 +351,11 @@ export class FirestorePosOrderRepository implements PosOrderRepository {
     const { id, data: saved } = await addOrgDoc(COLLECTIONS.posOrders, orgId, data);
     return mapPosOrder(id, saved);
   }
-  async update(orgId: string, id: string, data: Partial<Pick<PosOrder, 'status' | 'paymentMethod'>>) {
+  async update(
+    orgId: string,
+    id: string,
+    data: Partial<Pick<PosOrder, 'status' | 'paymentMethod'>>,
+  ) {
     const saved = await updateOrgDoc(COLLECTIONS.posOrders, orgId, id, data);
     return mapPosOrder(id, saved);
   }
@@ -345,11 +370,18 @@ export class FirestorePayrollRepository implements PayrollRepository {
     const doc = await getOrgDoc(COLLECTIONS.payrollEntries, orgId, id);
     return doc ? mapPayroll(doc.id, doc.data) : null;
   }
-  async create(orgId: string, data: Omit<PayrollEntry, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>) {
+  async create(
+    orgId: string,
+    data: Omit<PayrollEntry, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>,
+  ) {
     const { id, data: saved } = await addOrgDoc(COLLECTIONS.payrollEntries, orgId, data);
     return mapPayroll(id, saved);
   }
-  async update(orgId: string, id: string, data: Partial<Pick<PayrollEntry, 'status' | 'grossPay' | 'deductions' | 'netPay'>>) {
+  async update(
+    orgId: string,
+    id: string,
+    data: Partial<Pick<PayrollEntry, 'status' | 'grossPay' | 'deductions' | 'netPay'>>,
+  ) {
     const saved = await updateOrgDoc(COLLECTIONS.payrollEntries, orgId, id, data);
     return mapPayroll(id, saved);
   }
@@ -358,9 +390,7 @@ export class FirestorePayrollRepository implements PayrollRepository {
 export class FirestoreNotificationRepository implements NotificationRepository {
   async listByUser(orgId: string, userId: string) {
     const docs = await listOrgDocs(COLLECTIONS.notifications, orgId);
-    return docs
-      .map((d) => mapNotification(d.id, d.data))
-      .filter((n) => n.userId === userId);
+    return docs.map((d) => mapNotification(d.id, d.data)).filter((n) => n.userId === userId);
   }
   async create(data: Omit<AppNotification, 'id' | 'createdAt'>) {
     const { id, data: saved } = await addOrgDoc(COLLECTIONS.notifications, data.orgId, data);

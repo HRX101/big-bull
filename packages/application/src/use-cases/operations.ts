@@ -80,7 +80,14 @@ export class CreateCustomerUseCase {
         email: parsed.data.email || null,
         notes: parsed.data.notes ?? null,
       });
-      await logAction(this.auditRepo, ctx.orgId, ctx.userId, 'customer.create', 'customer', customer.id);
+      await logAction(
+        this.auditRepo,
+        ctx.orgId,
+        ctx.userId,
+        'customer.create',
+        'customer',
+        customer.id,
+      );
       return ok(customer);
     } catch (error) {
       return err(error instanceof Error ? error : new Error('Failed to create customer'));
@@ -174,7 +181,14 @@ export class CreateVehicleUseCase {
         color: parsed.data.color ?? null,
         vin: parsed.data.vin ?? null,
       });
-      await logAction(this.auditRepo, ctx.orgId, ctx.userId, 'vehicle.create', 'vehicle', vehicle.id);
+      await logAction(
+        this.auditRepo,
+        ctx.orgId,
+        ctx.userId,
+        'vehicle.create',
+        'vehicle',
+        vehicle.id,
+      );
       return ok(vehicle);
     } catch (error) {
       return err(error instanceof Error ? error : new Error('Failed to create vehicle'));
@@ -262,11 +276,23 @@ export class TransitionVehicleTaskUseCase {
       if (!canTransitionVehicleTask(task.status, parsed.data.toStatus)) {
         return err(new Error(`Cannot transition from ${task.status} to ${parsed.data.toStatus}`));
       }
-      const updated = await this.taskRepo.updateStatus(ctx.orgId, parsed.data.taskId, parsed.data.toStatus);
-      await logAction(this.auditRepo, ctx.orgId, ctx.userId, 'task.transition', 'vehicleTask', task.id, {
-        from: task.status,
-        to: parsed.data.toStatus,
-      });
+      const updated = await this.taskRepo.updateStatus(
+        ctx.orgId,
+        parsed.data.taskId,
+        parsed.data.toStatus,
+      );
+      await logAction(
+        this.auditRepo,
+        ctx.orgId,
+        ctx.userId,
+        'task.transition',
+        'vehicleTask',
+        task.id,
+        {
+          from: task.status,
+          to: parsed.data.toStatus,
+        },
+      );
       return ok(updated);
     } catch (error) {
       return err(error instanceof Error ? error : new Error('Failed to transition task'));
@@ -305,7 +331,14 @@ export class CreateInventoryItemUseCase {
       const ctx = requireOrgContext(await this.authRepo.getCurrentSession());
       requirePermission(ctx, 'inventory:create');
       const item = await this.inventoryRepo.create(ctx.orgId, parsed.data);
-      await logAction(this.auditRepo, ctx.orgId, ctx.userId, 'inventory.create', 'inventoryItem', item.id);
+      await logAction(
+        this.auditRepo,
+        ctx.orgId,
+        ctx.userId,
+        'inventory.create',
+        'inventoryItem',
+        item.id,
+      );
       return ok(item);
     } catch (error) {
       return err(error instanceof Error ? error : new Error('Failed to create inventory item'));
@@ -352,7 +385,14 @@ export class CreateEmployeeUseCase {
         status: parsed.data.status,
         hireDate: new Date(parsed.data.hireDate),
       });
-      await logAction(this.auditRepo, ctx.orgId, ctx.userId, 'employee.create', 'employee', employee.id);
+      await logAction(
+        this.auditRepo,
+        ctx.orgId,
+        ctx.userId,
+        'employee.create',
+        'employee',
+        employee.id,
+      );
       return ok(employee);
     } catch (error) {
       return err(error instanceof Error ? error : new Error('Failed to create employee'));
@@ -392,10 +432,20 @@ export class CreateMechanicUseCase {
       requirePermission(ctx, 'mechanics:create');
       const mechanic = await this.mechanicRepo.create(ctx.orgId, {
         employeeId: parsed.data.employeeId,
-        specializations: parsed.data.specializations.split(',').map((s) => s.trim()).filter(Boolean),
+        specializations: parsed.data.specializations
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
         isAvailable: parsed.data.isAvailable,
       });
-      await logAction(this.auditRepo, ctx.orgId, ctx.userId, 'mechanic.create', 'mechanic', mechanic.id);
+      await logAction(
+        this.auditRepo,
+        ctx.orgId,
+        ctx.userId,
+        'mechanic.create',
+        'mechanic',
+        mechanic.id,
+      );
       return ok(mechanic);
     } catch (error) {
       return err(error instanceof Error ? error : new Error('Failed to create mechanic'));
@@ -464,7 +514,10 @@ export class PayPosOrderUseCase {
     private readonly auditRepo: AuditRepository,
   ) {}
 
-  async execute(orderId: string, paymentMethod: import('@car-spa/domain').PaymentMethod): Promise<Result<import('@car-spa/domain').PosOrder>> {
+  async execute(
+    orderId: string,
+    paymentMethod: import('@car-spa/domain').PaymentMethod,
+  ): Promise<Result<import('@car-spa/domain').PosOrder>> {
     try {
       const ctx = requireOrgContext(await this.authRepo.getCurrentSession());
       requirePermission(ctx, 'pos:pay');
@@ -472,7 +525,9 @@ export class PayPosOrderUseCase {
         status: 'paid',
         paymentMethod,
       });
-      await logAction(this.auditRepo, ctx.orgId, ctx.userId, 'pos.pay', 'posOrder', orderId, { paymentMethod });
+      await logAction(this.auditRepo, ctx.orgId, ctx.userId, 'pos.pay', 'posOrder', orderId, {
+        paymentMethod,
+      });
       return ok(order);
     } catch (error) {
       return err(error instanceof Error ? error : new Error('Failed to pay order'));
@@ -520,7 +575,14 @@ export class CreatePayrollEntryUseCase {
         netPay,
         status: 'draft',
       });
-      await logAction(this.auditRepo, ctx.orgId, ctx.userId, 'payroll.create', 'payrollEntry', entry.id);
+      await logAction(
+        this.auditRepo,
+        ctx.orgId,
+        ctx.userId,
+        'payroll.create',
+        'payrollEntry',
+        entry.id,
+      );
       return ok(entry);
     } catch (error) {
       return err(error instanceof Error ? error : new Error('Failed to create payroll entry'));

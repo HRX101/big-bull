@@ -20,8 +20,27 @@ export function NotificationsPage() {
           n.title,
           n.body,
           <Badge key={`${n.id}-t`}>{n.type}</Badge>,
-          n.read ? <Badge key={`${n.id}-r`} variant="outline">Read</Badge> : <Badge key={`${n.id}-r`} variant="warning">Unread</Badge>,
-          !n.read ? <Button key={`${n.id}-a`} size="sm" variant="outline" onClick={() => markRead.mutate(n.id)}>Mark read</Button> : '—',
+          n.read ? (
+            <Badge key={`${n.id}-r`} variant="outline">
+              Read
+            </Badge>
+          ) : (
+            <Badge key={`${n.id}-r`} variant="warning">
+              Unread
+            </Badge>
+          ),
+          !n.read ? (
+            <Button
+              key={`${n.id}-a`}
+              size="sm"
+              variant="outline"
+              onClick={() => markRead.mutate(n.id)}
+            >
+              Mark read
+            </Button>
+          ) : (
+            '—'
+          ),
         ])}
       />
     </div>

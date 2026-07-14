@@ -1,7 +1,16 @@
 import type { AuditRepository } from '@car-spa/application';
 import type { AuditLogEntry } from '@car-spa/domain';
 import { COLLECTIONS } from '@car-spa/shared';
-import { addDoc, collection, getDocs, limit, orderBy, query, serverTimestamp, where } from 'firebase/firestore';
+import {
+  addDoc,
+  collection,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  serverTimestamp,
+  where,
+} from 'firebase/firestore';
 import { getFirebaseDb } from '../firebase/client';
 import { fromFirestoreDate } from '../firebase/mappers';
 

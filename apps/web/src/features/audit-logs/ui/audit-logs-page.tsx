@@ -9,7 +9,10 @@ export function AuditLogsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Audit Logs" description="Immutable record of actions across the workshop." />
+      <PageHeader
+        title="Audit Logs"
+        description="Immutable record of actions across the workshop."
+      />
       {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
       {error && <p className="text-destructive text-sm">{error.message}</p>}
       <DataTable
