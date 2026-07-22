@@ -19,10 +19,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const setLoading = useAuthStore((s) => s.setLoading);
 
   useEffect(() => {
-    const unsubscribe = authRepository.subscribe((session) => {
-      setSession(session);
+    const unsubscribe = authRepository.subscribe(async (session) => {
+      if (!session) {
+        setSession(null);
+        setLoading(false);
+        setAuthCookie(false);
+        return;
+      }
+
+      const refreshed = await authRepository.refreshSession();
+      setSession(refreshed ?? session);
       setLoading(false);
-      setAuthCookie(!!session);
+      setAuthCookie(true);
     });
     return unsubscribe;
   }, [setSession, setLoading]);

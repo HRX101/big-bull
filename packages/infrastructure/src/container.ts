@@ -10,6 +10,7 @@ import {
   CreateVehicleTaskUseCase,
   CreateVehicleUseCase,
   DeleteCustomerUseCase,
+  DeleteVehicleTaskUseCase,
   GetWorkshopAnalyticsUseCase,
   ListAuditLogsUseCase,
   ListCustomersUseCase,
@@ -27,6 +28,8 @@ import {
   SignUpUseCase,
   TransitionVehicleTaskUseCase,
   UpdateCustomerUseCase,
+  UpdateVehicleTaskPaymentUseCase,
+  UpdateVehicleTaskUseCase,
 } from '@car-spa/application';
 import { FirebaseAuthRepository } from './repositories/auth.repository';
 import { FirestoreOrganizationRepository } from './repositories/organization.repository';
@@ -47,12 +50,13 @@ import {
 } from './repositories/operations.repository';
 import { FirebaseClaimsService } from './services/claims.service';
 import { ClientReceiptService } from './services/receipt.service';
+import { CallableWhatsAppMessagingService } from './services/whatsapp.service';
 
 const membershipRepository = new FirestoreMembershipRepository();
 const userRepository = new FirestoreUserRepository();
 const auditRepository = new FirestoreAuditRepository();
 const claimsService = new FirebaseClaimsService();
-const authRepository = new FirebaseAuthRepository(membershipRepository);
+const authRepository = new FirebaseAuthRepository(membershipRepository, userRepository);
 const organizationRepository = new FirestoreOrganizationRepository();
 
 const customerRepository = new FirestoreCustomerRepository();
@@ -75,6 +79,7 @@ const analyticsRepository = new FirestoreAnalyticsRepository(
   payrollRepository,
 );
 const receiptService = new ClientReceiptService(posOrderRepository);
+const whatsAppMessagingService = new CallableWhatsAppMessagingService();
 
 export const signInUseCase = new SignInUseCase(authRepository);
 export const signUpUseCase = new SignUpUseCase(authRepository);
@@ -121,10 +126,27 @@ export const createVehicleTaskUseCase = new CreateVehicleTaskUseCase(
   auditRepository,
   notificationRepository,
 );
-export const transitionVehicleTaskUseCase = new TransitionVehicleTaskUseCase(
+export const updateVehicleTaskUseCase = new UpdateVehicleTaskUseCase(
   authRepository,
   vehicleTaskRepository,
   auditRepository,
+);
+export const updateVehicleTaskPaymentUseCase = new UpdateVehicleTaskPaymentUseCase(
+  authRepository,
+  vehicleTaskRepository,
+  auditRepository,
+);
+export const deleteVehicleTaskUseCase = new DeleteVehicleTaskUseCase(
+  authRepository,
+  vehicleTaskRepository,
+  auditRepository,
+);
+export const transitionVehicleTaskUseCase = new TransitionVehicleTaskUseCase(
+  authRepository,
+  vehicleTaskRepository,
+  customerRepository,
+  auditRepository,
+  whatsAppMessagingService,
 );
 
 export const listInventoryUseCase = new ListInventoryUseCase(authRepository, inventoryRepository);

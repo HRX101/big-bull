@@ -3,6 +3,7 @@ import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { setGlobalOptions } from 'firebase-functions/v2';
+import { deliverWhatsAppMessage } from './whatsapp';
 
 initializeApp();
 setGlobalOptions({ region: 'asia-south1' });
@@ -19,6 +20,35 @@ interface GenerateReceiptRequest {
   orderId: string;
   orgId: string;
 }
+
+interface SendWhatsAppMessageRequest {
+  to: string;
+  body: string;
+}
+
+export const sendWhatsAppMessage = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'Authentication required');
+  }
+
+  const data = request.data as SendWhatsAppMessageRequest;
+  if (!data?.to || !data?.body?.trim()) {
+    throw new HttpsError('invalid-argument', 'to and body are required');
+  }
+
+  try {
+    const result = await deliverWhatsAppMessage(data.to, data.body.trim());
+    return {
+      success: true,
+      from: '8972424853',
+      to: data.to,
+      providerMessageId: (result as { sid?: string }).sid ?? null,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to send WhatsApp message';
+    throw new HttpsError('internal', message);
+  }
+});
 
 export const syncUserClaims = onCall(async (request) => {
   if (!request.auth) {

@@ -1,15 +1,20 @@
 import type { VehicleTaskStatus } from '@car-spa/domain';
 import {
+  buildVehicleTaskStatusWhatsAppMessage,
   canTransitionVehicleTask,
   customerSchema,
   employeeSchema,
+  formatVehicleTaskVehicle,
+  generateVehicleTaskCode,
   inventoryItemSchema,
   mechanicSchema,
   payrollEntrySchema,
   posOrderSchema,
   vehicleSchema,
+  vehicleTaskPaymentUpdateSchema,
   vehicleTaskSchema,
   vehicleTaskTransitionSchema,
+  vehicleTaskUpdateSchema,
 } from '@car-spa/domain';
 import { err, ok, type Result } from '@car-spa/shared';
 import { requireOrgContext, requirePermission } from '../context';
@@ -26,6 +31,7 @@ import type {
   PosOrderRepository,
   VehicleRepository,
   VehicleTaskRepository,
+  WhatsAppMessagingService,
 } from '../ports';
 
 async function logAction(
@@ -227,12 +233,21 @@ export class CreateVehicleTaskUseCase {
     try {
       const ctx = requireOrgContext(await this.authRepo.getCurrentSession());
       requirePermission(ctx, 'tasks:create');
+      const existingTasks = await this.taskRepo.listByOrg(ctx.orgId);
+      const taskCode = generateVehicleTaskCode(existingTasks.map((task) => task.taskCode));
       const task = await this.taskRepo.create(ctx.orgId, {
-        vehicleId: parsed.data.vehicleId,
+        taskCode,
+        vehicleBrand: parsed.data.vehicleBrand,
+        vehicleModel: parsed.data.vehicleModel,
+        vehicleNumber: parsed.data.vehicleNumber,
         customerId: parsed.data.customerId,
-        title: parsed.data.title,
-        description: parsed.data.description ?? null,
-        status: 'received',
+        services: parsed.data.services,
+        paymentMethod: parsed.data.paymentMethod,
+        amount: parsed.data.amount,
+        advancePayment: parsed.data.advancePayment,
+        problemStatement: null,
+        description: null,
+        status: 'todo',
         assignedMechanicId: parsed.data.assignedMechanicId ?? null,
         estimatedCompletion: parsed.data.estimatedCompletion
           ? new Date(parsed.data.estimatedCompletion)
@@ -244,7 +259,7 @@ export class CreateVehicleTaskUseCase {
           orgId: ctx.orgId,
           userId: ctx.userId,
           title: 'New vehicle task',
-          body: `Task "${task.title}" created`,
+          body: `Task ${task.taskCode} created`,
           type: 'task',
           read: false,
         });
@@ -258,11 +273,103 @@ export class CreateVehicleTaskUseCase {
   }
 }
 
-export class TransitionVehicleTaskUseCase {
+export class UpdateVehicleTaskUseCase {
   constructor(
     private readonly authRepo: AuthRepository,
     private readonly taskRepo: VehicleTaskRepository,
     private readonly auditRepo: AuditRepository,
+  ) {}
+
+  async execute(id: string, input: unknown): Promise<Result<import('@car-spa/domain').VehicleTask>> {
+    const parsed = vehicleTaskUpdateSchema.safeParse(input);
+    if (!parsed.success) return err(new Error(parsed.error.errors[0]?.message ?? 'Invalid input'));
+    try {
+      const ctx = requireOrgContext(await this.authRepo.getCurrentSession());
+      requirePermission(ctx, 'tasks:update');
+      const existing = await this.taskRepo.findById(ctx.orgId, id);
+      if (!existing) return err(new Error('Task not found'));
+      const task = await this.taskRepo.update(ctx.orgId, id, {
+        vehicleBrand: parsed.data.vehicleBrand,
+        vehicleModel: parsed.data.vehicleModel,
+        vehicleNumber: parsed.data.vehicleNumber,
+        customerId: parsed.data.customerId,
+        services: parsed.data.services,
+        paymentMethod: parsed.data.paymentMethod,
+        amount: parsed.data.amount,
+        advancePayment: parsed.data.advancePayment,
+      });
+      await logAction(this.auditRepo, ctx.orgId, ctx.userId, 'task.update', 'vehicleTask', id);
+      return ok(task);
+    } catch (error) {
+      return err(error instanceof Error ? error : new Error('Failed to update task'));
+    }
+  }
+}
+
+export class UpdateVehicleTaskPaymentUseCase {
+  constructor(
+    private readonly authRepo: AuthRepository,
+    private readonly taskRepo: VehicleTaskRepository,
+    private readonly auditRepo: AuditRepository,
+  ) {}
+
+  async execute(input: unknown): Promise<Result<import('@car-spa/domain').VehicleTask>> {
+    const parsed = vehicleTaskPaymentUpdateSchema.safeParse(input);
+    if (!parsed.success) return err(new Error(parsed.error.errors[0]?.message ?? 'Invalid input'));
+    try {
+      const ctx = requireOrgContext(await this.authRepo.getCurrentSession());
+      requirePermission(ctx, 'tasks:update');
+      const existing = await this.taskRepo.findById(ctx.orgId, parsed.data.taskId);
+      if (!existing) return err(new Error('Task not found'));
+      const task = await this.taskRepo.updatePayment(ctx.orgId, parsed.data.taskId, {
+        paymentMethod: parsed.data.paymentMethod,
+        amount: parsed.data.amount,
+        advancePayment: parsed.data.advancePayment,
+      });
+      await logAction(
+        this.auditRepo,
+        ctx.orgId,
+        ctx.userId,
+        'task.payment.update',
+        'vehicleTask',
+        parsed.data.taskId,
+      );
+      return ok(task);
+    } catch (error) {
+      return err(error instanceof Error ? error : new Error('Failed to update task payment'));
+    }
+  }
+}
+
+export class DeleteVehicleTaskUseCase {
+  constructor(
+    private readonly authRepo: AuthRepository,
+    private readonly taskRepo: VehicleTaskRepository,
+    private readonly auditRepo: AuditRepository,
+  ) {}
+
+  async execute(id: string): Promise<Result<void>> {
+    try {
+      const ctx = requireOrgContext(await this.authRepo.getCurrentSession());
+      requirePermission(ctx, 'tasks:delete');
+      const existing = await this.taskRepo.findById(ctx.orgId, id);
+      if (!existing) return err(new Error('Task not found'));
+      await this.taskRepo.delete(ctx.orgId, id);
+      await logAction(this.auditRepo, ctx.orgId, ctx.userId, 'task.delete', 'vehicleTask', id);
+      return ok(undefined);
+    } catch (error) {
+      return err(error instanceof Error ? error : new Error('Failed to delete task'));
+    }
+  }
+}
+
+export class TransitionVehicleTaskUseCase {
+  constructor(
+    private readonly authRepo: AuthRepository,
+    private readonly taskRepo: VehicleTaskRepository,
+    private readonly customerRepo: CustomerRepository,
+    private readonly auditRepo: AuditRepository,
+    private readonly whatsAppService: WhatsAppMessagingService,
   ) {}
 
   async execute(input: unknown): Promise<Result<import('@car-spa/domain').VehicleTask>> {
@@ -293,6 +400,22 @@ export class TransitionVehicleTaskUseCase {
           to: parsed.data.toStatus,
         },
       );
+      try {
+        const customer = await this.customerRepo.findById(ctx.orgId, updated.customerId);
+        if (customer?.phone) {
+          await this.whatsAppService.sendMessage({
+            to: customer.phone,
+            body: buildVehicleTaskStatusWhatsAppMessage({
+              customerName: customer.name,
+              taskCode: updated.taskCode,
+              vehicleLabel: formatVehicleTaskVehicle(updated),
+              status: parsed.data.toStatus,
+            }),
+          });
+        }
+      } catch {
+        // Best-effort WhatsApp notification
+      }
       return ok(updated);
     } catch (error) {
       return err(error instanceof Error ? error : new Error('Failed to transition task'));

@@ -3,6 +3,7 @@
 import {
   approvePayrollEntryUseCase,
   createCustomerUseCase,
+  updateCustomerUseCase,
   createEmployeeUseCase,
   createInventoryItemUseCase,
   createMechanicUseCase,
@@ -11,6 +12,7 @@ import {
   createVehicleTaskUseCase,
   createVehicleUseCase,
   deleteCustomerUseCase,
+  deleteVehicleTaskUseCase,
   getWorkshopAnalyticsUseCase,
   listAuditLogsUseCase,
   listCustomersUseCase,
@@ -25,6 +27,8 @@ import {
   markNotificationReadUseCase,
   payPosOrderUseCase,
   transitionVehicleTaskUseCase,
+  updateVehicleTaskPaymentUseCase,
+  updateVehicleTaskUseCase,
 } from '@car-spa/infrastructure';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -68,6 +72,15 @@ export function useCreateCustomer() {
   });
 }
 
+export function useUpdateCustomer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: unknown }) =>
+      updateCustomerUseCase.execute(id, input),
+    onSuccess: (r) => r.success && qc.invalidateQueries({ queryKey: keys.customers }),
+  });
+}
+
 export function useDeleteCustomer() {
   const qc = useQueryClient();
   return useMutation({
@@ -99,9 +112,40 @@ export function useCreateVehicleTask() {
     onSuccess: (r) => {
       if (r.success) {
         qc.invalidateQueries({ queryKey: keys.tasks });
+        qc.invalidateQueries({ queryKey: keys.customers });
         qc.invalidateQueries({ queryKey: keys.notifications });
       }
     },
+  });
+}
+
+export function useUpdateVehicleTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: unknown }) =>
+      updateVehicleTaskUseCase.execute(id, input),
+    onSuccess: (r) => {
+      if (r.success) {
+        qc.invalidateQueries({ queryKey: keys.tasks });
+        qc.invalidateQueries({ queryKey: keys.customers });
+      }
+    },
+  });
+}
+
+export function useUpdateVehicleTaskPayment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: unknown) => updateVehicleTaskPaymentUseCase.execute(input),
+    onSuccess: (r) => r.success && qc.invalidateQueries({ queryKey: keys.tasks }),
+  });
+}
+
+export function useDeleteVehicleTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteVehicleTaskUseCase.execute(id),
+    onSuccess: (r) => r.success && qc.invalidateQueries({ queryKey: keys.tasks }),
   });
 }
 

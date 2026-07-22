@@ -6,20 +6,42 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function effectiveOrgId() {
-      return request.auth.token.orgId != null
+    function tokenOrgId() {
+      return request.auth.token.orgId is string && request.auth.token.orgId != ''
         ? request.auth.token.orgId
-        : (exists(/databases/$(database)/documents/users/$(request.auth.uid))
-            ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.orgId
+        : null;
+    }
+
+    function userDocOrgId() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.orgId is string
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.orgId != ''
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.orgId
+        : null;
+    }
+
+    function userDocRole() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role is string
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role != ''
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+        : null;
+    }
+
+    function effectiveOrgId() {
+      return userDocOrgId() != null ? userDocOrgId() : tokenOrgId();
+    }
+
+    function effectiveRole() {
+      return userDocRole() != null
+        ? userDocRole()
+        : (request.auth.token.role is string && request.auth.token.role != ''
+            ? request.auth.token.role
             : null);
     }
 
-    function role() {
-      return request.auth.token.role;
-    }
-
     function isOwner() {
-      return role() == 'owner';
+      return effectiveRole() == 'owner';
     }
 
     function belongsToOrg(docOrgId) {

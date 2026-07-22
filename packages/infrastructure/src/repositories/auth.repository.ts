@@ -3,6 +3,7 @@ import type {
   AuthRepository,
   MembershipRepository,
   SignUpData,
+  UserRepository,
 } from '@car-spa/application';
 import type { AuthSession } from '@car-spa/domain';
 import {
@@ -34,20 +35,42 @@ function getActionCodeSettings(): ActionCodeSettings {
 }
 
 export class FirebaseAuthRepository implements AuthRepository {
-  constructor(private readonly membershipRepo?: MembershipRepository) {}
+  constructor(
+    private readonly membershipRepo?: MembershipRepository,
+    private readonly userRepo?: UserRepository,
+  ) {}
+
+  private async syncUserOrgContext(session: AuthSession): Promise<void> {
+    if (!this.userRepo || !session.orgId || !session.role) return;
+
+    await this.userRepo.upsert({
+      id: session.userId,
+      email: session.email,
+      displayName: session.displayName,
+      photoUrl: null,
+      emailVerified: session.emailVerified,
+      orgId: session.orgId,
+      role: session.role,
+    });
+  }
 
   private async enrichSession(session: AuthSession): Promise<AuthSession> {
-    if (session.orgId && session.role) return session;
-    if (!this.membershipRepo) return session;
+    let enriched = session;
 
-    const membership = await this.membershipRepo.findByUserId(session.userId);
-    if (!membership) return session;
+    if (this.membershipRepo) {
+      const membership = await this.membershipRepo.findByUserId(session.userId);
+      if (membership) {
+        enriched = {
+          ...session,
+          orgId: membership.orgId,
+          role: membership.role,
+        };
+      }
+    }
 
-    return {
-      ...session,
-      orgId: membership.orgId,
-      role: membership.role,
-    };
+    await this.syncUserOrgContext(enriched);
+
+    return enriched;
   }
 
   async signIn(credentials: AuthCredentials) {

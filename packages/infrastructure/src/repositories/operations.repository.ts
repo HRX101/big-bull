@@ -25,7 +25,9 @@ import type {
   VehicleTask,
   VehicleTaskStatus,
   WorkshopAnalytics,
+  WorkshopService,
 } from '@car-spa/domain';
+import { WORKSHOP_SERVICES, normalizeVehicleTaskStatus } from '@car-spa/domain';
 import {
   COLLECTIONS,
   addOrgDoc,
@@ -66,14 +68,32 @@ function mapVehicle(id: string, data: Record<string, unknown>): Vehicle {
 }
 
 function mapTask(id: string, data: Record<string, unknown>): VehicleTask {
+  const hasStructuredVehicle =
+    data.vehicleBrand != null || data.vehicleModel != null || data.vehicleNumber != null;
+  const legacyVehicle = data.vehicle ? String(data.vehicle) : '';
+
   return {
     id,
     orgId: String(data.orgId),
-    vehicleId: String(data.vehicleId),
+    taskCode: String(data.taskCode),
+    vehicleBrand: hasStructuredVehicle
+      ? String(data.vehicleBrand ?? '')
+      : legacyVehicle,
+    vehicleModel: hasStructuredVehicle ? String(data.vehicleModel ?? '') : '',
+    vehicleNumber: hasStructuredVehicle ? String(data.vehicleNumber ?? '') : '',
     customerId: String(data.customerId),
-    title: String(data.title),
+    services: Array.isArray(data.services)
+      ? data.services.filter(
+          (service): service is WorkshopService =>
+            typeof service === 'string' && WORKSHOP_SERVICES.includes(service as WorkshopService),
+        )
+      : [],
+    paymentMethod: data.paymentMethod ? (data.paymentMethod as PaymentMethod) : null,
+    amount: data.amount != null ? Number(data.amount) : null,
+    advancePayment: data.advancePayment != null ? Number(data.advancePayment) : null,
+    problemStatement: data.problemStatement ? String(data.problemStatement) : null,
     description: data.description ? String(data.description) : null,
-    status: data.status as VehicleTaskStatus,
+    status: normalizeVehicleTaskStatus(data.status),
     assignedMechanicId: data.assignedMechanicId ? String(data.assignedMechanicId) : null,
     estimatedCompletion: data.estimatedCompletion
       ? fromFirestoreDate(data.estimatedCompletion)
@@ -251,6 +271,35 @@ export class FirestoreVehicleTaskRepository implements VehicleTaskRepository {
       assignedMechanicId: mechanicId,
     });
     return mapTask(id, saved);
+  }
+  async update(
+    orgId: string,
+    id: string,
+    data: Pick<
+      VehicleTask,
+      | 'vehicleBrand'
+      | 'vehicleModel'
+      | 'vehicleNumber'
+      | 'customerId'
+      | 'services'
+      | 'paymentMethod'
+      | 'amount'
+      | 'advancePayment'
+    >,
+  ) {
+    const saved = await updateOrgDoc(COLLECTIONS.vehicleTasks, orgId, id, data);
+    return mapTask(id, saved);
+  }
+  async updatePayment(
+    orgId: string,
+    id: string,
+    data: Pick<VehicleTask, 'paymentMethod' | 'amount' | 'advancePayment'>,
+  ) {
+    const saved = await updateOrgDoc(COLLECTIONS.vehicleTasks, orgId, id, data);
+    return mapTask(id, saved);
+  }
+  async delete(orgId: string, id: string) {
+    await deleteOrgDoc(COLLECTIONS.vehicleTasks, orgId, id);
   }
 }
 
@@ -432,8 +481,10 @@ export class FirestoreAnalyticsRepository implements AnalyticsRepository {
         this.payrollRepo.listByOrg(orgId),
       ]);
 
-    const activeTaskCount = tasks.filter((t) => t.status !== 'completed').length;
-    const completedTaskCount = tasks.filter((t) => t.status === 'completed').length;
+    const activeTaskCount = tasks.filter(
+      (task) => task.status === 'todo' || task.status === 'in_progress',
+    ).length;
+    const completedTaskCount = tasks.filter((task) => task.status === 'ready_for_pickup').length;
     const lowStockCount = inventory.filter((i) => i.quantity <= i.reorderLevel).length;
     const paidOrders = orders.filter((o) => o.status === 'paid');
     const totalRevenue = paidOrders.reduce((sum, o) => sum + o.total, 0);

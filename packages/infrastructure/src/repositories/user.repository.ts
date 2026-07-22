@@ -34,7 +34,7 @@ export class FirestoreUserRepository implements UserRepository {
       {
         email: profile.email,
         displayName: profile.displayName,
-        photoUrl: profile.photoUrl,
+        photoUrl: profile.photoUrl ?? existing.data()?.photoUrl ?? null,
         emailVerified: profile.emailVerified,
         orgId: profile.orgId,
         role: profile.role,

@@ -117,6 +117,27 @@ export interface VehicleTaskRepository {
   ): Promise<VehicleTask>;
   updateStatus(orgId: string, id: string, status: VehicleTaskStatus): Promise<VehicleTask>;
   assignMechanic(orgId: string, id: string, mechanicId: string | null): Promise<VehicleTask>;
+  update(
+    orgId: string,
+    id: string,
+    data: Pick<
+      VehicleTask,
+      | 'vehicleBrand'
+      | 'vehicleModel'
+      | 'vehicleNumber'
+      | 'customerId'
+      | 'services'
+      | 'paymentMethod'
+      | 'amount'
+      | 'advancePayment'
+    >,
+  ): Promise<VehicleTask>;
+  updatePayment(
+    orgId: string,
+    id: string,
+    data: Pick<VehicleTask, 'paymentMethod' | 'amount' | 'advancePayment'>,
+  ): Promise<VehicleTask>;
+  delete(orgId: string, id: string): Promise<void>;
 }
 
 export interface InventoryRepository {
@@ -205,4 +226,13 @@ export interface AnalyticsRepository {
 
 export interface ReceiptService {
   generateReceipt(orderId: string, orgId: string): Promise<{ receiptId: string; html: string }>;
+}
+
+export interface WhatsAppMessage {
+  to: string;
+  body: string;
+}
+
+export interface WhatsAppMessagingService {
+  sendMessage(message: WhatsAppMessage): Promise<void>;
 }

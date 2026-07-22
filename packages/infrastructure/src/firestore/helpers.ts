@@ -5,7 +5,6 @@ import {
   doc,
   getDoc,
   getDocs,
-  orderBy,
   query,
   serverTimestamp,
   updateDoc,
@@ -62,13 +61,15 @@ export async function getOrgDoc(collectionName: string, orgId: string, id: strin
 }
 
 export async function listOrgDocs(collectionName: string, orgId: string, orderField = 'createdAt') {
-  const q = query(
-    collection(getFirebaseDb(), collectionName),
-    where('orgId', '==', orgId),
-    orderBy(orderField, 'desc'),
-  );
+  const q = query(collection(getFirebaseDb(), collectionName), where('orgId', '==', orgId));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((d) => ({ id: d.id, data: d.data() }));
+  return snapshot.docs
+    .map((d) => ({ id: d.id, data: d.data() }))
+    .sort((a, b) => {
+      const aTime = fromFirestoreDate(a.data[orderField]).getTime();
+      const bTime = fromFirestoreDate(b.data[orderField]).getTime();
+      return bTime - aTime;
+    });
 }
 
 export { fromFirestoreDate, COLLECTIONS };

@@ -1,5 +1,5 @@
 import type { UserRole } from '@car-spa/shared';
-import type { VehicleTaskStatus } from './vehicle-task';
+import type { VehicleTaskStatus, WorkshopService } from './vehicle-task';
 
 export interface Organization {
   id: string;
@@ -66,12 +66,28 @@ export interface Vehicle {
   updatedAt: Date;
 }
 
+export type PaymentMethod = 'cash' | 'card' | 'upi' | 'other';
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  cash: 'Cash',
+  card: 'Card',
+  upi: 'UPI',
+  other: 'Other',
+};
+
 export interface VehicleTask {
   id: string;
   orgId: string;
-  vehicleId: string;
+  taskCode: string;
+  vehicleBrand: string;
+  vehicleModel: string;
+  vehicleNumber: string;
   customerId: string;
-  title: string;
+  services: WorkshopService[];
+  paymentMethod: PaymentMethod | null;
+  amount: number | null;
+  advancePayment: number | null;
+  problemStatement: string | null;
   description: string | null;
   status: VehicleTaskStatus;
   assignedMechanicId: string | null;
@@ -120,7 +136,6 @@ export interface Mechanic {
 }
 
 export type PosOrderStatus = 'draft' | 'paid' | 'cancelled';
-export type PaymentMethod = 'cash' | 'card' | 'upi' | 'other';
 
 export interface PosOrderItem {
   description: string;

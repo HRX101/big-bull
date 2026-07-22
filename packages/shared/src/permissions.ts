@@ -23,6 +23,7 @@ export type Permission =
   | 'tasks:read'
   | 'tasks:create'
   | 'tasks:update'
+  | 'tasks:delete'
   | 'tasks:transition'
   | 'inventory:read'
   | 'inventory:create'
@@ -71,6 +72,7 @@ const OWNER_PERMISSIONS: readonly Permission[] = [
   'tasks:read',
   'tasks:create',
   'tasks:update',
+  'tasks:delete',
   'tasks:transition',
   'inventory:read',
   'inventory:create',
@@ -111,6 +113,7 @@ const EMPLOYEE_PERMISSIONS: readonly Permission[] = [
   'tasks:read',
   'tasks:create',
   'tasks:update',
+  'tasks:delete',
   'tasks:transition',
   'inventory:read',
   'inventory:update',

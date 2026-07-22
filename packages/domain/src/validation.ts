@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { VEHICLE_TASK_STATUSES } from './vehicle-task';
+import { isValidIndianMobile } from './phone';
+import { VEHICLE_TASK_STATUSES, WORKSHOP_SERVICES } from './vehicle-task';
+
+const workshopServiceSchema = z.enum(WORKSHOP_SERVICES);
+const paymentMethodSchema = z.enum(['cash', 'card', 'upi', 'other']);
 
 export const signInSchema = z.object({
   email: z.string().email('Enter a valid email address'),
@@ -26,6 +30,11 @@ export const bootstrapOrgSchema = z.object({
   orgName: z.string().min(2, 'Organization name must be at least 2 characters'),
 });
 
+export const indianMobileSchema = z
+  .string()
+  .min(1, 'Contact number is required')
+  .refine(isValidIndianMobile, 'Enter a valid 10-digit Indian mobile number');
+
 export const customerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   phone: z.string().min(7, 'Enter a valid phone number'),
@@ -47,14 +56,65 @@ export const vehicleSchema = z.object({
   vin: z.string().max(17).optional(),
 });
 
-export const vehicleTaskSchema = z.object({
-  vehicleId: z.string().min(1, 'Vehicle is required'),
-  customerId: z.string().min(1, 'Customer is required'),
-  title: z.string().min(2, 'Title is required'),
-  description: z.string().max(1000).optional(),
-  assignedMechanicId: z.string().optional(),
-  estimatedCompletion: z.string().optional(),
+const vehicleTaskPaymentFieldsSchema = z.object({
+  paymentMethod: paymentMethodSchema,
+  amount: z.coerce.number().min(0, 'Enter a valid total amount'),
+  advancePayment: z.coerce.number().min(0, 'Enter a valid advance amount').default(0),
 });
+
+const withAdvanceNotExceedingTotal = <T extends z.ZodTypeAny>(schema: T) =>
+  schema.refine((data: { amount: number; advancePayment: number }) => data.advancePayment <= data.amount, {
+    message: 'Advance payment cannot exceed total amount',
+    path: ['advancePayment'],
+  });
+
+export const vehicleTaskSchema = withAdvanceNotExceedingTotal(
+  z.object({
+    vehicleBrand: z.string().min(1, 'Vehicle brand is required'),
+    vehicleModel: z.string().min(1, 'Vehicle model is required'),
+    vehicleNumber: z.string().min(2, 'Vehicle number is required'),
+    customerId: z.string().min(1, 'Customer is required'),
+    services: z.array(workshopServiceSchema).min(1, 'Select at least one service'),
+    paymentMethod: paymentMethodSchema,
+    amount: z.coerce.number().min(0, 'Enter a valid total amount'),
+    advancePayment: z.coerce.number().min(0, 'Enter a valid advance amount').default(0),
+    assignedMechanicId: z.string().optional(),
+    estimatedCompletion: z.string().optional(),
+  }),
+);
+
+export const vehicleTaskCreateFormSchema = withAdvanceNotExceedingTotal(
+  z.object({
+    vehicleBrand: z.string().min(1, 'Vehicle brand is required'),
+    vehicleModel: z.string().min(1, 'Vehicle model is required'),
+    vehicleNumber: z.string().min(2, 'Vehicle number is required'),
+    customerPhone: indianMobileSchema,
+    customerName: z.string().min(2, 'Name must be at least 2 characters'),
+    services: z.array(workshopServiceSchema).min(1, 'Select at least one service'),
+    paymentMethod: paymentMethodSchema,
+    amount: z.coerce.number().min(0, 'Enter a valid total amount'),
+    advancePayment: z.coerce.number().min(0, 'Enter a valid advance amount').default(0),
+  }),
+);
+
+export const vehicleTaskUpdateSchema = withAdvanceNotExceedingTotal(
+  z.object({
+    vehicleBrand: z.string().min(1, 'Vehicle brand is required'),
+    vehicleModel: z.string().min(1, 'Vehicle model is required'),
+    vehicleNumber: z.string().min(2, 'Vehicle number is required'),
+    customerId: z.string().min(1, 'Customer is required'),
+    services: z.array(workshopServiceSchema).min(1, 'Select at least one service'),
+    paymentMethod: paymentMethodSchema,
+    amount: z.coerce.number().min(0, 'Enter a valid total amount'),
+    advancePayment: z.coerce.number().min(0, 'Enter a valid advance amount').default(0),
+  }),
+);
+
+export const vehicleTaskPaymentUpdateSchema = withAdvanceNotExceedingTotal(
+  vehicleTaskPaymentFieldsSchema.extend({
+    taskId: z.string().min(1),
+  }),
+);
 
 export const vehicleTaskTransitionSchema = z.object({
   taskId: z.string().min(1),
@@ -114,6 +174,9 @@ export type BootstrapOrgInput = z.infer<typeof bootstrapOrgSchema>;
 export type CustomerInput = z.infer<typeof customerSchema>;
 export type VehicleInput = z.infer<typeof vehicleSchema>;
 export type VehicleTaskInput = z.infer<typeof vehicleTaskSchema>;
+export type VehicleTaskCreateFormInput = z.infer<typeof vehicleTaskCreateFormSchema>;
+export type VehicleTaskUpdateInput = z.infer<typeof vehicleTaskUpdateSchema>;
+export type VehicleTaskPaymentUpdateInput = z.infer<typeof vehicleTaskPaymentUpdateSchema>;
 export type InventoryItemInput = z.infer<typeof inventoryItemSchema>;
 export type EmployeeInput = z.infer<typeof employeeSchema>;
 export type MechanicInput = z.infer<typeof mechanicSchema>;

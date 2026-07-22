@@ -3,35 +3,25 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  BarChart3,
-  Bell,
-  Car,
   ClipboardList,
   LayoutDashboard,
   Package,
   Receipt,
-  ScrollText,
   Settings,
   Users,
   Wrench,
-  Wallet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { NAV_ITEMS } from '@car-spa/shared';
 
 const iconMap = {
   Dashboard: LayoutDashboard,
-  Customers: Users,
-  Vehicles: Car,
-  Tasks: ClipboardList,
-  'Audit Logs': ScrollText,
-  Notifications: Bell,
+  'Vehicle Task': ClipboardList,
   Inventory: Package,
-  Employees: Users,
-  Mechanics: Wrench,
   POS: Receipt,
-  Payroll: Wallet,
-  Analytics: BarChart3,
+  Customers: Users,
+  Mechanics: Wrench,
+  'Employee Management': Users,
   Settings: Settings,
 } as const;
 
@@ -47,7 +37,9 @@ export function Sidebar() {
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto" aria-label="Main navigation">
         {NAV_ITEMS.map((item) => {
           const Icon = iconMap[item.label as keyof typeof iconMap] ?? LayoutDashboard;
-          const active = pathname === item.href;
+          const active =
+            pathname === item.href ||
+            (item.label === 'Vehicle Task' && pathname === '/vehicles');
           return (
             <Link
               key={item.href}

@@ -16,6 +16,9 @@ export const COLLECTIONS = {
 
 export const DEFAULT_ORG_SLUG = 'big-bull-car-spa';
 
+/** Hardcoded WhatsApp sender number (India) until configurable in settings. */
+export const WHATSAPP_FROM_NUMBER = '8972424853';
+
 export const AUTH_ROUTES = {
   signIn: '/auth/sign-in',
   signUp: '/auth/sign-up',
@@ -51,16 +54,11 @@ export const PUBLIC_ROUTES = [
 
 export const NAV_ITEMS = [
   { href: PROTECTED_ROUTES.dashboard, label: 'Dashboard', phase: 1 },
-  { href: PROTECTED_ROUTES.customers, label: 'Customers', phase: 2 },
-  { href: PROTECTED_ROUTES.vehicles, label: 'Vehicles', phase: 2 },
-  { href: PROTECTED_ROUTES.tasks, label: 'Tasks', phase: 2 },
-  { href: PROTECTED_ROUTES.auditLogs, label: 'Audit Logs', phase: 2 },
-  { href: PROTECTED_ROUTES.notifications, label: 'Notifications', phase: 2 },
+  { href: PROTECTED_ROUTES.tasks, label: 'Vehicle Task', phase: 2 },
   { href: PROTECTED_ROUTES.inventory, label: 'Inventory', phase: 3 },
-  { href: PROTECTED_ROUTES.employees, label: 'Employees', phase: 3 },
-  { href: PROTECTED_ROUTES.mechanics, label: 'Mechanics', phase: 3 },
   { href: PROTECTED_ROUTES.pos, label: 'POS', phase: 4 },
-  { href: PROTECTED_ROUTES.payroll, label: 'Payroll', phase: 4 },
-  { href: PROTECTED_ROUTES.analytics, label: 'Analytics', phase: 5 },
+  { href: PROTECTED_ROUTES.customers, label: 'Customers', phase: 2 },
+  { href: PROTECTED_ROUTES.mechanics, label: 'Mechanics', phase: 3 },
+  { href: PROTECTED_ROUTES.employees, label: 'Employee Management', phase: 3 },
   { href: PROTECTED_ROUTES.settings, label: 'Settings', phase: 1 },
 ] as const;

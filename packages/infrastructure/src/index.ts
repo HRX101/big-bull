@@ -7,3 +7,4 @@ export * from './repositories/audit.repository';
 export * from './repositories/operations.repository';
 export * from './services/claims.service';
 export * from './services/receipt.service';
+export * from './services/whatsapp.service';
