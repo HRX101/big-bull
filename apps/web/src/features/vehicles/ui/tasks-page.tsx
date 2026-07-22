@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import type { Customer, VehicleTask } from '@car-spa/domain';
+import type { Customer, PaymentMethod, VehicleTask, WorkshopService } from '@car-spa/domain';
 import {
   PAYMENT_METHOD_LABELS,
   WORKSHOP_SERVICES,
@@ -83,15 +83,25 @@ function formatCurrency(amount: number) {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
 }
 
-const EMPTY_TASK_FORM = {
+type TaskFormValues = {
+  customerPhone: string;
+  customerName: string;
+  vehicleBrand: string;
+  vehicleModel: string;
+  vehicleNumber: string;
+  services: WorkshopService[];
+  paymentMethod?: PaymentMethod;
+  amount?: number;
+  advancePayment: number;
+};
+
+const EMPTY_TASK_FORM: TaskFormValues = {
   customerPhone: '',
   customerName: '',
   vehicleBrand: '',
   vehicleModel: '',
   vehicleNumber: '',
-  services: [] as VehicleTask['services'],
-  paymentMethod: undefined,
-  amount: undefined,
+  services: [],
   advancePayment: 0,
 };
 
@@ -134,7 +144,7 @@ export function TasksPage() {
     setValue,
     trigger,
     formState: { errors },
-  } = useForm({
+  } = useForm<TaskFormValues>({
     resolver: zodResolver(vehicleTaskCreateFormSchema),
     defaultValues: EMPTY_TASK_FORM,
   });
@@ -263,8 +273,8 @@ export function TasksPage() {
         name: data.customerName,
         phone: formattedPhone,
       });
-      if (!createResult.success || !createResult.value) {
-        setSubmitError(createResult.error?.message ?? 'Failed to create customer.');
+      if (!createResult.success) {
+        setSubmitError(createResult.error.message ?? 'Failed to create customer.');
         return;
       }
       customerId = createResult.value.id;
@@ -465,7 +475,7 @@ export function TasksPage() {
                                   const current = field.value ?? [];
                                   const next = event.target.checked
                                     ? [...current, service]
-                                    : current.filter((value) => value !== service);
+                                    : current.filter((value: WorkshopService) => value !== service);
                                   field.onChange(next);
                                 }}
                               />
@@ -610,7 +620,7 @@ export function TasksPage() {
                     <dd className="font-medium">
                       {formValues.services?.length
                         ? formValues.services
-                            .map((service) => WORKSHOP_SERVICE_LABELS[service])
+                            .map((service: WorkshopService) => WORKSHOP_SERVICE_LABELS[service])
                             .join(', ')
                         : '—'}
                     </dd>
