@@ -280,7 +280,10 @@ export class UpdateVehicleTaskUseCase {
     private readonly auditRepo: AuditRepository,
   ) {}
 
-  async execute(id: string, input: unknown): Promise<Result<import('@car-spa/domain').VehicleTask>> {
+  async execute(
+    id: string,
+    input: unknown,
+  ): Promise<Result<import('@car-spa/domain').VehicleTask>> {
     const parsed = vehicleTaskUpdateSchema.safeParse(input);
     if (!parsed.success) return err(new Error(parsed.error.errors[0]?.message ?? 'Invalid input'));
     try {

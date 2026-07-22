@@ -313,7 +313,9 @@ export function TasksPage() {
       {showForm && (
         <Card>
           <CardContent className="p-4">
-            <h3 className="mb-3 text-sm font-semibold">{isEditing ? 'Edit task' : 'Create task'}</h3>
+            <h3 className="mb-3 text-sm font-semibold">
+              {isEditing ? 'Edit task' : 'Create task'}
+            </h3>
             <ol className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
               {TASK_FORM_STEPS.map((formStep, index) => {
                 const stepNumber = index + 1;
@@ -534,7 +536,7 @@ export function TasksPage() {
                     <Label>Payment due</Label>
                     <Input
                       readOnly
-                      className="h-9 bg-muted"
+                      className="bg-muted h-9"
                       value={formatCurrency(
                         getVehicleTaskPaymentDue({
                           amount: Number(formValues.amount) || 0,

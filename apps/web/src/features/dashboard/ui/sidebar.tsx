@@ -38,8 +38,7 @@ export function Sidebar() {
         {NAV_ITEMS.map((item) => {
           const Icon = iconMap[item.label as keyof typeof iconMap] ?? LayoutDashboard;
           const active =
-            pathname === item.href ||
-            (item.label === 'Vehicle Task' && pathname === '/vehicles');
+            pathname === item.href || (item.label === 'Vehicle Task' && pathname === '/vehicles');
           return (
             <Link
               key={item.href}

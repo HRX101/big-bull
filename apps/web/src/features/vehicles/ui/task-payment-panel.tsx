@@ -87,15 +87,15 @@ export function TaskPaymentPanel({ task, onClose }: TaskPaymentPanelProps) {
       <CardContent className="p-4 pt-0">
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-md border bg-background p-3">
+            <div className="bg-background rounded-md border p-3">
               <p className="text-muted-foreground text-xs">Total amount</p>
               <p className="mt-1 font-semibold">{formatCurrency(Number(amount) || 0)}</p>
             </div>
-            <div className="rounded-md border bg-background p-3">
+            <div className="bg-background rounded-md border p-3">
               <p className="text-muted-foreground text-xs">Advance payment</p>
               <p className="mt-1 font-semibold">{formatCurrency(Number(advancePayment) || 0)}</p>
             </div>
-            <div className="rounded-md border bg-background p-3">
+            <div className="bg-background rounded-md border p-3">
               <p className="text-muted-foreground text-xs">Payment due</p>
               <p className="mt-1 font-semibold text-amber-700">{formatCurrency(paymentDue)}</p>
             </div>
@@ -112,9 +112,7 @@ export function TaskPaymentPanel({ task, onClose }: TaskPaymentPanelProps) {
                 className="h-9"
                 {...register('amount', { valueAsNumber: true })}
               />
-              {errors.amount && (
-                <p className="text-destructive text-xs">{errors.amount.message}</p>
-              )}
+              {errors.amount && <p className="text-destructive text-xs">{errors.amount.message}</p>}
             </div>
             <div className="space-y-1">
               <Label htmlFor={`advance-${task.id}`}>Advance payment</Label>
@@ -134,11 +132,13 @@ export function TaskPaymentPanel({ task, onClose }: TaskPaymentPanelProps) {
               <Label>Payment due</Label>
               <Input
                 readOnly
-                className="h-9 bg-muted"
-                value={formatCurrency(getVehicleTaskPaymentDue({
-                  amount: Number(amount) || 0,
-                  advancePayment: Number(advancePayment) || 0,
-                }))}
+                className="bg-muted h-9"
+                value={formatCurrency(
+                  getVehicleTaskPaymentDue({
+                    amount: Number(amount) || 0,
+                    advancePayment: Number(advancePayment) || 0,
+                  }),
+                )}
               />
             </div>
           </div>

@@ -50,10 +50,7 @@ export function TaskCard({
 
   return (
     <Card
-      className={cn(
-        'shadow-sm',
-        showPaymentHighlight && 'border-amber-300 ring-1 ring-amber-200',
-      )}
+      className={cn('shadow-sm', showPaymentHighlight && 'border-amber-300 ring-1 ring-amber-200')}
     >
       <CardContent className="space-y-3 p-3">
         <div className="space-y-1">
@@ -89,8 +86,7 @@ export function TaskCard({
             variant={showPaymentHighlight ? 'default' : 'outline'}
             className={cn(
               'h-8 text-xs',
-              showPaymentHighlight &&
-                'border-amber-400 bg-amber-500 text-white hover:bg-amber-600',
+              showPaymentHighlight && 'border-amber-400 bg-amber-500 text-white hover:bg-amber-600',
             )}
             onClick={() => onOpenPayment(task.id)}
           >

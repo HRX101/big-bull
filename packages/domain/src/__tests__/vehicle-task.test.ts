@@ -62,9 +62,9 @@ describe('generateVehicleTaskCode', () => {
   });
 
   it('increments within the same year', () => {
-    expect(
-      generateVehicleTaskCode(['VT-2025-0001', 'VT-2025-0002'], new Date('2025-07-22')),
-    ).toBe('VT-2025-0003');
+    expect(generateVehicleTaskCode(['VT-2025-0001', 'VT-2025-0002'], new Date('2025-07-22'))).toBe(
+      'VT-2025-0003',
+    );
   });
 
   it('resets the sequence for a new year', () => {

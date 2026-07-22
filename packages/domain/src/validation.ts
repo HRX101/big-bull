@@ -63,10 +63,13 @@ const vehicleTaskPaymentFieldsSchema = z.object({
 });
 
 const withAdvanceNotExceedingTotal = <T extends z.ZodTypeAny>(schema: T) =>
-  schema.refine((data: { amount: number; advancePayment: number }) => data.advancePayment <= data.amount, {
-    message: 'Advance payment cannot exceed total amount',
-    path: ['advancePayment'],
-  });
+  schema.refine(
+    (data: { amount: number; advancePayment: number }) => data.advancePayment <= data.amount,
+    {
+      message: 'Advance payment cannot exceed total amount',
+      path: ['advancePayment'],
+    },
+  );
 
 export const vehicleTaskSchema = withAdvanceNotExceedingTotal(
   z.object({

@@ -76,9 +76,7 @@ function mapTask(id: string, data: Record<string, unknown>): VehicleTask {
     id,
     orgId: String(data.orgId),
     taskCode: String(data.taskCode),
-    vehicleBrand: hasStructuredVehicle
-      ? String(data.vehicleBrand ?? '')
-      : legacyVehicle,
+    vehicleBrand: hasStructuredVehicle ? String(data.vehicleBrand ?? '') : legacyVehicle,
     vehicleModel: hasStructuredVehicle ? String(data.vehicleModel ?? '') : '',
     vehicleNumber: hasStructuredVehicle ? String(data.vehicleNumber ?? '') : '',
     customerId: String(data.customerId),
