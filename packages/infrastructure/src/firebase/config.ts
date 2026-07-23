@@ -22,9 +22,10 @@ export function getFirebaseConfig(): FirebaseConfig {
 
   if (
     typeof window !== 'undefined' &&
-    (!process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
-      !process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
-      !process.env.NEXT_PUBLIC_FIREBASE_APP_ID)
+    process.env.NODE_ENV === 'production' &&
+    (!process.env.NEXT_PUBLIC_FIREBASE_API_KEY?.trim() ||
+      !process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim() ||
+      !process.env.NEXT_PUBLIC_FIREBASE_APP_ID?.trim())
   ) {
     throw new Error('Firebase configuration is incomplete. Check NEXT_PUBLIC_FIREBASE_* env vars.');
   }

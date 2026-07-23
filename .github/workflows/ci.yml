@@ -47,7 +47,6 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm audit fix
       - run: npm audit --omit=optional --audit-level=high
       - uses: aquasecurity/trivy-action@v0.36.0
         with:
