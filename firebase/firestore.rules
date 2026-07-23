@@ -119,6 +119,13 @@ service cloud.firestore {
       allow delete: if orgScopedDelete();
     }
 
+    match /inventoryCategories/{docId} {
+      allow read: if orgScopedRead();
+      allow create: if orgScopedCreate();
+      allow update: if orgScopedUpdate();
+      allow delete: if orgScopedDelete();
+    }
+
     match /inventoryItems/{docId} {
       allow read: if orgScopedRead();
       allow create: if orgScopedCreate();
@@ -134,6 +141,13 @@ service cloud.firestore {
     }
 
     match /mechanics/{docId} {
+      allow read: if orgScopedRead();
+      allow create: if orgScopedCreate();
+      allow update: if orgScopedUpdate();
+      allow delete: if orgScopedDelete();
+    }
+
+    match /mechanicSalesRecords/{docId} {
       allow read: if orgScopedRead();
       allow create: if orgScopedCreate();
       allow update: if orgScopedUpdate();

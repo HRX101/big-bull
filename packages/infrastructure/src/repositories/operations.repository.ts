@@ -4,6 +4,7 @@ import type {
   EmployeeRepository,
   InventoryRepository,
   MechanicRepository,
+  MechanicSalesRecordRepository,
   NotificationRepository,
   PayrollRepository,
   PosOrderRepository,
@@ -14,13 +15,17 @@ import type {
   AppNotification,
   Customer,
   Employee,
+  InventoryCategory,
   InventoryItem,
   Mechanic,
+  MechanicSalesRecord,
+  MechanicSalesRecordItem,
   PayrollEntry,
   PaymentMethod,
   PosOrder,
   PosOrderItem,
   PosOrderStatus,
+  PosBuyerType,
   Vehicle,
   VehicleTask,
   VehicleTaskStatus,
@@ -101,13 +106,48 @@ function mapTask(id: string, data: Record<string, unknown>): VehicleTask {
   };
 }
 
-function mapInventory(id: string, data: Record<string, unknown>): InventoryItem {
+function mapInventoryCategory(id: string, data: Record<string, unknown>): InventoryCategory {
+  const fields = Array.isArray(data.fields)
+    ? data.fields.map((field) => {
+        const raw = field as Record<string, unknown>;
+        return {
+          key: String(raw.key),
+          label: String(raw.label),
+          type: raw.type as InventoryCategory['fields'][number]['type'],
+          required: Boolean(raw.required),
+          options: Array.isArray(raw.options) ? raw.options.map(String) : undefined,
+        };
+      })
+    : [];
+
   return {
     id,
     orgId: String(data.orgId),
+    name: String(data.name),
+    fields,
+    createdAt: fromFirestoreDate(data.createdAt),
+    updatedAt: fromFirestoreDate(data.updatedAt),
+  };
+}
+
+function mapInventory(id: string, data: Record<string, unknown>): InventoryItem {
+  const attributes =
+    data.attributes && typeof data.attributes === 'object' && !Array.isArray(data.attributes)
+      ? Object.fromEntries(
+          Object.entries(data.attributes as Record<string, unknown>).map(([key, value]) => [
+            key,
+            typeof value === 'number' ? value : String(value),
+          ]),
+        )
+      : {};
+
+  return {
+    id,
+    orgId: String(data.orgId),
+    categoryId: String(data.categoryId ?? data.category ?? ''),
     sku: String(data.sku),
     name: String(data.name),
-    category: String(data.category),
+    attributes,
     quantity: Number(data.quantity),
     unitPrice: Number(data.unitPrice),
     reorderLevel: Number(data.reorderLevel),
@@ -136,20 +176,64 @@ function mapMechanic(id: string, data: Record<string, unknown>): Mechanic {
   return {
     id,
     orgId: String(data.orgId),
-    employeeId: String(data.employeeId),
-    specializations: Array.isArray(data.specializations) ? data.specializations.map(String) : [],
-    isAvailable: Boolean(data.isAvailable),
+    name: data.name ? String(data.name) : 'Mechanic',
+    storeName: data.storeName ? String(data.storeName) : '',
+    phone: data.phone ? String(data.phone) : '',
+    contactName: data.contactName ? String(data.contactName) : null,
+    createdAt: fromFirestoreDate(data.createdAt),
+    updatedAt: fromFirestoreDate(data.updatedAt),
+  };
+}
+
+function mapMechanicSalesRecord(id: string, data: Record<string, unknown>): MechanicSalesRecord {
+  const items = Array.isArray(data.items)
+    ? data.items.map((item) => {
+        const raw = item as Record<string, unknown>;
+        return {
+          inventoryItemId: raw.inventoryItemId ? String(raw.inventoryItemId) : null,
+          description: String(raw.description),
+          quantity: Number(raw.quantity),
+        } satisfies MechanicSalesRecordItem;
+      })
+    : [];
+
+  return {
+    id,
+    orgId: String(data.orgId),
+    mechanicId: String(data.mechanicId),
+    fromDate: fromFirestoreDate(data.fromDate),
+    toDate: fromFirestoreDate(data.toDate),
+    items,
+    totalAmount: Number(data.totalAmount),
     createdAt: fromFirestoreDate(data.createdAt),
     updatedAt: fromFirestoreDate(data.updatedAt),
   };
 }
 
 function mapPosOrder(id: string, data: Record<string, unknown>): PosOrder {
-  const items = Array.isArray(data.items) ? (data.items as PosOrderItem[]) : [];
+  const items = Array.isArray(data.items)
+    ? data.items.map((item) => {
+        const raw = item as Record<string, unknown>;
+        return {
+          inventoryItemId: raw.inventoryItemId ? String(raw.inventoryItemId) : null,
+          description: String(raw.description),
+          quantity: Number(raw.quantity),
+          unitPrice: Number(raw.unitPrice),
+          lineTotal: Number(raw.lineTotal ?? Number(raw.quantity) * Number(raw.unitPrice)),
+        } satisfies PosOrderItem;
+      })
+    : [];
+
+  const buyerType = (data.buyerType as PosBuyerType) ?? (data.customerId ? 'customer' : 'walk_in');
+
   return {
     id,
     orgId: String(data.orgId),
+    buyerType,
+    mechanicId: data.mechanicId ? String(data.mechanicId) : null,
     customerId: data.customerId ? String(data.customerId) : null,
+    buyerName: data.buyerName ? String(data.buyerName) : null,
+    buyerContact: data.buyerContact ? String(data.buyerContact) : null,
     vehicleTaskId: data.vehicleTaskId ? String(data.vehicleTaskId) : null,
     items,
     subtotal: Number(data.subtotal),
@@ -301,10 +385,43 @@ export class FirestoreVehicleTaskRepository implements VehicleTaskRepository {
   }
 }
 
+export class FirestoreInventoryCategoryRepository {
+  async listByOrg(orgId: string) {
+    const docs = await listOrgDocs(COLLECTIONS.inventoryCategories, orgId);
+    return docs.map((d) => mapInventoryCategory(d.id, d.data));
+  }
+  async findById(orgId: string, id: string) {
+    const doc = await getOrgDoc(COLLECTIONS.inventoryCategories, orgId, id);
+    return doc ? mapInventoryCategory(doc.id, doc.data) : null;
+  }
+  async create(
+    orgId: string,
+    data: Omit<InventoryCategory, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>,
+  ) {
+    const { id, data: saved } = await addOrgDoc(COLLECTIONS.inventoryCategories, orgId, data);
+    return mapInventoryCategory(id, saved);
+  }
+  async update(
+    orgId: string,
+    id: string,
+    data: Partial<Omit<InventoryCategory, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>>,
+  ) {
+    const saved = await updateOrgDoc(COLLECTIONS.inventoryCategories, orgId, id, data);
+    return mapInventoryCategory(id, saved);
+  }
+  async delete(orgId: string, id: string) {
+    await deleteOrgDoc(COLLECTIONS.inventoryCategories, orgId, id);
+  }
+}
+
 export class FirestoreInventoryRepository implements InventoryRepository {
   async listByOrg(orgId: string) {
     const docs = await listOrgDocs(COLLECTIONS.inventoryItems, orgId);
     return docs.map((d) => mapInventory(d.id, d.data));
+  }
+  async listByCategory(orgId: string, categoryId: string) {
+    const all = await this.listByOrg(orgId);
+    return all.filter((item) => item.categoryId === categoryId);
   }
   async findById(orgId: string, id: string) {
     const doc = await getOrgDoc(COLLECTIONS.inventoryItems, orgId, id);
@@ -323,6 +440,18 @@ export class FirestoreInventoryRepository implements InventoryRepository {
     data: Partial<Omit<InventoryItem, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>>,
   ) {
     const saved = await updateOrgDoc(COLLECTIONS.inventoryItems, orgId, id, data);
+    return mapInventory(id, saved);
+  }
+  async adjustQuantity(orgId: string, id: string, delta: number) {
+    const item = await this.findById(orgId, id);
+    if (!item) throw new Error('Inventory item not found');
+    const nextQuantity = item.quantity + delta;
+    if (nextQuantity < 0) {
+      throw new Error(`Insufficient stock for ${item.name}`);
+    }
+    const saved = await updateOrgDoc(COLLECTIONS.inventoryItems, orgId, id, {
+      quantity: nextQuantity,
+    });
     return mapInventory(id, saved);
   }
   async delete(orgId: string, id: string) {
@@ -382,6 +511,32 @@ export class FirestoreMechanicRepository implements MechanicRepository {
   }
   async delete(orgId: string, id: string) {
     await deleteOrgDoc(COLLECTIONS.mechanics, orgId, id);
+  }
+}
+
+export class FirestoreMechanicSalesRecordRepository implements MechanicSalesRecordRepository {
+  async listByOrg(orgId: string) {
+    const docs = await listOrgDocs(COLLECTIONS.mechanicSalesRecords, orgId);
+    return docs.map((d) => mapMechanicSalesRecord(d.id, d.data));
+  }
+  async listByMechanic(orgId: string, mechanicId: string) {
+    const all = await this.listByOrg(orgId);
+    return all.filter((record) => record.mechanicId === mechanicId);
+  }
+  async findById(orgId: string, id: string) {
+    const doc = await getOrgDoc(COLLECTIONS.mechanicSalesRecords, orgId, id);
+    return doc ? mapMechanicSalesRecord(doc.id, doc.data) : null;
+  }
+  async create(
+    orgId: string,
+    data: Omit<MechanicSalesRecord, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>,
+  ) {
+    const { id, data: saved } = await addOrgDoc(COLLECTIONS.mechanicSalesRecords, orgId, {
+      ...data,
+      fromDate: data.fromDate,
+      toDate: data.toDate,
+    });
+    return mapMechanicSalesRecord(id, saved);
   }
 }
 

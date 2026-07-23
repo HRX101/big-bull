@@ -20,8 +20,8 @@ export function DataTable({
       <table className="w-full text-sm">
         <thead className="bg-muted/40">
           <tr>
-            {headers.map((header) => (
-              <th key={header} className="px-4 py-3 text-left font-medium">
+            {headers.map((header, index) => (
+              <th key={`${index}-${header}`} className="px-4 py-3 text-left font-medium">
                 {header}
               </th>
             ))}

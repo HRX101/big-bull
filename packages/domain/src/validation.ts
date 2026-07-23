@@ -124,10 +124,32 @@ export const vehicleTaskTransitionSchema = z.object({
   toStatus: z.enum(VEHICLE_TASK_STATUSES),
 });
 
+export const inventoryCategoryFieldSchema = z.object({
+  key: z.string().min(1, 'Field key is required'),
+  label: z.string().min(1, 'Field label is required'),
+  type: z.enum([
+    'text',
+    'number',
+    'select',
+    'cost',
+    'quantity_unit',
+    'date',
+    'boolean',
+  ]),
+  required: z.boolean(),
+  options: z.array(z.string().min(1)).optional(),
+});
+
+export const inventoryCategorySchema = z.object({
+  name: z.string().min(2, 'Category name is required'),
+  fields: z.array(inventoryCategoryFieldSchema).min(1, 'Add at least one field'),
+});
+
 export const inventoryItemSchema = z.object({
+  categoryId: z.string().min(1, 'Category is required'),
   sku: z.string().min(2, 'SKU is required'),
-  name: z.string().min(2, 'Name is required'),
-  category: z.string().min(2, 'Category is required'),
+  name: z.string().min(2, 'Name is required').optional(),
+  attributes: z.record(z.union([z.string(), z.number()])).default({}),
   quantity: z.coerce.number().int().min(0),
   unitPrice: z.coerce.number().min(0),
   reorderLevel: z.coerce.number().int().min(0),
@@ -143,24 +165,66 @@ export const employeeSchema = z.object({
 });
 
 export const mechanicSchema = z.object({
-  employeeId: z.string().min(1, 'Employee is required'),
-  specializations: z.string().min(1, 'At least one specialization'),
-  isAvailable: z.boolean(),
+  name: z.string().min(2, 'Mechanic name is required'),
+  storeName: z.string().min(2, 'Store name is required'),
+  phone: z.string().min(7, 'Phone is required'),
+  contactName: z.string().optional(),
 });
 
+export const mechanicSalesRecordItemSchema = z.object({
+  inventoryItemId: z.string().optional(),
+  description: z.string().min(1, 'Item description is required'),
+  quantity: z.coerce.number().int().min(1, 'Quantity must be at least 1'),
+});
+
+export const mechanicSalesRecordSchema = z
+  .object({
+    mechanicId: z.string().min(1, 'Mechanic is required'),
+    fromDate: z.string().min(1, 'From date is required'),
+    toDate: z.string().min(1, 'To date is required'),
+    items: z.array(mechanicSalesRecordItemSchema).min(1, 'Add at least one sold item'),
+    totalAmount: z.coerce.number().min(0, 'Total amount is required'),
+  })
+  .refine((data) => new Date(data.fromDate) <= new Date(data.toDate), {
+    message: 'From date must be on or before to date',
+    path: ['toDate'],
+  });
+
 export const posOrderItemSchema = z.object({
+  inventoryItemId: z.string().min(1, 'Inventory item is required'),
   description: z.string().min(1),
   quantity: z.coerce.number().int().min(1),
   unitPrice: z.coerce.number().min(0),
 });
 
-export const posOrderSchema = z.object({
-  customerId: z.string().optional(),
-  vehicleTaskId: z.string().optional(),
-  items: z.array(posOrderItemSchema).min(1, 'Add at least one line item'),
-  tax: z.coerce.number().min(0).default(0),
-  paymentMethod: z.enum(['cash', 'card', 'upi', 'other']).optional(),
-});
+export const posOrderSchema = z
+  .object({
+    buyerType: z.enum(['mechanic', 'customer', 'walk_in']),
+    mechanicId: z.string().optional(),
+    customerId: z.string().optional(),
+    buyerName: z.string().optional(),
+    buyerContact: z.string().optional(),
+    vehicleTaskId: z.string().optional(),
+    items: z.array(posOrderItemSchema).min(1, 'Add at least one line item'),
+    tax: z.coerce.number().min(0).default(0),
+    paymentMethod: z.enum(['cash', 'card', 'upi', 'other']).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.buyerType === 'mechanic' && !data.mechanicId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Select a registered mechanic',
+        path: ['mechanicId'],
+      });
+    }
+    if (data.buyerType === 'customer' && !data.customerId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Select a customer',
+        path: ['customerId'],
+      });
+    }
+  });
 
 export const payrollEntrySchema = z.object({
   employeeId: z.string().min(1, 'Employee is required'),
@@ -180,8 +244,10 @@ export type VehicleTaskInput = z.infer<typeof vehicleTaskSchema>;
 export type VehicleTaskCreateFormInput = z.infer<typeof vehicleTaskCreateFormSchema>;
 export type VehicleTaskUpdateInput = z.infer<typeof vehicleTaskUpdateSchema>;
 export type VehicleTaskPaymentUpdateInput = z.infer<typeof vehicleTaskPaymentUpdateSchema>;
+export type InventoryCategoryInput = z.infer<typeof inventoryCategorySchema>;
 export type InventoryItemInput = z.infer<typeof inventoryItemSchema>;
 export type EmployeeInput = z.infer<typeof employeeSchema>;
 export type MechanicInput = z.infer<typeof mechanicSchema>;
+export type MechanicSalesRecordInput = z.infer<typeof mechanicSalesRecordSchema>;
 export type PosOrderInput = z.infer<typeof posOrderSchema>;
 export type PayrollEntryInput = z.infer<typeof payrollEntrySchema>;

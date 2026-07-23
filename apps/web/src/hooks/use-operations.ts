@@ -5,8 +5,13 @@ import {
   createCustomerUseCase,
   updateCustomerUseCase,
   createEmployeeUseCase,
+  createInventoryCategoryUseCase,
   createInventoryItemUseCase,
+  deleteInventoryCategoryUseCase,
+  deleteInventoryItemUseCase,
+  deleteMechanicUseCase,
   createMechanicUseCase,
+  createMechanicSalesRecordUseCase,
   createPayrollEntryUseCase,
   createPosOrderUseCase,
   createVehicleTaskUseCase,
@@ -17,8 +22,10 @@ import {
   listAuditLogsUseCase,
   listCustomersUseCase,
   listEmployeesUseCase,
+  listInventoryCategoriesUseCase,
   listInventoryUseCase,
   listMechanicsUseCase,
+  listMechanicSalesRecordsUseCase,
   listNotificationsUseCase,
   listPayrollEntriesUseCase,
   listPosOrdersUseCase,
@@ -27,6 +34,9 @@ import {
   markNotificationReadUseCase,
   payPosOrderUseCase,
   transitionVehicleTaskUseCase,
+  updateInventoryCategoryUseCase,
+  updateInventoryItemUseCase,
+  updateMechanicUseCase,
   updateVehicleTaskPaymentUseCase,
   updateVehicleTaskUseCase,
 } from '@car-spa/infrastructure';
@@ -37,8 +47,10 @@ const keys = {
   vehicles: ['vehicles'] as const,
   tasks: ['tasks'] as const,
   inventory: ['inventory'] as const,
+  inventoryCategories: ['inventoryCategories'] as const,
   employees: ['employees'] as const,
   mechanics: ['mechanics'] as const,
+  mechanicSalesRecords: ['mechanicSalesRecords'] as const,
   pos: ['pos'] as const,
   payroll: ['payroll'] as const,
   audit: ['audit'] as const,
@@ -157,6 +169,45 @@ export function useTransitionVehicleTask() {
   });
 }
 
+export function useInventoryCategories() {
+  return useResultQuery(keys.inventoryCategories, () => listInventoryCategoriesUseCase.execute());
+}
+
+export function useCreateInventoryCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: unknown) => createInventoryCategoryUseCase.execute(input),
+    onSuccess: (r) => r.success && qc.invalidateQueries({ queryKey: keys.inventoryCategories }),
+  });
+}
+
+export function useDeleteInventoryCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteInventoryCategoryUseCase.execute(id),
+    onSuccess: (r) => {
+      if (r.success) {
+        qc.invalidateQueries({ queryKey: keys.inventoryCategories });
+        qc.invalidateQueries({ queryKey: keys.inventory });
+      }
+    },
+  });
+}
+
+export function useUpdateInventoryCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: unknown }) =>
+      updateInventoryCategoryUseCase.execute(id, input),
+    onSuccess: (r) => {
+      if (r.success) {
+        qc.invalidateQueries({ queryKey: keys.inventoryCategories });
+        qc.invalidateQueries({ queryKey: keys.inventory });
+      }
+    },
+  });
+}
+
 export function useInventory() {
   return useResultQuery(keys.inventory, () => listInventoryUseCase.execute());
 }
@@ -165,7 +216,39 @@ export function useCreateInventoryItem() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: unknown) => createInventoryItemUseCase.execute(input),
-    onSuccess: (r) => r.success && qc.invalidateQueries({ queryKey: keys.inventory }),
+    onSuccess: (r) => {
+      if (r.success) {
+        qc.invalidateQueries({ queryKey: keys.inventory });
+        qc.invalidateQueries({ queryKey: keys.analytics });
+      }
+    },
+  });
+}
+
+export function useUpdateInventoryItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: unknown }) =>
+      updateInventoryItemUseCase.execute(id, input),
+    onSuccess: (r) => {
+      if (r.success) {
+        qc.invalidateQueries({ queryKey: keys.inventory });
+        qc.invalidateQueries({ queryKey: keys.analytics });
+      }
+    },
+  });
+}
+
+export function useDeleteInventoryItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteInventoryItemUseCase.execute(id),
+    onSuccess: (r) => {
+      if (r.success) {
+        qc.invalidateQueries({ queryKey: keys.inventory });
+        qc.invalidateQueries({ queryKey: keys.analytics });
+      }
+    },
   });
 }
 
@@ -193,6 +276,42 @@ export function useCreateMechanic() {
   });
 }
 
+export function useUpdateMechanic() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: unknown }) =>
+      updateMechanicUseCase.execute(id, input),
+    onSuccess: (r) => r.success && qc.invalidateQueries({ queryKey: keys.mechanics }),
+  });
+}
+
+export function useDeleteMechanic() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteMechanicUseCase.execute(id),
+    onSuccess: (r) => r.success && qc.invalidateQueries({ queryKey: keys.mechanics }),
+  });
+}
+
+export function useMechanicSalesRecords(mechanicId?: string) {
+  return useResultQuery(
+    mechanicId ? [...keys.mechanicSalesRecords, mechanicId] : keys.mechanicSalesRecords,
+    () => listMechanicSalesRecordsUseCase.execute(mechanicId),
+  );
+}
+
+export function useCreateMechanicSalesRecord() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: unknown) => createMechanicSalesRecordUseCase.execute(input),
+    onSuccess: (r) => {
+      if (r.success) {
+        qc.invalidateQueries({ queryKey: keys.mechanicSalesRecords });
+      }
+    },
+  });
+}
+
 export function usePosOrders() {
   return useResultQuery(keys.pos, () => listPosOrdersUseCase.execute());
 }
@@ -204,6 +323,7 @@ export function useCreatePosOrder() {
     onSuccess: (r) => {
       if (r.success) {
         qc.invalidateQueries({ queryKey: keys.pos });
+        qc.invalidateQueries({ queryKey: keys.inventory });
         qc.invalidateQueries({ queryKey: keys.analytics });
       }
     },
@@ -223,6 +343,7 @@ export function usePayPosOrder() {
     onSuccess: (r) => {
       if (r.success) {
         qc.invalidateQueries({ queryKey: keys.pos });
+        qc.invalidateQueries({ queryKey: keys.inventory });
         qc.invalidateQueries({ queryKey: keys.analytics });
       }
     },

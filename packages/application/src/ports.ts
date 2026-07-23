@@ -4,8 +4,10 @@ import type {
   AuthSession,
   Customer,
   Employee,
+  InventoryCategory,
   InventoryItem,
   Mechanic,
+  MechanicSalesRecord,
   Membership,
   Organization,
   PayrollEntry,
@@ -140,8 +142,24 @@ export interface VehicleTaskRepository {
   delete(orgId: string, id: string): Promise<void>;
 }
 
+export interface InventoryCategoryRepository {
+  listByOrg(orgId: string): Promise<InventoryCategory[]>;
+  findById(orgId: string, id: string): Promise<InventoryCategory | null>;
+  create(
+    orgId: string,
+    data: Omit<InventoryCategory, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>,
+  ): Promise<InventoryCategory>;
+  update(
+    orgId: string,
+    id: string,
+    data: Partial<Omit<InventoryCategory, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>>,
+  ): Promise<InventoryCategory>;
+  delete(orgId: string, id: string): Promise<void>;
+}
+
 export interface InventoryRepository {
   listByOrg(orgId: string): Promise<InventoryItem[]>;
+  listByCategory(orgId: string, categoryId: string): Promise<InventoryItem[]>;
   findById(orgId: string, id: string): Promise<InventoryItem | null>;
   create(
     orgId: string,
@@ -152,6 +170,7 @@ export interface InventoryRepository {
     id: string,
     data: Partial<Omit<InventoryItem, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>>,
   ): Promise<InventoryItem>;
+  adjustQuantity(orgId: string, id: string, delta: number): Promise<InventoryItem>;
   delete(orgId: string, id: string): Promise<void>;
 }
 
@@ -183,6 +202,16 @@ export interface MechanicRepository {
     data: Partial<Omit<Mechanic, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>>,
   ): Promise<Mechanic>;
   delete(orgId: string, id: string): Promise<void>;
+}
+
+export interface MechanicSalesRecordRepository {
+  listByOrg(orgId: string): Promise<MechanicSalesRecord[]>;
+  listByMechanic(orgId: string, mechanicId: string): Promise<MechanicSalesRecord[]>;
+  findById(orgId: string, id: string): Promise<MechanicSalesRecord | null>;
+  create(
+    orgId: string,
+    data: Omit<MechanicSalesRecord, 'id' | 'orgId' | 'createdAt' | 'updatedAt'>,
+  ): Promise<MechanicSalesRecord>;
 }
 
 export interface PosOrderRepository {

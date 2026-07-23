@@ -6,8 +6,12 @@ import {
   employeeSchema,
   formatVehicleTaskVehicle,
   generateVehicleTaskCode,
+  buildInventoryItemName,
+  inventoryCategorySchema,
   inventoryItemSchema,
+  validateInventoryAttributes,
   mechanicSchema,
+  mechanicSalesRecordSchema,
   payrollEntrySchema,
   posOrderSchema,
   vehicleSchema,
@@ -24,8 +28,10 @@ import type {
   AuthRepository,
   CustomerRepository,
   EmployeeRepository,
+  InventoryCategoryRepository,
   InventoryRepository,
   MechanicRepository,
+  MechanicSalesRecordRepository,
   NotificationRepository,
   PayrollRepository,
   PosOrderRepository,
@@ -426,6 +432,126 @@ export class TransitionVehicleTaskUseCase {
   }
 }
 
+export class ListInventoryCategoriesUseCase {
+  constructor(
+    private readonly authRepo: AuthRepository,
+    private readonly categoryRepo: InventoryCategoryRepository,
+  ) {}
+
+  async execute(): Promise<Result<import('@car-spa/domain').InventoryCategory[]>> {
+    try {
+      const ctx = requireOrgContext(await this.authRepo.getCurrentSession());
+      requirePermission(ctx, 'inventory:read');
+      return ok(await this.categoryRepo.listByOrg(ctx.orgId));
+    } catch (error) {
+      return err(error instanceof Error ? error : new Error('Failed to list inventory categories'));
+    }
+  }
+}
+
+export class CreateInventoryCategoryUseCase {
+  constructor(
+    private readonly authRepo: AuthRepository,
+    private readonly categoryRepo: InventoryCategoryRepository,
+    private readonly auditRepo: AuditRepository,
+  ) {}
+
+  async execute(input: unknown): Promise<Result<import('@car-spa/domain').InventoryCategory>> {
+    const parsed = inventoryCategorySchema.safeParse(input);
+    if (!parsed.success) return err(new Error(parsed.error.errors[0]?.message ?? 'Invalid input'));
+    try {
+      const ctx = requireOrgContext(await this.authRepo.getCurrentSession());
+      requirePermission(ctx, 'inventory:create');
+      const category = await this.categoryRepo.create(ctx.orgId, {
+        name: parsed.data.name,
+        fields: parsed.data.fields,
+      });
+      await logAction(
+        this.auditRepo,
+        ctx.orgId,
+        ctx.userId,
+        'inventoryCategory.create',
+        'inventoryCategory',
+        category.id,
+      );
+      return ok(category);
+    } catch (error) {
+      return err(error instanceof Error ? error : new Error('Failed to create inventory category'));
+    }
+  }
+}
+
+export class UpdateInventoryCategoryUseCase {
+  constructor(
+    private readonly authRepo: AuthRepository,
+    private readonly categoryRepo: InventoryCategoryRepository,
+    private readonly auditRepo: AuditRepository,
+  ) {}
+
+  async execute(
+    id: string,
+    input: unknown,
+  ): Promise<Result<import('@car-spa/domain').InventoryCategory>> {
+    const parsed = inventoryCategorySchema.safeParse(input);
+    if (!parsed.success) return err(new Error(parsed.error.errors[0]?.message ?? 'Invalid input'));
+    try {
+      const ctx = requireOrgContext(await this.authRepo.getCurrentSession());
+      requirePermission(ctx, 'inventory:create');
+      const existing = await this.categoryRepo.findById(ctx.orgId, id);
+      if (!existing) return err(new Error('Category not found'));
+      const category = await this.categoryRepo.update(ctx.orgId, id, {
+        name: parsed.data.name,
+        fields: parsed.data.fields,
+      });
+      await logAction(
+        this.auditRepo,
+        ctx.orgId,
+        ctx.userId,
+        'inventoryCategory.update',
+        'inventoryCategory',
+        id,
+      );
+      return ok(category);
+    } catch (error) {
+      return err(error instanceof Error ? error : new Error('Failed to update inventory category'));
+    }
+  }
+}
+
+export class DeleteInventoryCategoryUseCase {
+  constructor(
+    private readonly authRepo: AuthRepository,
+    private readonly categoryRepo: InventoryCategoryRepository,
+    private readonly inventoryRepo: InventoryRepository,
+    private readonly auditRepo: AuditRepository,
+  ) {}
+
+  async execute(id: string): Promise<Result<void>> {
+    try {
+      const ctx = requireOrgContext(await this.authRepo.getCurrentSession());
+      requirePermission(ctx, 'inventory:delete');
+      const existing = await this.categoryRepo.findById(ctx.orgId, id);
+      if (!existing) return err(new Error('Category not found'));
+      const items = await this.inventoryRepo.listByCategory(ctx.orgId, id);
+      if (items.length > 0) {
+        return err(new Error('Remove all items in this category before deleting it'));
+      }
+      await this.categoryRepo.delete(ctx.orgId, id);
+      await logAction(
+        this.auditRepo,
+        ctx.orgId,
+        ctx.userId,
+        'inventoryCategory.delete',
+        'inventoryCategory',
+        id,
+      );
+      return ok(undefined);
+    } catch (error) {
+      return err(error instanceof Error ? error : new Error('Failed to delete inventory category'));
+    }
+  }
+}
+
 export class ListInventoryUseCase {
   constructor(
     private readonly authRepo: AuthRepository,
@@ -447,6 +573,7 @@ export class CreateInventoryItemUseCase {
   constructor(
     private readonly authRepo: AuthRepository,
     private readonly inventoryRepo: InventoryRepository,
+    private readonly categoryRepo: InventoryCategoryRepository,
     private readonly auditRepo: AuditRepository,
   ) {}
 
@@ -456,7 +583,19 @@ export class CreateInventoryItemUseCase {
     try {
       const ctx = requireOrgContext(await this.authRepo.getCurrentSession());
       requirePermission(ctx, 'inventory:create');
-      const item = await this.inventoryRepo.create(ctx.orgId, parsed.data);
+      const category = await this.categoryRepo.findById(ctx.orgId, parsed.data.categoryId);
+      if (!category) return err(new Error('Category not found'));
+      const attributeError = validateInventoryAttributes(category, parsed.data.attributes);
+      if (attributeError) return err(new Error(attributeError));
+      const item = await this.inventoryRepo.create(ctx.orgId, {
+        categoryId: parsed.data.categoryId,
+        sku: parsed.data.sku,
+        name: parsed.data.name ?? buildInventoryItemName(category, parsed.data.attributes),
+        attributes: parsed.data.attributes,
+        quantity: parsed.data.quantity,
+        unitPrice: parsed.data.unitPrice,
+        reorderLevel: parsed.data.reorderLevel,
+      });
       await logAction(
         this.auditRepo,
         ctx.orgId,
@@ -468,6 +607,82 @@ export class CreateInventoryItemUseCase {
       return ok(item);
     } catch (error) {
       return err(error instanceof Error ? error : new Error('Failed to create inventory item'));
+    }
+  }
+}
+
+export class UpdateInventoryItemUseCase {
+  constructor(
+    private readonly authRepo: AuthRepository,
+    private readonly inventoryRepo: InventoryRepository,
+    private readonly categoryRepo: InventoryCategoryRepository,
+    private readonly auditRepo: AuditRepository,
+  ) {}
+
+  async execute(
+    id: string,
+    input: unknown,
+  ): Promise<Result<import('@car-spa/domain').InventoryItem>> {
+    const parsed = inventoryItemSchema.safeParse(input);
+    if (!parsed.success) return err(new Error(parsed.error.errors[0]?.message ?? 'Invalid input'));
+    try {
+      const ctx = requireOrgContext(await this.authRepo.getCurrentSession());
+      requirePermission(ctx, 'inventory:update');
+      const existing = await this.inventoryRepo.findById(ctx.orgId, id);
+      if (!existing) return err(new Error('Item not found'));
+      const category = await this.categoryRepo.findById(ctx.orgId, parsed.data.categoryId);
+      if (!category) return err(new Error('Category not found'));
+      const attributeError = validateInventoryAttributes(category, parsed.data.attributes);
+      if (attributeError) return err(new Error(attributeError));
+      const item = await this.inventoryRepo.update(ctx.orgId, id, {
+        categoryId: parsed.data.categoryId,
+        sku: parsed.data.sku,
+        name: parsed.data.name ?? buildInventoryItemName(category, parsed.data.attributes),
+        attributes: parsed.data.attributes,
+        quantity: parsed.data.quantity,
+        unitPrice: parsed.data.unitPrice,
+        reorderLevel: parsed.data.reorderLevel,
+      });
+      await logAction(
+        this.auditRepo,
+        ctx.orgId,
+        ctx.userId,
+        'inventory.update',
+        'inventoryItem',
+        id,
+      );
+      return ok(item);
+    } catch (error) {
+      return err(error instanceof Error ? error : new Error('Failed to update inventory item'));
+    }
+  }
+}
+
+export class DeleteInventoryItemUseCase {
+  constructor(
+    private readonly authRepo: AuthRepository,
+    private readonly inventoryRepo: InventoryRepository,
+    private readonly auditRepo: AuditRepository,
+  ) {}
+
+  async execute(id: string): Promise<Result<void>> {
+    try {
+      const ctx = requireOrgContext(await this.authRepo.getCurrentSession());
+      requirePermission(ctx, 'inventory:delete');
+      const existing = await this.inventoryRepo.findById(ctx.orgId, id);
+      if (!existing) return err(new Error('Item not found'));
+      await this.inventoryRepo.delete(ctx.orgId, id);
+      await logAction(
+        this.auditRepo,
+        ctx.orgId,
+        ctx.userId,
+        'inventory.delete',
+        'inventoryItem',
+        id,
+      );
+      return ok(undefined);
+    } catch (error) {
+      return err(error instanceof Error ? error : new Error('Failed to delete inventory item'));
     }
   }
 }
@@ -557,12 +772,10 @@ export class CreateMechanicUseCase {
       const ctx = requireOrgContext(await this.authRepo.getCurrentSession());
       requirePermission(ctx, 'mechanics:create');
       const mechanic = await this.mechanicRepo.create(ctx.orgId, {
-        employeeId: parsed.data.employeeId,
-        specializations: parsed.data.specializations
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean),
-        isAvailable: parsed.data.isAvailable,
+        name: parsed.data.name,
+        storeName: parsed.data.storeName,
+        phone: parsed.data.phone,
+        contactName: parsed.data.contactName?.trim() || null,
       });
       await logAction(
         this.auditRepo,
@@ -575,6 +788,120 @@ export class CreateMechanicUseCase {
       return ok(mechanic);
     } catch (error) {
       return err(error instanceof Error ? error : new Error('Failed to create mechanic'));
+    }
+  }
+}
+
+export class UpdateMechanicUseCase {
+  constructor(
+    private readonly authRepo: AuthRepository,
+    private readonly mechanicRepo: MechanicRepository,
+    private readonly auditRepo: AuditRepository,
+  ) {}
+
+  async execute(
+    id: string,
+    input: unknown,
+  ): Promise<Result<import('@car-spa/domain').Mechanic>> {
+    const parsed = mechanicSchema.safeParse(input);
+    if (!parsed.success) return err(new Error(parsed.error.errors[0]?.message ?? 'Invalid input'));
+    try {
+      const ctx = requireOrgContext(await this.authRepo.getCurrentSession());
+      requirePermission(ctx, 'mechanics:update');
+      const mechanic = await this.mechanicRepo.update(ctx.orgId, id, {
+        name: parsed.data.name,
+        storeName: parsed.data.storeName,
+        phone: parsed.data.phone,
+        contactName: parsed.data.contactName?.trim() || null,
+      });
+      await logAction(this.auditRepo, ctx.orgId, ctx.userId, 'mechanic.update', 'mechanic', id);
+      return ok(mechanic);
+    } catch (error) {
+      return err(error instanceof Error ? error : new Error('Failed to update mechanic'));
+    }
+  }
+}
+
+export class DeleteMechanicUseCase {
+  constructor(
+    private readonly authRepo: AuthRepository,
+    private readonly mechanicRepo: MechanicRepository,
+    private readonly auditRepo: AuditRepository,
+  ) {}
+
+  async execute(id: string): Promise<Result<void>> {
+    try {
+      const ctx = requireOrgContext(await this.authRepo.getCurrentSession());
+      requirePermission(ctx, 'mechanics:delete');
+      await this.mechanicRepo.delete(ctx.orgId, id);
+      await logAction(this.auditRepo, ctx.orgId, ctx.userId, 'mechanic.delete', 'mechanic', id);
+      return ok(undefined);
+    } catch (error) {
+      return err(error instanceof Error ? error : new Error('Failed to delete mechanic'));
+    }
+  }
+}
+
+export class ListMechanicSalesRecordsUseCase {
+  constructor(
+    private readonly authRepo: AuthRepository,
+    private readonly salesRecordRepo: MechanicSalesRecordRepository,
+  ) {}
+
+  async execute(mechanicId?: string): Promise<Result<import('@car-spa/domain').MechanicSalesRecord[]>> {
+    try {
+      const ctx = requireOrgContext(await this.authRepo.getCurrentSession());
+      requirePermission(ctx, 'mechanics:read');
+      const records = mechanicId
+        ? await this.salesRecordRepo.listByMechanic(ctx.orgId, mechanicId)
+        : await this.salesRecordRepo.listByOrg(ctx.orgId);
+      return ok(records);
+    } catch (error) {
+      return err(error instanceof Error ? error : new Error('Failed to list sales records'));
+    }
+  }
+}
+
+export class CreateMechanicSalesRecordUseCase {
+  constructor(
+    private readonly authRepo: AuthRepository,
+    private readonly mechanicRepo: MechanicRepository,
+    private readonly salesRecordRepo: MechanicSalesRecordRepository,
+    private readonly auditRepo: AuditRepository,
+  ) {}
+
+  async execute(input: unknown): Promise<Result<import('@car-spa/domain').MechanicSalesRecord>> {
+    const parsed = mechanicSalesRecordSchema.safeParse(input);
+    if (!parsed.success) return err(new Error(parsed.error.errors[0]?.message ?? 'Invalid input'));
+    try {
+      const ctx = requireOrgContext(await this.authRepo.getCurrentSession());
+      requirePermission(ctx, 'mechanics:update');
+      const mechanic = await this.mechanicRepo.findById(ctx.orgId, parsed.data.mechanicId);
+      if (!mechanic) return err(new Error('Mechanic not found'));
+
+      const record = await this.salesRecordRepo.create(ctx.orgId, {
+        mechanicId: parsed.data.mechanicId,
+        fromDate: new Date(parsed.data.fromDate),
+        toDate: new Date(parsed.data.toDate),
+        items: parsed.data.items.map((item) => ({
+          inventoryItemId: item.inventoryItemId ?? null,
+          description: item.description,
+          quantity: item.quantity,
+        })),
+        totalAmount: parsed.data.totalAmount,
+      });
+      await logAction(
+        this.auditRepo,
+        ctx.orgId,
+        ctx.userId,
+        'mechanic.salesRecord.create',
+        'mechanicSalesRecord',
+        record.id,
+        { mechanicId: parsed.data.mechanicId },
+      );
+      return ok(record);
+    } catch (error) {
+      return err(error instanceof Error ? error : new Error('Failed to save sales record'));
     }
   }
 }
@@ -600,6 +927,9 @@ export class CreatePosOrderUseCase {
   constructor(
     private readonly authRepo: AuthRepository,
     private readonly posRepo: PosOrderRepository,
+    private readonly inventoryRepo: InventoryRepository,
+    private readonly mechanicRepo: MechanicRepository,
+    private readonly customerRepo: CustomerRepository,
     private readonly auditRepo: AuditRepository,
   ) {}
 
@@ -609,14 +939,46 @@ export class CreatePosOrderUseCase {
     try {
       const ctx = requireOrgContext(await this.authRepo.getCurrentSession());
       requirePermission(ctx, 'pos:create');
-      const items = parsed.data.items.map((item) => ({
-        ...item,
-        lineTotal: item.quantity * item.unitPrice,
-      }));
+
+      if (parsed.data.buyerType === 'mechanic') {
+        const mechanic = await this.mechanicRepo.findById(ctx.orgId, parsed.data.mechanicId!);
+        if (!mechanic) return err(new Error('Mechanic not found'));
+      }
+      if (parsed.data.buyerType === 'customer') {
+        const customer = await this.customerRepo.findById(ctx.orgId, parsed.data.customerId!);
+        if (!customer) return err(new Error('Customer not found'));
+      }
+
+      const items: import('@car-spa/domain').PosOrderItem[] = [];
+      for (const item of parsed.data.items) {
+        const inventoryItem = await this.inventoryRepo.findById(ctx.orgId, item.inventoryItemId);
+        if (!inventoryItem) {
+          return err(new Error(`Inventory item not found: ${item.description}`));
+        }
+        if (inventoryItem.quantity < item.quantity) {
+          return err(
+            new Error(`Insufficient stock for ${inventoryItem.name}. Available: ${inventoryItem.quantity}`),
+          );
+        }
+        items.push({
+          inventoryItemId: inventoryItem.id,
+          description: item.description || inventoryItem.name,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          lineTotal: item.quantity * item.unitPrice,
+        });
+      }
+
       const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
       const tax = parsed.data.tax ?? 0;
       const order = await this.posRepo.create(ctx.orgId, {
-        customerId: parsed.data.customerId ?? null,
+        buyerType: parsed.data.buyerType,
+        mechanicId: parsed.data.buyerType === 'mechanic' ? (parsed.data.mechanicId ?? null) : null,
+        customerId: parsed.data.buyerType === 'customer' ? (parsed.data.customerId ?? null) : null,
+        buyerName:
+          parsed.data.buyerType === 'walk_in' ? parsed.data.buyerName?.trim() || null : null,
+        buyerContact:
+          parsed.data.buyerType === 'walk_in' ? parsed.data.buyerContact?.trim() || null : null,
         vehicleTaskId: parsed.data.vehicleTaskId ?? null,
         items,
         subtotal,
@@ -637,6 +999,7 @@ export class PayPosOrderUseCase {
   constructor(
     private readonly authRepo: AuthRepository,
     private readonly posRepo: PosOrderRepository,
+    private readonly inventoryRepo: InventoryRepository,
     private readonly auditRepo: AuditRepository,
   ) {}
 
@@ -647,6 +1010,30 @@ export class PayPosOrderUseCase {
     try {
       const ctx = requireOrgContext(await this.authRepo.getCurrentSession());
       requirePermission(ctx, 'pos:pay');
+
+      const existing = await this.posRepo.findById(ctx.orgId, orderId);
+      if (!existing) return err(new Error('Order not found'));
+      if (existing.status === 'paid') return err(new Error('Order is already paid'));
+      if (existing.status === 'cancelled') return err(new Error('Cannot pay a cancelled order'));
+
+      for (const item of existing.items) {
+        if (!item.inventoryItemId) continue;
+        const inventoryItem = await this.inventoryRepo.findById(ctx.orgId, item.inventoryItemId);
+        if (!inventoryItem) {
+          return err(new Error(`Inventory item not found for ${item.description}`));
+        }
+        if (inventoryItem.quantity < item.quantity) {
+          return err(
+            new Error(`Insufficient stock for ${inventoryItem.name}. Available: ${inventoryItem.quantity}`),
+          );
+        }
+      }
+
+      for (const item of existing.items) {
+        if (!item.inventoryItemId) continue;
+        await this.inventoryRepo.adjustQuantity(ctx.orgId, item.inventoryItemId, -item.quantity);
+      }
+
       const order = await this.posRepo.update(ctx.orgId, orderId, {
         status: 'paid',
         paymentMethod,

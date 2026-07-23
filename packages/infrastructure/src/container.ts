@@ -3,8 +3,13 @@ import {
   BootstrapDefaultOrgUseCase,
   CreateCustomerUseCase,
   CreateEmployeeUseCase,
+  CreateInventoryCategoryUseCase,
   CreateInventoryItemUseCase,
+  DeleteInventoryCategoryUseCase,
+  DeleteInventoryItemUseCase,
+  DeleteMechanicUseCase,
   CreateMechanicUseCase,
+  CreateMechanicSalesRecordUseCase,
   CreatePayrollEntryUseCase,
   CreatePosOrderUseCase,
   CreateVehicleTaskUseCase,
@@ -15,8 +20,10 @@ import {
   ListAuditLogsUseCase,
   ListCustomersUseCase,
   ListEmployeesUseCase,
+  ListInventoryCategoriesUseCase,
   ListInventoryUseCase,
   ListMechanicsUseCase,
+  ListMechanicSalesRecordsUseCase,
   ListNotificationsUseCase,
   ListPayrollEntriesUseCase,
   ListPosOrdersUseCase,
@@ -28,6 +35,9 @@ import {
   SignUpUseCase,
   TransitionVehicleTaskUseCase,
   UpdateCustomerUseCase,
+  UpdateInventoryCategoryUseCase,
+  UpdateInventoryItemUseCase,
+  UpdateMechanicUseCase,
   UpdateVehicleTaskPaymentUseCase,
   UpdateVehicleTaskUseCase,
 } from '@car-spa/application';
@@ -40,8 +50,10 @@ import {
   FirestoreAnalyticsRepository,
   FirestoreCustomerRepository,
   FirestoreEmployeeRepository,
+  FirestoreInventoryCategoryRepository,
   FirestoreInventoryRepository,
   FirestoreMechanicRepository,
+  FirestoreMechanicSalesRecordRepository,
   FirestoreNotificationRepository,
   FirestorePayrollRepository,
   FirestorePosOrderRepository,
@@ -62,9 +74,11 @@ const organizationRepository = new FirestoreOrganizationRepository();
 const customerRepository = new FirestoreCustomerRepository();
 const vehicleRepository = new FirestoreVehicleRepository();
 const vehicleTaskRepository = new FirestoreVehicleTaskRepository();
+const inventoryCategoryRepository = new FirestoreInventoryCategoryRepository();
 const inventoryRepository = new FirestoreInventoryRepository();
 const employeeRepository = new FirestoreEmployeeRepository();
 const mechanicRepository = new FirestoreMechanicRepository();
+const mechanicSalesRecordRepository = new FirestoreMechanicSalesRecordRepository();
 const posOrderRepository = new FirestorePosOrderRepository();
 const payrollRepository = new FirestorePayrollRepository();
 const notificationRepository = new FirestoreNotificationRepository();
@@ -149,8 +163,41 @@ export const transitionVehicleTaskUseCase = new TransitionVehicleTaskUseCase(
   whatsAppMessagingService,
 );
 
+export const listInventoryCategoriesUseCase = new ListInventoryCategoriesUseCase(
+  authRepository,
+  inventoryCategoryRepository,
+);
+export const createInventoryCategoryUseCase = new CreateInventoryCategoryUseCase(
+  authRepository,
+  inventoryCategoryRepository,
+  auditRepository,
+);
+export const updateInventoryCategoryUseCase = new UpdateInventoryCategoryUseCase(
+  authRepository,
+  inventoryCategoryRepository,
+  auditRepository,
+);
+export const deleteInventoryCategoryUseCase = new DeleteInventoryCategoryUseCase(
+  authRepository,
+  inventoryCategoryRepository,
+  inventoryRepository,
+  auditRepository,
+);
+
 export const listInventoryUseCase = new ListInventoryUseCase(authRepository, inventoryRepository);
 export const createInventoryItemUseCase = new CreateInventoryItemUseCase(
+  authRepository,
+  inventoryRepository,
+  inventoryCategoryRepository,
+  auditRepository,
+);
+export const updateInventoryItemUseCase = new UpdateInventoryItemUseCase(
+  authRepository,
+  inventoryRepository,
+  inventoryCategoryRepository,
+  auditRepository,
+);
+export const deleteInventoryItemUseCase = new DeleteInventoryItemUseCase(
   authRepository,
   inventoryRepository,
   auditRepository,
@@ -169,16 +216,40 @@ export const createMechanicUseCase = new CreateMechanicUseCase(
   mechanicRepository,
   auditRepository,
 );
+export const updateMechanicUseCase = new UpdateMechanicUseCase(
+  authRepository,
+  mechanicRepository,
+  auditRepository,
+);
+export const deleteMechanicUseCase = new DeleteMechanicUseCase(
+  authRepository,
+  mechanicRepository,
+  auditRepository,
+);
+export const listMechanicSalesRecordsUseCase = new ListMechanicSalesRecordsUseCase(
+  authRepository,
+  mechanicSalesRecordRepository,
+);
+export const createMechanicSalesRecordUseCase = new CreateMechanicSalesRecordUseCase(
+  authRepository,
+  mechanicRepository,
+  mechanicSalesRecordRepository,
+  auditRepository,
+);
 
 export const listPosOrdersUseCase = new ListPosOrdersUseCase(authRepository, posOrderRepository);
 export const createPosOrderUseCase = new CreatePosOrderUseCase(
   authRepository,
   posOrderRepository,
+  inventoryRepository,
+  mechanicRepository,
+  customerRepository,
   auditRepository,
 );
 export const payPosOrderUseCase = new PayPosOrderUseCase(
   authRepository,
   posOrderRepository,
+  inventoryRepository,
   auditRepository,
 );
 
@@ -221,6 +292,7 @@ export {
   customerRepository,
   vehicleRepository,
   vehicleTaskRepository,
+  inventoryCategoryRepository,
   inventoryRepository,
   employeeRepository,
   mechanicRepository,

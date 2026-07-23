@@ -96,12 +96,72 @@ export interface VehicleTask {
   updatedAt: Date;
 }
 
+export type InventoryCategoryFieldType =
+  | 'text'
+  | 'number'
+  | 'select'
+  | 'cost'
+  | 'quantity_unit'
+  | 'date'
+  | 'boolean';
+
+export const INVENTORY_CATEGORY_FIELD_TYPES = [
+  'text',
+  'number',
+  'select',
+  'cost',
+  'quantity_unit',
+  'date',
+  'boolean',
+] as const satisfies readonly InventoryCategoryFieldType[];
+
+export const INVENTORY_FIELD_TYPE_LABELS: Record<InventoryCategoryFieldType, string> = {
+  text: 'Text',
+  number: 'Number',
+  select: 'Custom select',
+  cost: 'Cost (₹)',
+  quantity_unit: 'Quantity unit',
+  date: 'Date',
+  boolean: 'Yes / No',
+};
+
+export const INVENTORY_QUANTITY_UNITS = [
+  'Pieces',
+  'Litres',
+  'Millilitres',
+  'Grams',
+  'Kilograms',
+  'Metres',
+  'Centimetres',
+  'Boxes',
+  'Pairs',
+  'Sets',
+] as const;
+
+export interface InventoryCategoryField {
+  key: string;
+  label: string;
+  type: InventoryCategoryFieldType;
+  required: boolean;
+  options?: string[];
+}
+
+export interface InventoryCategory {
+  id: string;
+  orgId: string;
+  name: string;
+  fields: InventoryCategoryField[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface InventoryItem {
   id: string;
   orgId: string;
+  categoryId: string;
   sku: string;
   name: string;
-  category: string;
+  attributes: Record<string, string | number>;
   quantity: number;
   unitPrice: number;
   reorderLevel: number;
@@ -128,16 +188,38 @@ export interface Employee {
 export interface Mechanic {
   id: string;
   orgId: string;
-  employeeId: string;
-  specializations: string[];
-  isAvailable: boolean;
+  name: string;
+  storeName: string;
+  phone: string;
+  contactName: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
+export interface MechanicSalesRecordItem {
+  inventoryItemId: string | null;
+  description: string;
+  quantity: number;
+}
+
+export interface MechanicSalesRecord {
+  id: string;
+  orgId: string;
+  mechanicId: string;
+  fromDate: Date;
+  toDate: Date;
+  items: MechanicSalesRecordItem[];
+  totalAmount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type PosBuyerType = 'mechanic' | 'customer' | 'walk_in';
+
 export type PosOrderStatus = 'draft' | 'paid' | 'cancelled';
 
 export interface PosOrderItem {
+  inventoryItemId: string | null;
   description: string;
   quantity: number;
   unitPrice: number;
@@ -147,7 +229,11 @@ export interface PosOrderItem {
 export interface PosOrder {
   id: string;
   orgId: string;
+  buyerType: PosBuyerType;
+  mechanicId: string | null;
   customerId: string | null;
+  buyerName: string | null;
+  buyerContact: string | null;
   vehicleTaskId: string | null;
   items: PosOrderItem[];
   subtotal: number;
