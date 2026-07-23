@@ -252,10 +252,20 @@ export function MechanicsPage() {
               {summary.orderCount}
             </Badge>,
             <div key={`${mechanic.id}-actions`} className="flex flex-wrap gap-2">
-              <Button type="button" size="sm" variant="outline" onClick={() => openEditForm(mechanic)}>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => openEditForm(mechanic)}
+              >
                 Edit
               </Button>
-              <Button type="button" size="sm" variant="ghost" onClick={() => handleDelete(mechanic)}>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => handleDelete(mechanic)}
+              >
                 Delete
               </Button>
               <Button

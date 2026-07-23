@@ -97,13 +97,7 @@ export interface VehicleTask {
 }
 
 export type InventoryCategoryFieldType =
-  | 'text'
-  | 'number'
-  | 'select'
-  | 'cost'
-  | 'quantity_unit'
-  | 'date'
-  | 'boolean';
+  'text' | 'number' | 'select' | 'cost' | 'quantity_unit' | 'date' | 'boolean';
 
 export const INVENTORY_CATEGORY_FIELD_TYPES = [
   'text',

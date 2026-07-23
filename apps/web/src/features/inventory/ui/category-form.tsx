@@ -69,7 +69,9 @@ export function CategoryForm({ category, onSuccess, onCancel }: CategoryFormProp
   const addField = () => setFields((current) => [...current, { ...EMPTY_FIELD }]);
 
   const removeField = (index: number) => {
-    setFields((current) => (current.length === 1 ? current : current.filter((_, i) => i !== index)));
+    setFields((current) =>
+      current.length === 1 ? current : current.filter((_, i) => i !== index),
+    );
   };
 
   const buildPayload = () => ({
@@ -199,7 +201,9 @@ export function CategoryForm({ category, onSuccess, onCancel }: CategoryFormProp
                 </div>
                 {field.type === 'select' && (
                   <div className="border-border/40 flex items-center gap-2 border-t px-2 py-1.5">
-                    <span className="text-muted-foreground w-[180px] shrink-0 text-xs">Options</span>
+                    <span className="text-muted-foreground w-[180px] shrink-0 text-xs">
+                      Options
+                    </span>
                     <Input
                       className="h-8 w-72"
                       value={field.optionsText ?? ''}

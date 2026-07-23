@@ -127,15 +127,7 @@ export const vehicleTaskTransitionSchema = z.object({
 export const inventoryCategoryFieldSchema = z.object({
   key: z.string().min(1, 'Field key is required'),
   label: z.string().min(1, 'Field label is required'),
-  type: z.enum([
-    'text',
-    'number',
-    'select',
-    'cost',
-    'quantity_unit',
-    'date',
-    'boolean',
-  ]),
+  type: z.enum(['text', 'number', 'select', 'cost', 'quantity_unit', 'date', 'boolean']),
   required: z.boolean(),
   options: z.array(z.string().min(1)).optional(),
 });

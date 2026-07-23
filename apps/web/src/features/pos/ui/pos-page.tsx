@@ -24,11 +24,7 @@ import {
   usePosOrders,
 } from '@/hooks/use-operations';
 
-function buyerLabel(
-  order: PosOrder,
-  mechanics: Mechanic[],
-  customers: Customer[],
-): string {
+function buyerLabel(order: PosOrder, mechanics: Mechanic[], customers: Customer[]): string {
   if (order.buyerType === 'mechanic' && order.mechanicId) {
     const mechanic = mechanics.find((entry) => entry.id === order.mechanicId);
     return mechanic ? `${mechanic.name} (${mechanic.storeName})` : 'Mechanic';
@@ -247,7 +243,12 @@ export function PosPage() {
                       </div>
                       <div className="flex items-end">
                         {fields.length > 1 && (
-                          <Button type="button" variant="ghost" size="sm" onClick={() => remove(index)}>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => remove(index)}
+                          >
                             Remove
                           </Button>
                         )}
@@ -311,7 +312,10 @@ export function PosPage() {
           buyerLabel(order, mechanics, customers),
           formatItems(order.items),
           `₹${order.total.toFixed(2)}`,
-          <Badge key={`${order.id}-status`} variant={order.status === 'paid' ? 'success' : 'outline'}>
+          <Badge
+            key={`${order.id}-status`}
+            variant={order.status === 'paid' ? 'success' : 'outline'}
+          >
             {order.status}
           </Badge>,
           <div key={`${order.id}-actions`} className="flex flex-wrap gap-2">

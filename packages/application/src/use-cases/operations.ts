@@ -799,10 +799,7 @@ export class UpdateMechanicUseCase {
     private readonly auditRepo: AuditRepository,
   ) {}
 
-  async execute(
-    id: string,
-    input: unknown,
-  ): Promise<Result<import('@car-spa/domain').Mechanic>> {
+  async execute(id: string, input: unknown): Promise<Result<import('@car-spa/domain').Mechanic>> {
     const parsed = mechanicSchema.safeParse(input);
     if (!parsed.success) return err(new Error(parsed.error.errors[0]?.message ?? 'Invalid input'));
     try {
@@ -848,7 +845,9 @@ export class ListMechanicSalesRecordsUseCase {
     private readonly salesRecordRepo: MechanicSalesRecordRepository,
   ) {}
 
-  async execute(mechanicId?: string): Promise<Result<import('@car-spa/domain').MechanicSalesRecord[]>> {
+  async execute(
+    mechanicId?: string,
+  ): Promise<Result<import('@car-spa/domain').MechanicSalesRecord[]>> {
     try {
       const ctx = requireOrgContext(await this.authRepo.getCurrentSession());
       requirePermission(ctx, 'mechanics:read');
@@ -957,7 +956,9 @@ export class CreatePosOrderUseCase {
         }
         if (inventoryItem.quantity < item.quantity) {
           return err(
-            new Error(`Insufficient stock for ${inventoryItem.name}. Available: ${inventoryItem.quantity}`),
+            new Error(
+              `Insufficient stock for ${inventoryItem.name}. Available: ${inventoryItem.quantity}`,
+            ),
           );
         }
         items.push({
@@ -1024,7 +1025,9 @@ export class PayPosOrderUseCase {
         }
         if (inventoryItem.quantity < item.quantity) {
           return err(
-            new Error(`Insufficient stock for ${inventoryItem.name}. Available: ${inventoryItem.quantity}`),
+            new Error(
+              `Insufficient stock for ${inventoryItem.name}. Available: ${inventoryItem.quantity}`,
+            ),
           );
         }
       }
