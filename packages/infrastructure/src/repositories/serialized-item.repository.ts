@@ -8,6 +8,7 @@ import {
   getDoc,
   getDocs,
   increment,
+  limit as firestoreLimit,
   orderBy,
   query,
   serverTimestamp,
@@ -32,33 +33,36 @@ function mapItem(id: string, data: Record<string, unknown>): SerializedItem {
 }
 
 export class FirestoreSerializedItemRepository implements SerializedItemRepository {
-  async findByProductId(productId: string) {
-    const q = query(
+  async findByProductId(productId: string, options?: { limit?: number }) {
+    let q = query(
       collection(getFirebaseDb(), COLLECTIONS.serializedItems),
       where('productId', '==', productId),
       orderBy('serialNumber', 'asc'),
     );
+    if (options?.limit) q = query(q, firestoreLimit(options.limit));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => mapItem(d.id, d.data()));
   }
 
-  async findByOrgId(orgId: string) {
-    const q = query(
+  async findByOrgId(orgId: string, options?: { limit?: number }) {
+    let q = query(
       collection(getFirebaseDb(), COLLECTIONS.serializedItems),
       where('orgId', '==', orgId),
       orderBy('serialNumber', 'asc'),
     );
+    if (options?.limit) q = query(q, firestoreLimit(options.limit));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => mapItem(d.id, d.data()));
   }
 
-  async findAvailableByProductId(productId: string) {
-    const q = query(
+  async findAvailableByProductId(productId: string, options?: { limit?: number }) {
+    let q = query(
       collection(getFirebaseDb(), COLLECTIONS.serializedItems),
       where('productId', '==', productId),
       where('isAvailable', '==', true),
       orderBy('serialNumber', 'asc'),
     );
+    if (options?.limit) q = query(q, firestoreLimit(options.limit));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => mapItem(d.id, d.data()));
   }

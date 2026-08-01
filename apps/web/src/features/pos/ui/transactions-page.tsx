@@ -2,15 +2,18 @@
 
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ReceiptText, Search, Printer, Banknote, Wallet, TrendingUp } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ReceiptText, Search, Printer, Banknote, Wallet, TrendingUp } from 'lucide-react';
 import { useAuthStore } from '@/features/authentication/stores/auth-store';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/shared/empty-state';
+import { Button } from '@/components/ui/button';
 import { useAllSales, useCustomers } from '../api/use-pos';
 import { ReceiptModal } from './receipt-modal';
 import type { POSSale } from '@car-spa/domain';
+
+const PAGE_SIZE = 10;
 
 const PAYMENT_LABELS: Record<string, string> = {
   CASH: 'Cash',
@@ -29,6 +32,7 @@ export function TransactionsPage() {
   const salesQ = useAllSales(orgId);
   const customersQ = useCustomers(orgId);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
   const [selectedSale, setSelectedSale] = useState<POSSale | null>(null);
 
   const sales = useMemo(() => salesQ.data ?? [], [salesQ.data]);
@@ -48,6 +52,10 @@ export function TransactionsPage() {
   const totalRevenue = useMemo(() => sales.reduce((sum, s) => sum + s.totalAmount, 0), [sales]);
   const cashTotal = useMemo(() => sales.filter((s) => s.paymentMode === 'CASH').reduce((sum, s) => sum + s.totalAmount, 0), [sales]);
   const upiTotal = useMemo(() => sales.filter((s) => s.paymentMode === 'UPI').reduce((sum, s) => sum + s.totalAmount, 0), [sales]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const paged = filtered.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
 
   const customerNameFor = (saleId: string | null) => {
     if (!saleId) return null;
@@ -116,7 +124,7 @@ export function TransactionsPage() {
               placeholder="Search by receipt number, transaction ID, or customer…"
               className="pl-10"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setPage(0); }}
             />
           </div>
 
@@ -129,8 +137,9 @@ export function TransactionsPage() {
           ) : filtered.length === 0 ? (
             <EmptyState title="No transactions found" description="Completed sales will appear here." />
           ) : (
-            <div className="space-y-2">
-              {filtered.map((sale) => (
+            <>
+              <div className="space-y-2">
+                {paged.map((sale) => (
                 <div
                   key={sale.id}
                   className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3 text-sm"
@@ -162,7 +171,37 @@ export function TransactionsPage() {
                   </div>
                 </div>
               ))}
-            </div>
+              </div>
+              {totalPages > 1 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">
+                  <p className="text-muted-foreground text-xs">
+                    Page {safePage + 1} of {totalPages} · {filtered.length} transactions
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={safePage === 0}
+                      onClick={() => setPage((p) => Math.max(0, p - 1))}
+                      aria-label="Previous page"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={safePage >= totalPages - 1}
+                      onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                      aria-label="Next page"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 export function useCustomers(orgId: string) {
   return useQuery({
     queryKey: ['customers', orgId],
-    queryFn: () => customerRepository.findByOrgId(orgId),
+    queryFn: () => customerRepository.findByOrgId(orgId, { limit: 200 }),
     enabled: !!orgId,
   });
 }

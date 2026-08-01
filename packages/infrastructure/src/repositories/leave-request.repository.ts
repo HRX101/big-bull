@@ -7,6 +7,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit as firestoreLimit,
   orderBy,
   query,
   serverTimestamp,
@@ -40,22 +41,24 @@ export class FirestoreLeaveRequestRepository implements LeaveRequestRepository {
     return mapLeave(snapshot.id, snapshot.data());
   }
 
-  async findByOrgId(orgId: string) {
-    const q = query(
+  async findByOrgId(orgId: string, options?: { limit?: number }) {
+    let q = query(
       collection(getFirebaseDb(), COLLECTIONS.leaveRequests),
       where('orgId', '==', orgId),
       orderBy('createdAt', 'desc'),
     );
+    if (options?.limit) q = query(q, firestoreLimit(options.limit));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => mapLeave(d.id, d.data()));
   }
 
-  async findByEmployeeId(employeeId: string) {
-    const q = query(
+  async findByEmployeeId(employeeId: string, options?: { limit?: number }) {
+    let q = query(
       collection(getFirebaseDb(), COLLECTIONS.leaveRequests),
       where('employeeId', '==', employeeId),
       orderBy('createdAt', 'desc'),
     );
+    if (options?.limit) q = query(q, firestoreLimit(options.limit));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => mapLeave(d.id, d.data()));
   }

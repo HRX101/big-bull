@@ -159,7 +159,7 @@ export function EmployeeDashboard() {
 
   const usersQ = useQuery({
     queryKey: ['users', orgId],
-    queryFn: () => userRepository.findByOrgId(orgId),
+    queryFn: () => userRepository.findByOrgId(orgId, { limit: 200 }),
     enabled: !!orgId,
   });
   const logsQ = useQuery({
@@ -169,17 +169,17 @@ export function EmployeeDashboard() {
   });
   const tasksQ = useQuery({
     queryKey: ['vehicle-tasks', orgId],
-    queryFn: () => vehicleTaskRepository.findByOrgId(orgId),
+    queryFn: () => vehicleTaskRepository.findByOrgId(orgId, { limit: 300 }),
     enabled: !!orgId,
   });
   const customersQ = useQuery({
     queryKey: ['customers', orgId],
-    queryFn: () => customerRepository.findByOrgId(orgId),
+    queryFn: () => customerRepository.findByOrgId(orgId, { limit: 200 }),
     enabled: !!orgId,
   });
   const vehiclesQ = useQuery({
     queryKey: ['vehicles', orgId],
-    queryFn: () => vehicleRepository.findByOrgId(orgId),
+    queryFn: () => vehicleRepository.findByOrgId(orgId, { limit: 200 }),
     enabled: !!orgId,
   });
 

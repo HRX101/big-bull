@@ -55,7 +55,7 @@ export interface OrganizationRepository {
 
 export interface MembershipRepository {
   findByUserId(userId: string): Promise<Membership | null>;
-  findByOrgId(orgId: string): Promise<Membership[]>;
+  findByOrgId(orgId: string, options?: { limit?: number }): Promise<Membership[]>;
   create(data: {
     userId: string;
     orgId: string;
@@ -76,7 +76,7 @@ export interface MembershipRepository {
 
 export interface UserRepository {
   findById(id: string): Promise<UserProfile | null>;
-  findByOrgId(orgId: string): Promise<UserProfile[]>;
+  findByOrgId(orgId: string, options?: { limit?: number }): Promise<UserProfile[]>;
   upsert(profile: Omit<UserProfile, 'createdAt' | 'updatedAt'>): Promise<UserProfile>;
   update(id: string, data: Partial<UserProfile>): Promise<UserProfile>;
 }
@@ -108,8 +108,8 @@ export interface CustomerRepository {
 
 export interface VehicleRepository {
   findById(id: string): Promise<Vehicle | null>;
-  findByCustomerId(customerId: string): Promise<Vehicle[]>;
-  findByOrgId(orgId: string): Promise<Vehicle[]>;
+  findByCustomerId(customerId: string, options?: { limit?: number }): Promise<Vehicle[]>;
+  findByOrgId(orgId: string, options?: { limit?: number }): Promise<Vehicle[]>;
   findByNumber(orgId: string, vehicleNumber: string): Promise<Vehicle | null>;
   create(data: Omit<Vehicle, 'id' | 'createdAt' | 'updatedAt'>): Promise<Vehicle>;
   update(id: string, data: Partial<Vehicle>): Promise<Vehicle>;
@@ -142,7 +142,7 @@ export interface TaskStatusEventRepository {
 
 export interface CategoryRepository {
   findById(id: string): Promise<Category | null>;
-  findByOrgId(orgId: string): Promise<Category[]>;
+  findByOrgId(orgId: string, options?: { limit?: number }): Promise<Category[]>;
   findByCodePrefix(orgId: string, prefix: string): Promise<Category | null>;
   getNextSequence(orgId: string, prefix: string): Promise<number>;
   create(data: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>): Promise<Category>;
@@ -153,7 +153,7 @@ export interface CategoryRepository {
 export interface ProductRepository {
   findById(id: string): Promise<Product | null>;
   findByCategoryId(categoryId: string): Promise<Product[]>;
-  findByOrgId(orgId: string): Promise<Product[]>;
+  findByOrgId(orgId: string, options?: { limit?: number }): Promise<Product[]>;
   search(orgId: string, query: string): Promise<Product[]>;
   findBySku(sku: string): Promise<Product | null>;
   create(data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product>;
@@ -168,7 +168,7 @@ export interface ProductRepository {
 }
 
 export interface StockMovementRepository {
-  findByProductId(productId: string): Promise<StockMovement[]>;
+  findByProductId(productId: string, options?: { limit?: number }): Promise<StockMovement[]>;
   findByOrgId(orgId: string, options?: { limit?: number; productId?: string }): Promise<StockMovement[]>;
   create(data: Omit<StockMovement, 'id' | 'createdAt'>): Promise<StockMovement>;
   getDerivedStock(productId: string): Promise<number>;
@@ -176,7 +176,7 @@ export interface StockMovementRepository {
 
 export interface SupplierRepository {
   findById(id: string): Promise<Supplier | null>;
-  findByOrgId(orgId: string): Promise<Supplier[]>;
+  findByOrgId(orgId: string, options?: { limit?: number }): Promise<Supplier[]>;
   findByPhone(orgId: string, phone: string): Promise<Supplier | null>;
   create(data: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt'>): Promise<Supplier>;
   update(id: string, data: Partial<Supplier>): Promise<Supplier>;
@@ -201,15 +201,15 @@ export interface MechanicRepository {
 }
 
 export interface MechanicLedgerRepository {
-  findByMechanicId(mechanicId: string): Promise<MechanicLedgerEntry[]>;
-  findByOrgId(orgId: string): Promise<MechanicLedgerEntry[]>;
+  findByMechanicId(mechanicId: string, options?: { limit?: number }): Promise<MechanicLedgerEntry[]>;
+  findByOrgId(orgId: string, options?: { limit?: number }): Promise<MechanicLedgerEntry[]>;
   create(data: Omit<MechanicLedgerEntry, 'id' | 'createdAt'>): Promise<MechanicLedgerEntry>;
 }
 
 export interface LeaveRequestRepository {
   findById(id: string): Promise<LeaveRequest | null>;
-  findByOrgId(orgId: string): Promise<LeaveRequest[]>;
-  findByEmployeeId(employeeId: string): Promise<LeaveRequest[]>;
+  findByOrgId(orgId: string, options?: { limit?: number }): Promise<LeaveRequest[]>;
+  findByEmployeeId(employeeId: string, options?: { limit?: number }): Promise<LeaveRequest[]>;
   create(data: Omit<LeaveRequest, 'id' | 'createdAt' | 'updatedAt'>): Promise<LeaveRequest>;
   update(
     id: string,
@@ -220,8 +220,8 @@ export interface LeaveRequestRepository {
 
 export interface SalaryRecordRepository {
   findById(id: string): Promise<SalaryRecord | null>;
-  findByOrgId(orgId: string): Promise<SalaryRecord[]>;
-  findByEmployeeId(employeeId: string): Promise<SalaryRecord[]>;
+  findByOrgId(orgId: string, options?: { limit?: number }): Promise<SalaryRecord[]>;
+  findByEmployeeId(employeeId: string, options?: { limit?: number }): Promise<SalaryRecord[]>;
   create(data: Omit<SalaryRecord, 'id' | 'createdAt' | 'updatedAt'>): Promise<SalaryRecord>;
   update(id: string, data: Partial<SalaryRecord>): Promise<SalaryRecord>;
   getPendingCount(orgId: string): Promise<number>;
@@ -250,9 +250,9 @@ export interface DraftRepository {
 }
 
 export interface SerializedItemRepository {
-  findByProductId(productId: string): Promise<SerializedItem[]>;
-  findByOrgId(orgId: string): Promise<SerializedItem[]>;
-  findAvailableByProductId(productId: string): Promise<SerializedItem[]>;
+  findByProductId(productId: string, options?: { limit?: number }): Promise<SerializedItem[]>;
+  findByOrgId(orgId: string, options?: { limit?: number }): Promise<SerializedItem[]>;
+  findAvailableByProductId(productId: string, options?: { limit?: number }): Promise<SerializedItem[]>;
   create(data: Omit<SerializedItem, 'id' | 'createdAt' | 'updatedAt'>): Promise<SerializedItem>;
   bulkCreate(data: Array<Omit<SerializedItem, 'id' | 'createdAt' | 'updatedAt'>>): Promise<SerializedItem[]>;
   createSerializedRestock(input: {

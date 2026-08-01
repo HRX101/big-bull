@@ -7,6 +7,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit as firestoreLimit,
   query,
   serverTimestamp,
   updateDoc,
@@ -40,11 +41,12 @@ export class FirestoreMembershipRepository implements MembershipRepository {
     return mapMembership(first.id, first.data());
   }
 
-  async findByOrgId(orgId: string) {
-    const q = query(
+  async findByOrgId(orgId: string, options?: { limit?: number }) {
+    let q = query(
       collection(getFirebaseDb(), COLLECTIONS.memberships),
       where('orgId', '==', orgId),
     );
+    if (options?.limit) q = query(q, firestoreLimit(options.limit));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => mapMembership(d.id, d.data()));
   }

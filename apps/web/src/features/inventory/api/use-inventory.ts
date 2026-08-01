@@ -32,7 +32,7 @@ function can(role: 'owner' | 'employee', permission: Parameters<typeof hasPermis
 export function useCategories(orgId: string) {
   return useQuery({
     queryKey: ['categories', orgId],
-    queryFn: () => categoryRepository.findByOrgId(orgId),
+    queryFn: () => categoryRepository.findByOrgId(orgId, { limit: 200 }),
     enabled: !!orgId,
     select: useCallback((data: Category[]) => data.filter((c) => (c as unknown as Record<string, unknown>).isActive !== false), []),
   });
@@ -104,7 +104,7 @@ export function useArchivedCategories(orgId: string) {
   return useQuery({
     queryKey: ['categories', orgId, 'archived'],
     queryFn: async () => {
-      const all = await categoryRepository.findByOrgId(orgId);
+      const all = await categoryRepository.findByOrgId(orgId, { limit: 200 });
       return all.filter((c) => (c as unknown as Record<string, unknown>).isActive === false);
     },
     enabled: !!orgId,
@@ -116,7 +116,7 @@ export function useArchivedCategories(orgId: string) {
 export function useProducts(orgId: string) {
   return useQuery({
     queryKey: ['products', orgId],
-    queryFn: () => productRepository.findByOrgId(orgId),
+    queryFn: () => productRepository.findByOrgId(orgId, { limit: 500 }),
     enabled: !!orgId,
     select: useCallback((data: Product[]) => data.filter((p) => (p as unknown as Record<string, unknown>).isActive !== false), []),
   });
@@ -213,7 +213,7 @@ export function useHardDeleteProduct() {
 export function useArchivedProducts(orgId: string) {
   return useQuery({
     queryKey: ['products', orgId],
-    queryFn: () => productRepository.findByOrgId(orgId),
+    queryFn: () => productRepository.findByOrgId(orgId, { limit: 500 }),
     enabled: !!orgId,
     select: useCallback((data: Product[]) => data.filter((p) => (p as unknown as Record<string, unknown>).isActive === false), []),
   });
@@ -250,7 +250,7 @@ export function useStockValue(orgId: string) {
 export function useStockMovements(productId: string) {
   return useQuery({
     queryKey: ['stockMovements', productId],
-    queryFn: () => stockMovementRepository.findByProductId(productId),
+    queryFn: () => stockMovementRepository.findByProductId(productId, { limit: 200 }),
     enabled: !!productId,
   });
 }
@@ -295,7 +295,7 @@ export function useUnarchiveCategory() {
 export function useSuppliers(orgId: string) {
   return useQuery({
     queryKey: ['suppliers', orgId],
-    queryFn: () => supplierRepository.findByOrgId(orgId),
+    queryFn: () => supplierRepository.findByOrgId(orgId, { limit: 200 }),
     enabled: !!orgId,
     select: useCallback((data: Supplier[]) => data.filter((s) => (s as unknown as Record<string, unknown>).isActive !== false), []),
   });
@@ -389,7 +389,7 @@ export function useArchivedSuppliers(orgId: string) {
   return useQuery({
     queryKey: ['suppliers', orgId, 'archived'],
     queryFn: async () => {
-      const all = await supplierRepository.findByOrgId(orgId);
+      const all = await supplierRepository.findByOrgId(orgId, { limit: 200 });
       return all.filter((s) => (s as unknown as Record<string, unknown>).isActive === false);
     },
     enabled: !!orgId,
@@ -437,7 +437,7 @@ export function useInventoryDashboardData(orgId: string) {
 export function useSerializedItems(productId: string) {
   return useQuery({
     queryKey: ['serializedItems', productId],
-    queryFn: () => serializedItemRepository.findByProductId(productId),
+    queryFn: () => serializedItemRepository.findByProductId(productId, { limit: 500 }),
     enabled: !!productId,
   });
 }
@@ -445,7 +445,7 @@ export function useSerializedItems(productId: string) {
 export function useAvailableSerializedItems(productId: string) {
   return useQuery({
     queryKey: ['serializedItems', productId, 'available'],
-    queryFn: () => serializedItemRepository.findAvailableByProductId(productId),
+    queryFn: () => serializedItemRepository.findAvailableByProductId(productId, { limit: 500 }),
     enabled: !!productId,
   });
 }

@@ -13,8 +13,8 @@ export function useEmployees(orgId: string) {
     queryKey: ['employees', orgId],
     queryFn: async () => {
       const [users, memberships] = await Promise.all([
-        userRepository.findByOrgId(orgId),
-        membershipRepository.findByOrgId(orgId),
+        userRepository.findByOrgId(orgId, { limit: 200 }),
+        membershipRepository.findByOrgId(orgId, { limit: 200 }),
       ]);
       return users.map((user) => ({
         ...user,
@@ -101,7 +101,7 @@ export function useToggleEmployeeStatus() {
 export function useLeaveRequests(orgId: string) {
   return useQuery({
     queryKey: ['leave-requests', orgId],
-    queryFn: () => leaveRequestRepository.findByOrgId(orgId),
+    queryFn: () => leaveRequestRepository.findByOrgId(orgId, { limit: 200 }),
     enabled: !!orgId,
   });
 }
@@ -109,7 +109,7 @@ export function useLeaveRequests(orgId: string) {
 export function useMyLeaveRequests(employeeId: string) {
   return useQuery({
     queryKey: ['leave-requests', 'my', employeeId],
-    queryFn: () => leaveRequestRepository.findByEmployeeId(employeeId),
+    queryFn: () => leaveRequestRepository.findByEmployeeId(employeeId, { limit: 100 }),
     enabled: !!employeeId,
   });
 }

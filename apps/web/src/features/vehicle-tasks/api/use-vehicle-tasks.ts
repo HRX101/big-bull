@@ -108,7 +108,7 @@ export function useGetDraft() {
 export function useCustomers(orgId: string) {
   return useQuery({
     queryKey: ['customers', orgId],
-    queryFn: () => customerRepository.findByOrgId(orgId),
+    queryFn: () => customerRepository.findByOrgId(orgId, { limit: 200 }),
     enabled: !!orgId,
   });
 }
@@ -124,7 +124,7 @@ export function useServices(orgId: string) {
 export function useVehicles(customerId: string | null) {
   return useQuery({
     queryKey: ['vehicles', customerId],
-    queryFn: () => vehicleRepository.findByCustomerId(customerId!),
+    queryFn: () => vehicleRepository.findByCustomerId(customerId!, { limit: 100 }),
     enabled: !!customerId,
   });
 }
@@ -132,7 +132,7 @@ export function useVehicles(customerId: string | null) {
 export function useVehiclesByOrg(orgId: string) {
   return useQuery({
     queryKey: ['vehicles', orgId],
-    queryFn: () => vehicleRepository.findByOrgId(orgId),
+    queryFn: () => vehicleRepository.findByOrgId(orgId, { limit: 200 }),
     enabled: !!orgId,
   });
 }

@@ -172,7 +172,7 @@ export function OwnerDashboard() {
 
   const inventoryQuery = useQuery({
     queryKey: ['inventory-low-stock', orgId],
-    queryFn: () => productRepository.findByOrgId(orgId),
+    queryFn: () => productRepository.findByOrgId(orgId, { limit: 500 }),
     enabled: !!orgId,
   });
 

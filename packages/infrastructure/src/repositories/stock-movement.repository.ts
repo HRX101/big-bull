@@ -31,12 +31,13 @@ function mapMovement(id: string, data: Record<string, unknown>): StockMovement {
 }
 
 export class FirestoreStockMovementRepository implements StockMovementRepository {
-  async findByProductId(productId: string) {
-    const q = query(
+  async findByProductId(productId: string, options?: { limit?: number }) {
+    let q = query(
       collection(getFirebaseDb(), COLLECTIONS.stockMovements),
       where('productId', '==', productId),
       orderBy('createdAt', 'desc'),
     );
+    if (options?.limit) q = query(q, firestoreLimit(options.limit));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => mapMovement(d.id, d.data()));
   }

@@ -71,6 +71,8 @@ const MOVE_NOTES: Record<string, string> = {
   RECEIVED: 'Moved back to Received from board',
 };
 
+const LIST_PAGE_SIZE = 20;
+
 export function VehicleTasksPage() {
   const session = useAuthStore((s) => s.session);
   const orgId = session?.orgId ?? '';
@@ -504,6 +506,7 @@ function ListTableView({
   onStatusClick: (task: VehicleTask) => void;
 }) {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [page, setPage] = useState(0);
 
   const sorted = useMemo(() => {
     return [...tasks].sort((a, b) => {
@@ -522,28 +525,33 @@ function ListTableView({
     );
   }
 
+  const totalPages = Math.max(1, Math.ceil(sorted.length / LIST_PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const paged = sorted.slice(safePage * LIST_PAGE_SIZE, (safePage + 1) * LIST_PAGE_SIZE);
+
   return (
-    <div className="border-border overflow-x-auto rounded-md border">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="bg-muted/50 border-border border-b">
-            <th className="px-4 py-3 text-left font-medium">Customer</th>
-            <th className="px-4 py-3 text-left font-medium">Services</th>
-            <th className="px-4 py-3 text-left font-medium">Status</th>
-            <th className="px-4 py-3 text-left font-medium">Payment</th>
-            <th
-              className="px-4 py-3 text-right font-medium cursor-pointer select-none"
-              onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
-            >
-              <span className="inline-flex items-center gap-1">
-                Created
-                <ChevronRight className={`h-3 w-3 transition-transform ${sortDir === 'desc' ? 'rotate-90' : '-rotate-90'}`} />
-              </span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.map((task) => {
+    <>
+      <div className="border-border overflow-x-auto rounded-md border">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-muted/50 border-border border-b">
+              <th className="px-4 py-3 text-left font-medium">Customer</th>
+              <th className="px-4 py-3 text-left font-medium">Services</th>
+              <th className="px-4 py-3 text-left font-medium">Status</th>
+              <th className="px-4 py-3 text-left font-medium">Payment</th>
+              <th
+                className="px-4 py-3 text-right font-medium cursor-pointer select-none"
+                onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
+              >
+                <span className="inline-flex items-center gap-1">
+                  Created
+                  <ChevronRight className={`h-3 w-3 transition-transform ${sortDir === 'desc' ? 'rotate-90' : '-rotate-90'}`} />
+                </span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {paged.map((task) => {
             const customer = customers.find((c) => c.id === task.customerId);
             const taskServices = services.filter((s) => task.serviceIds.includes(s.id));
             return (
@@ -585,6 +593,36 @@ function ListTableView({
           })}
         </tbody>
       </table>
-    </div>
+      </div>
+      {totalPages > 1 && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-muted-foreground text-xs">
+            Page {safePage + 1} of {totalPages} · {sorted.length} tasks
+          </p>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={safePage === 0}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              aria-label="Previous page"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={safePage >= totalPages - 1}
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              aria-label="Next page"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

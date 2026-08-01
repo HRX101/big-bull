@@ -6,6 +6,7 @@ import {
   collection,
   getDoc,
   getDocs,
+  limit as firestoreLimit,
   orderBy,
   query,
   serverTimestamp,
@@ -31,22 +32,24 @@ function mapEntry(id: string, data: Record<string, unknown>): MechanicLedgerEntr
 }
 
 export class FirestoreMechanicLedgerRepository implements MechanicLedgerRepository {
-  async findByMechanicId(mechanicId: string) {
-    const q = query(
+  async findByMechanicId(mechanicId: string, options?: { limit?: number }) {
+    let q = query(
       collection(getFirebaseDb(), COLLECTIONS.mechanicLedgerEntries),
       where('mechanicId', '==', mechanicId),
       orderBy('createdAt', 'desc'),
     );
+    if (options?.limit) q = query(q, firestoreLimit(options.limit));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => mapEntry(d.id, d.data()));
   }
 
-  async findByOrgId(orgId: string) {
-    const q = query(
+  async findByOrgId(orgId: string, options?: { limit?: number }) {
+    let q = query(
       collection(getFirebaseDb(), COLLECTIONS.mechanicLedgerEntries),
       where('orgId', '==', orgId),
       orderBy('createdAt', 'desc'),
     );
+    if (options?.limit) q = query(q, firestoreLimit(options.limit));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => mapEntry(d.id, d.data()));
   }

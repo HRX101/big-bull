@@ -7,6 +7,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit as firestoreLimit,
   orderBy,
   query,
   serverTimestamp,
@@ -46,23 +47,25 @@ export class FirestoreSalaryRecordRepository implements SalaryRecordRepository {
     return mapSalary(snapshot.id, snapshot.data());
   }
 
-  async findByOrgId(orgId: string) {
-    const q = query(
+  async findByOrgId(orgId: string, options?: { limit?: number }) {
+    let q = query(
       collection(getFirebaseDb(), COLLECTIONS.salaryRecords),
       where('orgId', '==', orgId),
       orderBy('createdAt', 'desc'),
     );
+    if (options?.limit) q = query(q, firestoreLimit(options.limit));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => mapSalary(d.id, d.data()));
   }
 
-  async findByEmployeeId(employeeId: string) {
-    const q = query(
+  async findByEmployeeId(employeeId: string, options?: { limit?: number }) {
+    let q = query(
       collection(getFirebaseDb(), COLLECTIONS.salaryRecords),
       where('employeeId', '==', employeeId),
       orderBy('year', 'desc'),
       orderBy('month', 'desc'),
     );
+    if (options?.limit) q = query(q, firestoreLimit(options.limit));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => mapSalary(d.id, d.data()));
   }

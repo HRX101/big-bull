@@ -56,7 +56,7 @@ export function useDeleteMechanic() {
 export function useMechanicLedger(mechanicId: string) {
   return useQuery({
     queryKey: ['mechanic-ledger', mechanicId],
-    queryFn: () => mechanicLedgerRepository.findByMechanicId(mechanicId),
+    queryFn: () => mechanicLedgerRepository.findByMechanicId(mechanicId, { limit: 200 }),
     enabled: !!mechanicId,
   });
 }

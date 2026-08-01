@@ -8,6 +8,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit as firestoreLimit,
   query,
   serverTimestamp,
   updateDoc,
@@ -59,11 +60,12 @@ export class FirestoreProductRepository implements ProductRepository {
     return snapshot.docs.map((d) => mapProduct(d.id, d.data()));
   }
 
-  async findByOrgId(orgId: string) {
-    const q = query(
+  async findByOrgId(orgId: string, options?: { limit?: number }) {
+    let q = query(
       collection(getFirebaseDb(), COLLECTIONS.products),
       where('orgId', '==', orgId),
     );
+    if (options?.limit) q = query(q, firestoreLimit(options.limit));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => mapProduct(d.id, d.data()));
   }

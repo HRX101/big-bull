@@ -13,7 +13,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 export function useSalaryRecords(orgId: string) {
   return useQuery({
     queryKey: ['salary-records', orgId],
-    queryFn: () => salaryRecordRepository.findByOrgId(orgId),
+    queryFn: () => salaryRecordRepository.findByOrgId(orgId, { limit: 200 }),
     enabled: !!orgId,
   });
 }
@@ -21,7 +21,7 @@ export function useSalaryRecords(orgId: string) {
 export function useMySalaryRecords(employeeId: string) {
   return useQuery({
     queryKey: ['salary-records', 'my', employeeId],
-    queryFn: () => salaryRecordRepository.findByEmployeeId(employeeId),
+    queryFn: () => salaryRecordRepository.findByEmployeeId(employeeId, { limit: 100 }),
     enabled: !!employeeId,
   });
 }
@@ -29,7 +29,7 @@ export function useMySalaryRecords(employeeId: string) {
 export function useEmployeeUsers(orgId: string) {
   return useQuery({
     queryKey: ['employee-users', orgId],
-    queryFn: () => userRepository.findByOrgId(orgId),
+    queryFn: () => userRepository.findByOrgId(orgId, { limit: 200 }),
     enabled: !!orgId,
   });
 }
@@ -38,7 +38,7 @@ export function useEmployeeLeaveDays(employeeId: string, month: number, year: nu
   return useQuery({
     queryKey: ['employee-leave-days', employeeId, month, year],
     queryFn: async () => {
-      const leaves = await leaveRequestRepository.findByEmployeeId(employeeId);
+      const leaves = await leaveRequestRepository.findByEmployeeId(employeeId, { limit: 100 });
       const approved = leaves.filter((l) => l.status === 'APPROVED');
       let total = 0;
       for (const leave of approved) {

@@ -12,7 +12,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 export function useInventoryItems(orgId: string) {
   return useQuery({
     queryKey: ['products', orgId],
-    queryFn: () => productRepository.findByOrgId(orgId),
+    queryFn: () => productRepository.findByOrgId(orgId, { limit: 500 }),
     enabled: !!orgId,
   });
 }
@@ -20,7 +20,7 @@ export function useInventoryItems(orgId: string) {
 export function useCustomers(orgId: string) {
   return useQuery({
     queryKey: ['customers', orgId],
-    queryFn: () => customerRepository.findByOrgId(orgId),
+    queryFn: () => customerRepository.findByOrgId(orgId, { limit: 200 }),
     enabled: !!orgId,
   });
 }
@@ -36,7 +36,7 @@ export function useSales(orgId: string) {
 export function useAllSales(orgId: string) {
   return useQuery({
     queryKey: ['posSales', orgId, 'all'],
-    queryFn: () => posSaleRepository.findByOrgId(orgId),
+    queryFn: () => posSaleRepository.findByOrgId(orgId, { limit: 200 }),
     enabled: !!orgId,
   });
 }

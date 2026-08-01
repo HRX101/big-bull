@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuthStore } from '@/features/authentication/stores/auth-store';
-import { UsersRound, Plus, UserCheck, UserX, Calendar, Check, X, DollarSign } from 'lucide-react';
+import { UsersRound, Plus, UserCheck, UserX, Calendar, Check, X, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -27,6 +27,8 @@ const STATUS_BG: Record<string, string> = {
   REJECTED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
 };
 
+const LEAVE_PAGE_SIZE = 10;
+
 export function EmployeesPage() {
   const session = useAuthStore((s) => s.session);
   const orgId = session?.orgId ?? '';
@@ -36,6 +38,7 @@ export function EmployeesPage() {
   const [tab, setTab] = useState<Tab>(isOwner ? 'employees' : 'leave-requests');
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
+  const [leavePage, setLeavePage] = useState(0);
 
   const employeesQuery = useEmployees(orgId);
   const toggleStatus = useToggleEmployeeStatus();
@@ -49,6 +52,9 @@ export function EmployeesPage() {
 
   const leaveData = isOwner ? allLeaveRequests : myLeaveRequests;
   const leaveLoading = isOwner ? leaveRequestsQuery.isLoading : myLeaveRequestsQuery.isLoading;
+  const leaveTotalPages = Math.max(1, Math.ceil(leaveData.length / LEAVE_PAGE_SIZE));
+  const safeLeavePage = Math.min(leavePage, leaveTotalPages - 1);
+  const pagedLeaveData = leaveData.slice(safeLeavePage * LEAVE_PAGE_SIZE, (safeLeavePage + 1) * LEAVE_PAGE_SIZE);
 
   const statusLabel: Record<string, string> = {
     PENDING: 'Pending',
@@ -203,7 +209,7 @@ export function EmployeesPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {leaveData.map((lr) => (
+                  {pagedLeaveData.map((lr) => (
                     <tr key={lr.id} className="group hover:bg-muted/30">
                       {isOwner && (
                         <td className="px-4 py-3 font-medium">{getEmployeeName(lr.employeeId)}</td>
@@ -260,6 +266,35 @@ export function EmployeesPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+          {leaveTotalPages > 1 && (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-muted-foreground text-xs">
+                Page {safeLeavePage + 1} of {leaveTotalPages} · {leaveData.length} requests
+              </p>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={safeLeavePage === 0}
+                  onClick={() => setLeavePage((p) => Math.max(0, p - 1))}
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={safeLeavePage >= leaveTotalPages - 1}
+                  onClick={() => setLeavePage((p) => Math.min(leaveTotalPages - 1, p + 1))}
+                  aria-label="Next page"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
         </div>

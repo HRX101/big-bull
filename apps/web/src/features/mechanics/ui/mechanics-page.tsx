@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuthStore } from '@/features/authentication/stores/auth-store';
-import { Search, Plus, Wrench, Edit, Trash2, ArrowUpRight, ArrowDownLeft, Store, Phone } from 'lucide-react';
+import { Search, Plus, Wrench, Edit, Trash2, ArrowUpRight, ArrowDownLeft, ChevronLeft, ChevronRight, Store, Phone } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +12,8 @@ import { useMechanics, useMechanicLedger, useDeleteMechanic } from '../api/use-m
 import { MechanicDialog } from './mechanic-dialog';
 import { LedgerEntryDialog } from './ledger-entry-dialog';
 import type { Mechanic, MechanicLedgerEntry } from '@car-spa/domain';
+
+const LEDGER_PAGE_SIZE = 10;
 
 export function MechanicsPage() {
   const session = useAuthStore((s) => s.session);
@@ -24,6 +26,7 @@ export function MechanicsPage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [ledgerDialogOpen, setLedgerDialogOpen] = useState(false);
   const [ledgerEntryType, setLedgerEntryType] = useState<'CREDIT' | 'DEBIT'>('CREDIT');
+  const [ledgerPage, setLedgerPage] = useState(0);
 
   const mechanicsQuery = useMechanics(orgId);
   const ledgerQuery = useMechanicLedger(selectedMechanicId ?? '');
@@ -36,6 +39,12 @@ export function MechanicsPage() {
   const selectedMechanic = mechanics.find((m) => m.id === selectedMechanicId);
 
   const ledgerEntries = ledgerQuery.data ?? [];
+  const ledgerTotalPages = Math.max(1, Math.ceil(ledgerEntries.length / LEDGER_PAGE_SIZE));
+  const safeLedgerPage = Math.min(ledgerPage, ledgerTotalPages - 1);
+  const pagedLedgerEntries = ledgerEntries.slice(
+    safeLedgerPage * LEDGER_PAGE_SIZE,
+    (safeLedgerPage + 1) * LEDGER_PAGE_SIZE,
+  );
 
   function openLedgerDialog(type: 'CREDIT' | 'DEBIT') {
     setLedgerEntryType(type);
@@ -81,7 +90,7 @@ export function MechanicsPage() {
                 key={mechanic.id}
                 mechanic={mechanic}
                 selected={selectedMechanicId === mechanic.id}
-                onSelect={() => setSelectedMechanicId(mechanic.id)}
+                onSelect={() => { setSelectedMechanicId(mechanic.id); setLedgerPage(0); }}
                 onEdit={() => { setEditingMechanic(mechanic); setDialogOpen(true); }}
                 onDelete={() => setDeleteConfirmId(mechanic.id)}
               />
@@ -167,11 +176,40 @@ export function MechanicsPage() {
                       </td>
                     </tr>
                   ) : (
-                    <LedgerRows entries={ledgerEntries} currentBalance={selectedMechanic.balance} />
+                    <LedgerRows entries={ledgerEntries} rendered={pagedLedgerEntries} currentBalance={selectedMechanic.balance} />
                   )}
                 </tbody>
               </table>
             </div>
+            {ledgerTotalPages > 1 && (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-muted-foreground text-xs">
+                  Page {safeLedgerPage + 1} of {ledgerTotalPages} · {ledgerEntries.length} entries
+                </p>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={safeLedgerPage === 0}
+                    onClick={() => setLedgerPage((p) => Math.max(0, p - 1))}
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={safeLedgerPage >= ledgerTotalPages - 1}
+                    onClick={() => setLedgerPage((p) => Math.min(ledgerTotalPages - 1, p + 1))}
+                    aria-label="Next page"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -277,7 +315,7 @@ function MechanicCard({
   );
 }
 
-function LedgerRows({ entries, currentBalance }: { entries: MechanicLedgerEntry[]; currentBalance: number }) {
+function LedgerRows({ entries, rendered, currentBalance }: { entries: MechanicLedgerEntry[]; rendered: MechanicLedgerEntry[]; currentBalance: number }) {
   const withBalance = (() => {
     const sorted = [...entries].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
     const totalEffect = sorted.reduce((sum, e) => sum + (e.type === 'DEBIT' ? e.amount : -e.amount), 0);
@@ -292,7 +330,7 @@ function LedgerRows({ entries, currentBalance }: { entries: MechanicLedgerEntry[
 
   return (
     <>
-      {entries.map((entry) => {
+      {rendered.map((entry) => {
         const bal = withBalance.get(entry.id) ?? 0;
         return (
           <tr key={entry.id} className="hover:bg-muted/30">

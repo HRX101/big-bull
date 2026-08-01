@@ -6,6 +6,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit as firestoreLimit,
   query,
   serverTimestamp,
   setDoc,
@@ -36,11 +37,12 @@ export class FirestoreUserRepository implements UserRepository {
     return mapUser(snapshot.id, snapshot.data());
   }
 
-  async findByOrgId(orgId: string) {
-    const q = query(
+  async findByOrgId(orgId: string, options?: { limit?: number }) {
+    let q = query(
       collection(getFirebaseDb(), COLLECTIONS.users),
       where('orgId', '==', orgId),
     );
+    if (options?.limit) q = query(q, firestoreLimit(options.limit));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => mapUser(d.id, d.data()));
   }
