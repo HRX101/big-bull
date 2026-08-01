@@ -77,6 +77,16 @@ export class FirebaseAuthRepository implements AuthRepository {
         callback(null);
         return;
       }
+      try {
+        await user.getIdToken(true);
+      } catch (error) {
+        const code = (error as { code?: string } | null)?.code ?? '';
+        if (code === 'auth/user-token-expired' || code === 'auth/invalid-user-token') {
+          await signOut(getFirebaseAuth());
+        }
+        callback(null);
+        return;
+      }
       callback(await mapFirebaseUserToSession(user));
     });
   }
