@@ -9,13 +9,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useBootstrapOrg } from '@/features/authentication/hooks/use-auth-mutations';
-import { useAuthStore } from '@/features/authentication/stores/auth-store';
 import { PROTECTED_ROUTES } from '@car-spa/shared';
 
 export function OnboardingForm() {
   const router = useRouter();
   const bootstrap = useBootstrapOrg();
-  const setSession = useAuthStore((s) => s.setSession);
   const {
     register,
     handleSubmit,
@@ -26,15 +24,8 @@ export function OnboardingForm() {
   });
 
   const onSubmit = handleSubmit(async (data) => {
-    try {
-      const result = await bootstrap.mutateAsync(data);
-      if (result.success) {
-        setSession(result.value);
-        router.push(PROTECTED_ROUTES.dashboard);
-      }
-    } catch {
-      // Mutation errors surface via bootstrap.error below.
-    }
+    const result = await bootstrap.mutateAsync(data);
+    if (result.success) router.push(PROTECTED_ROUTES.dashboard);
   });
 
   return (

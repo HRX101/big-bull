@@ -75,30 +75,23 @@ export function getFirebaseStorage(): FirebaseStorage {
 
 export function getFirebaseFunctions(): Functions {
   if (!functions) {
-    const region = process.env.NEXT_PUBLIC_FIREBASE_FUNCTIONS_REGION ?? 'asia-south1';
-    functions = getFunctions(getFirebaseApp(), region);
+    functions = getFunctions(getFirebaseApp(), 'asia-south1');
   }
   return functions;
 }
 
 export function initAppCheck(): AppCheck | undefined {
   if (typeof window === 'undefined' || appCheck) return appCheck;
-  if (useEmulators()) return undefined;
 
-  const siteKey = process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY?.trim();
-  const debugToken = process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_DEBUG_TOKEN?.trim();
-
-  // App Check requires a real reCAPTCHA Enterprise site key. Skip when unset so
-  // local auth works without registering debug tokens or configuring reCAPTCHA.
-  if (!siteKey) {
-    return undefined;
-  }
-
+  const debugToken = process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_DEBUG_TOKEN;
   if (debugToken) {
-    (
-      globalThis as unknown as { FIREBASE_APPCHECK_DEBUG_TOKEN?: string | boolean }
-    ).FIREBASE_APPCHECK_DEBUG_TOKEN = debugToken === 'true' ? true : debugToken;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).FIREBASE_APPCHECK_DEBUG_TOKEN = debugToken;
   }
+
+  if (useEmulators()) return undefined;
+  const siteKey = process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY;
+  if (!siteKey) return undefined;
 
   appCheck = initializeAppCheck(getFirebaseApp(), {
     provider: new ReCaptchaEnterpriseProvider(siteKey),
@@ -120,8 +113,6 @@ export async function initAnalytics(): Promise<Analytics | undefined> {
 export function initPerformance(): FirebasePerformance | undefined {
   if (typeof window === 'undefined' || performance) return performance;
   if (useEmulators()) return undefined;
-  // Off by default — automatic click traces fail with long Tailwind class strings (>100 chars).
-  if (process.env.NEXT_PUBLIC_ENABLE_FIREBASE_PERFORMANCE !== 'true') return undefined;
   performance = getPerformance(getFirebaseApp());
   return performance;
 }

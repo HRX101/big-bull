@@ -1,5 +1,7 @@
-import { PosPage } from '@/features/pos/ui/pos-page';
+'use client';
 
-export default function Page() {
-  return <PosPage />;
+import { POSPage } from '@/features/pos/ui/pos-page';
+
+export default function POSRoute() {
+  return <POSPage />;
 }

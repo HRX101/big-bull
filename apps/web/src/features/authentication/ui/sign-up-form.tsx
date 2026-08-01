@@ -73,9 +73,6 @@ export function SignUpForm() {
               <p className="text-destructive text-sm">{errors.confirmPassword.message}</p>
             )}
           </div>
-          {signUp.data && !signUp.data.success && (
-            <p className="text-destructive text-sm">{signUp.data.error.message}</p>
-          )}
           {signUp.error && <p className="text-destructive text-sm">{signUp.error.message}</p>}
           <Button type="submit" className="w-full" disabled={signUp.isPending}>
             {signUp.isPending ? 'Creating account…' : 'Create account'}

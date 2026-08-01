@@ -1,9 +1,9 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { setGlobalOptions } from 'firebase-functions/v2';
-import { deliverWhatsAppMessage } from './whatsapp';
 
 initializeApp();
 setGlobalOptions({ region: 'asia-south1' });
@@ -15,40 +15,6 @@ interface SyncClaimsRequest {
   orgId: string;
   role: UserRole;
 }
-
-interface GenerateReceiptRequest {
-  orderId: string;
-  orgId: string;
-}
-
-interface SendWhatsAppMessageRequest {
-  to: string;
-  body: string;
-}
-
-export const sendWhatsAppMessage = onCall(async (request) => {
-  if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'Authentication required');
-  }
-
-  const data = request.data as SendWhatsAppMessageRequest;
-  if (!data?.to || !data?.body?.trim()) {
-    throw new HttpsError('invalid-argument', 'to and body are required');
-  }
-
-  try {
-    const result = await deliverWhatsAppMessage(data.to, data.body.trim());
-    return {
-      success: true,
-      from: '8972424853',
-      to: data.to,
-      providerMessageId: (result as { sid?: string }).sid ?? null,
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to send WhatsApp message';
-    throw new HttpsError('internal', message);
-  }
-});
 
 export const syncUserClaims = onCall(async (request) => {
   if (!request.auth) {
@@ -72,40 +38,143 @@ export const syncUserClaims = onCall(async (request) => {
   return { success: true };
 });
 
-export const generateReceipt = onCall(async (request) => {
-  if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'Authentication required');
-  }
+interface TaskStatusEvent {
+  orgId: string;
+  taskId: string;
+  toStatus: string;
+  note: string;
+  whatsappStatus: string;
+}
 
-  const data = request.data as GenerateReceiptRequest;
-  if (!data?.orderId || !data?.orgId) {
-    throw new HttpsError('invalid-argument', 'orderId and orgId are required');
-  }
+export const onTaskStatusChange = onDocumentCreated(
+  'taskStatusEvents/{eventId}',
+  async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
 
-  const tokenOrgId = request.auth.token.orgId as string | undefined;
-  if (tokenOrgId && tokenOrgId !== data.orgId) {
-    throw new HttpsError('permission-denied', 'Organization mismatch');
-  }
+    const data = snapshot.data() as TaskStatusEvent;
+    if (!data.orgId) return;
 
-  const db = getFirestore();
-  const orderSnap = await db.collection('posOrders').doc(data.orderId).get();
-  if (!orderSnap.exists || orderSnap.data()?.orgId !== data.orgId) {
-    throw new HttpsError('not-found', 'Order not found');
-  }
+    const db = getFirestore();
 
-  const order = orderSnap.data()!;
-  const items = Array.isArray(order.items) ? order.items : [];
-  const lines = items
-    .map(
-      (item: { description: string; quantity: number; unitPrice: number; lineTotal: number }) =>
-        `<tr><td>${item.description}</td><td>${item.quantity}</td><td>${item.unitPrice}</td><td>${item.lineTotal}</td></tr>`,
-    )
-    .join('');
+    const settingsSnap = await db
+      .collection('storeSettings')
+      .where('orgId', '==', data.orgId)
+      .limit(1)
+      .get();
 
-  const html = `<!DOCTYPE html><html><body><h1>Big Bull Car Spa</h1>
-    <p>Order: ${data.orderId}</p>
-    <table border="1"><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr>${lines}</table>
-    <p>Total: ${order.total}</p></body></html>`;
+    if (settingsSnap.empty) return;
+    const settings = settingsSnap.docs[0]!.data();
+    if (settings.whatsappProvider === 'NONE') return;
 
-  return { receiptId: `receipt-${data.orderId}`, html };
-});
+    const taskSnap = await db.collection('vehicleTasks').doc(data.taskId).get();
+    if (!taskSnap.exists) return;
+    const task = taskSnap.data()!;
+
+    const customerSnap = await db.collection('customers').doc(task.customerId).get();
+    if (!customerSnap.exists) return;
+    const customer = customerSnap.data()!;
+
+    const message = `Big Bull Car Spa: Your vehicle task (#${data.taskId.slice(-6)}) is now ${data.toStatus}. ${data.note}`;
+
+    const recipients = new Set<string>();
+    const ownerPhone = settings.phone ? String(settings.phone) : '';
+    const customerPhone = customer.phone ? String(customer.phone) : '';
+    if (ownerPhone) recipients.add(ownerPhone);
+    if (customerPhone) recipients.add(customerPhone);
+
+    if (recipients.size === 0 || !settings.whatsappApiKey) return;
+
+    const send = async (phone: string) => {
+      let phoneNumber = phone.replace(/[^0-9]/g, '');
+      if (phoneNumber.length === 10) phoneNumber = `91${phoneNumber}`;
+      if (!phoneNumber) return;
+      try {
+        if (settings.whatsappProvider === 'META') {
+          const url = `https://graph.facebook.com/v21.0/${settings.whatsappPhoneNumberId || ''}/messages`;
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${settings.whatsappApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              messaging_product: 'whatsapp',
+              to: phoneNumber,
+              type: 'template',
+              template: {
+                name: settings.whatsappTemplateId || 'vehicle_task_update',
+                language: { code: 'en' },
+                components: [
+                  {
+                    type: 'body',
+                    parameters: [
+                      { type: 'text', text: customer.name || 'Customer' },
+                      { type: 'text', text: data.toStatus },
+                      { type: 'text', text: data.note },
+                    ],
+                  },
+                ],
+              },
+            }),
+          });
+
+          const responseText = await response.text();
+          await db.collection('notificationLogs').add({
+            orgId: data.orgId,
+            type: 'WHATSAPP',
+            recipient: phoneNumber,
+            templateId: settings.whatsappTemplateId,
+            message,
+            status: response.ok ? 'SENT' : 'FAILED',
+            error: response.ok ? null : responseText,
+            referenceType: 'taskStatusEvent',
+            referenceId: event.params.eventId,
+            retryCount: 0,
+            createdAt: new Date(),
+          });
+
+          return response.ok;
+        }
+
+        await db.collection('notificationLogs').add({
+          orgId: data.orgId,
+          type: 'WHATSAPP',
+          recipient: phoneNumber,
+          templateId: settings.whatsappTemplateId,
+          message,
+          status: 'FAILED',
+          error: `WhatsApp provider "${settings.whatsappProvider}" is not supported by the sender yet`,
+          referenceType: 'taskStatusEvent',
+          referenceId: event.params.eventId,
+          retryCount: 0,
+          createdAt: new Date(),
+        });
+        return false;
+      } catch (error) {
+        await db.collection('notificationLogs').add({
+          orgId: data.orgId,
+          type: 'WHATSAPP',
+          recipient: phone,
+          templateId: settings.whatsappTemplateId,
+          message,
+          status: 'FAILED',
+          error: error instanceof Error ? error.message : 'Unknown error',
+          referenceType: 'taskStatusEvent',
+          referenceId: event.params.eventId,
+          retryCount: 0,
+          createdAt: new Date(),
+        });
+        return false;
+      }
+    };
+
+    const results = await Promise.all([...recipients].map(send));
+
+    if (results.some((ok) => ok)) {
+      await db.collection('taskStatusEvents').doc(event.params.eventId).update({
+        whatsappStatus: 'SENT',
+      });
+    }
+  },
+);

@@ -31,11 +31,6 @@ describe('BootstrapDefaultOrgUseCase', () => {
       signOut: vi.fn(),
       sendPasswordReset: vi.fn(),
       sendEmailVerification: vi.fn(),
-      applyEmailVerification: vi.fn(),
-      inspectActionCode: vi.fn(),
-      verifyPasswordResetCode: vi.fn(),
-      confirmPasswordReset: vi.fn(),
-      subscribe: vi.fn(),
     };
 
     const orgRepo: OrganizationRepository = {
@@ -52,6 +47,7 @@ describe('BootstrapDefaultOrgUseCase', () => {
 
     const membershipRepo: MembershipRepository = {
       findByUserId: vi.fn().mockResolvedValue(null),
+      findByOrgId: vi.fn().mockResolvedValue([]),
       create: vi.fn().mockResolvedValue({
         id: 'mem-1',
         userId: 'user-1',
@@ -60,11 +56,14 @@ describe('BootstrapDefaultOrgUseCase', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       }),
+      update: vi.fn(),
     };
 
     const userRepo: UserRepository = {
       findById: vi.fn(),
+      findByOrgId: vi.fn().mockResolvedValue([]),
       upsert: vi.fn().mockResolvedValue({}),
+      update: vi.fn(),
     };
 
     const claimsService: ClaimsService = {
@@ -73,7 +72,7 @@ describe('BootstrapDefaultOrgUseCase', () => {
 
     const auditRepo: AuditRepository = {
       log: vi.fn().mockResolvedValue(undefined),
-      listByOrg: vi.fn().mockResolvedValue([]),
+      findByOrgId: vi.fn().mockResolvedValue([]),
     };
 
     const useCase = new BootstrapDefaultOrgUseCase(

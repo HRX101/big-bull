@@ -6,173 +6,212 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function tokenOrgId() {
-      return request.auth.token.orgId is string && request.auth.token.orgId != ''
-        ? request.auth.token.orgId
-        : null;
+    function orgId() {
+      return request.auth.token.orgId;
     }
 
-    function userDocOrgId() {
-      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.orgId is string
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.orgId != ''
-        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.orgId
-        : null;
-    }
-
-    function userDocRole() {
-      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role is string
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role != ''
-        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
-        : null;
-    }
-
-    function effectiveOrgId() {
-      return userDocOrgId() != null ? userDocOrgId() : tokenOrgId();
-    }
-
-    function effectiveRole() {
-      return userDocRole() != null
-        ? userDocRole()
-        : (request.auth.token.role is string && request.auth.token.role != ''
-            ? request.auth.token.role
-            : null);
+    function role() {
+      return request.auth.token.role;
     }
 
     function isOwner() {
-      return effectiveRole() == 'owner';
+      return role() == 'owner';
     }
 
-    function belongsToOrg(docOrgId) {
-      return isAuthenticated() && effectiveOrgId() == docOrgId;
+    function docBelongsToOrg() {
+      return isAuthenticated()
+        && resource.data.keys().hasAny(['orgId'])
+        && resource.data.orgId == orgId();
     }
 
-    function orgScopedRead() {
-      return belongsToOrg(resource.data.orgId);
+    function requestBelongsToOrg() {
+      return isAuthenticated()
+        && request.resource.data.keys().hasAny(['orgId'])
+        && request.resource.data.orgId == orgId();
     }
 
-    function orgScopedCreate() {
-      return belongsToOrg(request.resource.data.orgId);
-    }
-
-    function orgScopedUpdate() {
-      return belongsToOrg(resource.data.orgId);
-    }
-
-    function orgScopedDelete() {
-      return belongsToOrg(resource.data.orgId) && isOwner();
+    function isEmployeeOrOwner() {
+      return isAuthenticated() && (role() == 'owner' || role() == 'employee');
     }
 
     match /organizations/{orgDocId} {
-      allow read: if isAuthenticated();
+      allow get: if isAuthenticated();
+      allow list: if isAuthenticated();
       allow create: if isAuthenticated() && request.resource.data.slug is string;
-      allow update, delete: if belongsToOrg(orgDocId) && isOwner();
+      allow update, delete: if isAuthenticated() && orgId() == orgDocId && isOwner();
     }
 
     match /memberships/{membershipId} {
-      allow read: if isAuthenticated() && (
-        resource.data.userId == request.auth.uid || belongsToOrg(resource.data.orgId)
+      allow get: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || docBelongsToOrg()
       );
+      allow list: if isAuthenticated();
       allow create: if isAuthenticated() && (
         request.resource.data.userId == request.auth.uid ||
-        (belongsToOrg(request.resource.data.orgId) && isOwner())
+        (requestBelongsToOrg() && isOwner())
       );
-      allow update, delete: if belongsToOrg(resource.data.orgId) && isOwner();
+      allow update, delete: if docBelongsToOrg() && isOwner();
     }
 
     match /users/{userId} {
-      allow read: if isAuthenticated() && (
-        userId == request.auth.uid || belongsToOrg(resource.data.orgId)
+      allow get: if isAuthenticated() && (
+        userId == request.auth.uid || docBelongsToOrg()
       );
+      allow list: if isAuthenticated();
       allow create, update: if isAuthenticated() && userId == request.auth.uid;
-      allow delete: if belongsToOrg(resource.data.orgId) && isOwner();
+      allow delete: if docBelongsToOrg() && isOwner();
     }
 
     match /auditLogs/{logId} {
-      allow read: if belongsToOrg(resource.data.orgId);
-      allow create: if isAuthenticated() && (
-        belongsToOrg(request.resource.data.orgId) ||
-        request.resource.data.actorId == request.auth.uid
-      );
+      allow get: if docBelongsToOrg();
+      allow list: if isAuthenticated();
+      allow create: if requestBelongsToOrg();
       allow update, delete: if false;
     }
 
     match /customers/{docId} {
-      allow read: if orgScopedRead();
-      allow create: if orgScopedCreate();
-      allow update: if orgScopedUpdate();
-      allow delete: if orgScopedDelete();
+      allow get: if docBelongsToOrg();
+      allow list: if isAuthenticated();
+      allow create: if requestBelongsToOrg();
+      allow update: if docBelongsToOrg();
+      allow delete: if docBelongsToOrg() && isOwner();
     }
 
     match /vehicles/{docId} {
-      allow read: if orgScopedRead();
-      allow create: if orgScopedCreate();
-      allow update: if orgScopedUpdate();
-      allow delete: if orgScopedDelete();
+      allow get: if docBelongsToOrg();
+      allow list: if isAuthenticated();
+      allow create: if requestBelongsToOrg();
+      allow update: if docBelongsToOrg();
+      allow delete: if docBelongsToOrg() && isOwner();
+    }
+
+    match /services/{docId} {
+      allow get: if docBelongsToOrg();
+      allow list: if isAuthenticated();
+      allow create: if requestBelongsToOrg() && isOwner();
+      allow update: if docBelongsToOrg() && isOwner();
+      allow delete: if docBelongsToOrg() && isOwner();
     }
 
     match /vehicleTasks/{docId} {
-      allow read: if orgScopedRead();
-      allow create: if orgScopedCreate();
-      allow update: if orgScopedUpdate();
-      allow delete: if orgScopedDelete();
+      allow get: if docBelongsToOrg();
+      allow list: if isAuthenticated();
+      allow create: if requestBelongsToOrg() && isEmployeeOrOwner();
+      allow update: if docBelongsToOrg() && isEmployeeOrOwner();
+      allow delete: if docBelongsToOrg() && isOwner();
     }
 
-    match /inventoryCategories/{docId} {
-      allow read: if orgScopedRead();
-      allow create: if orgScopedCreate();
-      allow update: if orgScopedUpdate();
-      allow delete: if orgScopedDelete();
+    match /taskStatusEvents/{docId} {
+      allow get: if docBelongsToOrg();
+      allow list: if isAuthenticated();
+      allow create: if requestBelongsToOrg() && isEmployeeOrOwner();
+      allow update: if docBelongsToOrg() && isOwner();
+      allow delete: if false;
     }
 
-    match /inventoryItems/{docId} {
-      allow read: if orgScopedRead();
-      allow create: if orgScopedCreate();
-      allow update: if orgScopedUpdate();
-      allow delete: if orgScopedDelete();
+    match /categories/{docId} {
+      allow get: if docBelongsToOrg();
+      allow list: if isAuthenticated();
+      allow create: if requestBelongsToOrg() && isOwner();
+      allow update: if docBelongsToOrg() && isOwner();
+      allow delete: if docBelongsToOrg() && isOwner();
     }
 
-    match /employees/{docId} {
-      allow read: if orgScopedRead();
-      allow create: if orgScopedCreate();
-      allow update: if orgScopedUpdate();
-      allow delete: if orgScopedDelete();
+    match /products/{docId} {
+      allow get: if docBelongsToOrg();
+      allow list: if isAuthenticated();
+      allow create: if requestBelongsToOrg() && isEmployeeOrOwner();
+      allow update: if docBelongsToOrg() && isEmployeeOrOwner();
+      allow delete: if docBelongsToOrg() && isOwner();
+    }
+
+    match /stockMovements/{docId} {
+      allow get: if docBelongsToOrg();
+      allow list: if isAuthenticated();
+      allow create: if requestBelongsToOrg() && isEmployeeOrOwner();
+      allow update, delete: if false;
+    }
+
+    match /suppliers/{docId} {
+      allow get: if docBelongsToOrg();
+      allow list: if isAuthenticated();
+      allow create: if requestBelongsToOrg() && isOwner();
+      allow update: if docBelongsToOrg() && isOwner();
+      allow delete: if docBelongsToOrg() && isOwner();
+    }
+
+    match /posSales/{docId} {
+      allow get: if docBelongsToOrg();
+      allow list: if isAuthenticated();
+      allow create: if requestBelongsToOrg() && isEmployeeOrOwner();
+      allow update, delete: if docBelongsToOrg() && isOwner();
+    }
+
+    match /posSaleItems/{docId} {
+      allow get: if docBelongsToOrg();
+      allow list: if isAuthenticated();
+      allow create: if requestBelongsToOrg() && isEmployeeOrOwner();
+      allow update, delete: if docBelongsToOrg() && isOwner();
     }
 
     match /mechanics/{docId} {
-      allow read: if orgScopedRead();
-      allow create: if orgScopedCreate();
-      allow update: if orgScopedUpdate();
-      allow delete: if orgScopedDelete();
+      allow get: if docBelongsToOrg();
+      allow list: if isAuthenticated();
+      allow create: if requestBelongsToOrg() && isOwner();
+      allow update: if docBelongsToOrg() && isOwner();
+      allow delete: if docBelongsToOrg() && isOwner();
     }
 
-    match /mechanicSalesRecords/{docId} {
-      allow read: if orgScopedRead();
-      allow create: if orgScopedCreate();
-      allow update: if orgScopedUpdate();
-      allow delete: if orgScopedDelete();
+    match /mechanicLedgerEntries/{docId} {
+      allow get: if docBelongsToOrg();
+      allow list: if isAuthenticated();
+      allow create: if requestBelongsToOrg() && isOwner();
+      allow update, delete: if docBelongsToOrg() && isOwner();
     }
 
-    match /posOrders/{docId} {
-      allow read: if orgScopedRead();
-      allow create: if orgScopedCreate();
-      allow update: if orgScopedUpdate();
+    match /leaveRequests/{docId} {
+      allow get: if docBelongsToOrg();
+      allow list: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if docBelongsToOrg() && isOwner();
+      allow delete: if docBelongsToOrg() && isOwner();
+    }
+
+    match /salaryRecords/{docId} {
+      allow get: if docBelongsToOrg();
+      allow list: if isAuthenticated();
+      allow create: if requestBelongsToOrg() && isOwner();
+      allow update: if docBelongsToOrg() && isOwner();
       allow delete: if false;
     }
 
-    match /payrollEntries/{docId} {
-      allow read: if orgScopedRead();
-      allow create: if orgScopedCreate();
-      allow update: if orgScopedUpdate();
+    match /storeSettings/{docId} {
+      allow get: if docBelongsToOrg();
+      allow list: if isAuthenticated();
+      allow create: if requestBelongsToOrg() && isOwner();
+      allow update: if docBelongsToOrg() && isOwner();
       allow delete: if false;
     }
 
-    match /notifications/{docId} {
-      allow read: if belongsToOrg(resource.data.orgId) && resource.data.userId == request.auth.uid;
-      allow create: if orgScopedCreate();
-      allow update: if belongsToOrg(resource.data.orgId) && resource.data.userId == request.auth.uid;
+    match /notificationLogs/{docId} {
+      allow get: if docBelongsToOrg();
+      allow list: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
       allow delete: if false;
+    }
+
+    match /drafts/{docId} {
+      allow get, list: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create, update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    match /serializedItems/{docId} {
+      allow get: if docBelongsToOrg();
+      allow list: if isAuthenticated();
+      allow create: if requestBelongsToOrg() && isEmployeeOrOwner();
+      allow update: if docBelongsToOrg() && isEmployeeOrOwner();
+      allow delete: if docBelongsToOrg() && isOwner();
     }
 
     match /{document=**} {

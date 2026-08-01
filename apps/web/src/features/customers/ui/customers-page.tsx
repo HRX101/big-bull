@@ -1,100 +1,159 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { customerSchema } from '@car-spa/domain';
+import { useAuthStore } from '@/features/authentication/stores/auth-store';
+import { Search, Plus, Phone, User } from 'lucide-react';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { DataTable } from '@/components/shared/data-table';
-import { PageHeader } from '@/components/shared/page-header';
-import { useCreateCustomer, useCustomers, useDeleteCustomer } from '@/hooks/use-operations';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
+import { useCustomers, useCustomerSearch } from '../api/use-customers';
+import { CustomerDialog } from './customer-dialog';
+import type { Customer } from '@car-spa/domain';
+
+const PAGE_SIZE = 10;
 
 export function CustomersPage() {
-  const { data: customers = [], isLoading, error } = useCustomers();
-  const createCustomer = useCreateCustomer();
-  const deleteCustomer = useDeleteCustomer();
-  const [showForm, setShowForm] = useState(false);
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm({
-    resolver: zodResolver(customerSchema),
-  });
+  const session = useAuthStore((s) => s.session);
+  const orgId = session?.orgId ?? '';
 
-  const onSubmit = handleSubmit(async (data) => {
-    const result = await createCustomer.mutateAsync(data);
-    if (result.success) {
-      reset();
-      setShowForm(false);
-    }
-  });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [page, setPage] = useState(0);
+
+  const customersQuery = useCustomers(orgId);
+  const searchQuery_ = useCustomerSearch(orgId, searchQuery);
+  const isLoading = searchQuery ? searchQuery_.isLoading : customersQuery.isLoading;
+  const customers = searchQuery ? searchQuery_.data ?? [] : customersQuery.data ?? [];
+
+  const totalPages = Math.max(1, Math.ceil(customers.length / PAGE_SIZE));
+  const paged = customers.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  function handleSearch(value: string) {
+    setSearchQuery(value);
+    setPage(0);
+  }
+
+  function handleDialogSuccess() {
+    setPage(0);
+  }
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Customers"
-        description="Manage workshop customers and contact details."
-        action={
-          <Button onClick={() => setShowForm((v) => !v)}>
-            {showForm ? 'Cancel' : 'Add customer'}
-          </Button>
-        }
-      />
-      {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle>New customer</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={onSubmit} className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                <Input id="name" {...register('name')} />
-                {errors.name && <p className="text-destructive text-sm">{errors.name.message}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input id="phone" {...register('phone')} />
-                {errors.phone && <p className="text-destructive text-sm">{errors.phone.message}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" {...register('email')} />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="notes">Notes</Label>
-                <Input id="notes" {...register('notes')} />
-              </div>
-              <Button type="submit" disabled={createCustomer.isPending}>
-                Save customer
+      <div className="flex items-center justify-between">
+        <h1 className="font-display text-3xl tracking-tight">Customers</h1>
+        <Button onClick={() => setDialogOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Customer
+        </Button>
+      </div>
+
+      <div className="relative">
+        <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+        <Input
+          placeholder="Search by name or phone…"
+          className="pl-10"
+          value={searchQuery}
+          onChange={(e) => handleSearch(e.target.value)}
+        />
+      </div>
+
+      {isLoading ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="space-y-2 p-4">
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-4 w-40" />
+                <div className="flex gap-4">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-20" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : customers.length === 0 ? (
+        <EmptyState
+          title="No customers found"
+          description={
+            searchQuery
+              ? 'Try a different search term.'
+              : 'Add your first customer to get started.'
+          }
+        />
+      ) : (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {paged.map((customer) => (
+              <CustomerCard key={customer.id} customer={customer} />
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page === 0}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                Previous
               </Button>
-            </form>
-          </CardContent>
-        </Card>
+              {Array.from({ length: totalPages }).map((_, i) => (
+                <Button
+                  key={i}
+                  variant={i === page ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setPage(i)}
+                >
+                  {i + 1}
+                </Button>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages - 1}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          )}
+        </>
       )}
-      {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
-      {error && <p className="text-destructive text-sm">{error.message}</p>}
-      <DataTable
-        headers={['Name', 'Phone', 'Email', 'Actions']}
-        rows={customers.map((c) => [
-          c.name,
-          c.phone,
-          c.email ?? '—',
-          <Button
-            key={c.id}
-            variant="destructive"
-            size="sm"
-            onClick={() => deleteCustomer.mutate(c.id)}
-          >
-            Delete
-          </Button>,
-        ])}
+
+      <CustomerDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSuccess={handleDialogSuccess}
       />
     </div>
+  );
+}
+
+function CustomerCard({ customer }: { customer: Customer }) {
+  return (
+    <Card className="transition-colors hover:border-muted-foreground/30">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-3">
+          <div className="bg-muted flex h-10 w-10 items-center justify-center rounded-full">
+            <User className="text-muted-foreground h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-medium">{customer.name}</p>
+            <p className="text-muted-foreground flex items-center gap-1 text-sm">
+              <Phone className="h-3 w-3" />
+              {customer.phone}
+            </p>
+          </div>
+        </div>
+        <div className="text-muted-foreground mt-3 flex items-center gap-4 text-sm">
+          <span>{customer.visitCount} visits</span>
+          <span>₹{customer.totalSpend.toLocaleString('en-IN')}</span>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

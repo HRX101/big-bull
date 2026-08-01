@@ -22,7 +22,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Vitest unit tests, integration tests, Playwright smoke tests
 - GitHub Actions CI (lint, typecheck, build, test, e2e, CodeQL, Trivy, npm audit)
 - Architecture documentation and ADRs
-- **Phase 2:** Customers, Vehicles, Vehicle Tasks (state machine), Audit Log UI, Notifications
-- **Phase 3:** Inventory, Employees, Mechanics modules
-- **Phase 4:** POS orders, Payroll entries, receipt generation (`generateReceipt` function + client fallback)
-- **Phase 5:** Analytics dashboard, expanded RBAC permissions, blocking security scans in CI

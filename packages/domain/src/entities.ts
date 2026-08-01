@@ -1,5 +1,10 @@
-import type { UserRole } from '@car-spa/shared';
-import type { VehicleTaskStatus, WorkshopService } from './vehicle-task';
+import type {
+  LeaveStatus,
+  PaymentMode,
+  SalaryStatus,
+  TaskStatus,
+  UserRole,
+} from '@car-spa/shared';
 
 export interface Organization {
   id: string;
@@ -14,6 +19,8 @@ export interface Membership {
   userId: string;
   orgId: string;
   role: UserRole;
+  salaryAmount: number | null;
+  minWorkDays: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -47,7 +54,9 @@ export interface Customer {
   name: string;
   phone: string;
   email: string | null;
-  notes: string | null;
+  address: string | null;
+  totalSpend: number;
+  visitCount: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -56,127 +65,146 @@ export interface Vehicle {
   id: string;
   orgId: string;
   customerId: string;
-  make: string;
+  brand: string;
   model: string;
-  year: number;
-  plateNumber: string;
-  color: string | null;
-  vin: string | null;
+  vehicleNumber: string;
+  type: 'car' | 'bike' | 'truck' | 'bus' | 'other';
   createdAt: Date;
   updatedAt: Date;
 }
 
-export type PaymentMethod = 'cash' | 'card' | 'upi' | 'other';
-
-export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
-  cash: 'Cash',
-  card: 'Card',
-  upi: 'UPI',
-  other: 'Other',
-};
+export interface Service {
+  id: string;
+  orgId: string;
+  name: string;
+  description: string | null;
+  price: number;
+  active: boolean;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export interface VehicleTask {
   id: string;
   orgId: string;
-  taskCode: string;
-  vehicleBrand: string;
-  vehicleModel: string;
-  vehicleNumber: string;
   customerId: string;
-  services: WorkshopService[];
-  paymentMethod: PaymentMethod | null;
-  amount: number | null;
-  advancePayment: number | null;
-  problemStatement: string | null;
-  description: string | null;
-  status: VehicleTaskStatus;
-  assignedMechanicId: string | null;
-  estimatedCompletion: Date | null;
+  vehicleId: string;
+  serviceIds: string[];
+  status: TaskStatus;
+  paymentMode: PaymentMode;
+  paymentStatus: 'PENDING' | 'PARTIAL' | 'FULL';
+  totalAmount: number;
+  paidAmount: number;
+  dueAmount: number;
+  notes: string | null;
+  assignedTo: string | null;
+  receiptUrl: string | null;
+  createdBy: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export type InventoryCategoryFieldType =
-  'text' | 'number' | 'select' | 'cost' | 'quantity_unit' | 'date' | 'boolean';
-
-export const INVENTORY_CATEGORY_FIELD_TYPES = [
-  'text',
-  'number',
-  'select',
-  'cost',
-  'quantity_unit',
-  'date',
-  'boolean',
-] as const satisfies readonly InventoryCategoryFieldType[];
-
-export const INVENTORY_FIELD_TYPE_LABELS: Record<InventoryCategoryFieldType, string> = {
-  text: 'Text',
-  number: 'Number',
-  select: 'Custom select',
-  cost: 'Cost (₹)',
-  quantity_unit: 'Quantity unit',
-  date: 'Date',
-  boolean: 'Yes / No',
-};
-
-export const INVENTORY_QUANTITY_UNITS = [
-  'Pieces',
-  'Litres',
-  'Millilitres',
-  'Grams',
-  'Kilograms',
-  'Metres',
-  'Centimetres',
-  'Boxes',
-  'Pairs',
-  'Sets',
-] as const;
-
-export interface InventoryCategoryField {
-  key: string;
-  label: string;
-  type: InventoryCategoryFieldType;
-  required: boolean;
-  options?: string[];
+export interface TaskStatusEvent {
+  id: string;
+  orgId: string;
+  taskId: string;
+  fromStatus: TaskStatus | null;
+  toStatus: TaskStatus;
+  note: string;
+  actorId: string;
+  whatsappStatus: 'PENDING' | 'SENT' | 'FAILED' | 'NOT_APPLICABLE';
+  createdAt: Date;
 }
 
-export interface InventoryCategory {
+export interface AttributeDefinition {
+  key: string;
+  label: string;
+  type: 'text' | 'number' | 'select';
+  options?: string[];
+  required: boolean;
+}
+
+export interface Category {
   id: string;
   orgId: string;
   name: string;
-  fields: InventoryCategoryField[];
+  codePrefix: string;
+  attributeSchema: AttributeDefinition[];
+  productNames: string[];
+  lowStockThresholdDefault: number;
+  hasExpiry: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface InventoryItem {
+export interface Product {
   id: string;
   orgId: string;
   categoryId: string;
   sku: string;
   name: string;
-  attributes: Record<string, string | number>;
-  quantity: number;
-  unitPrice: number;
-  reorderLevel: number;
+  attributeValues: Record<string, unknown>;
+  costPrice: number;
+  sellingPrice: number;
+  unit: string;
+  lowStockThreshold: number;
+  currentStock: number;
+  expiryDate: Date | null;
+  imageUrl: string | null;
+  supplierId: string | null;
+  notes: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export type EmployeeStatus = 'active' | 'inactive';
+export type StockMovementType = 'RESTOCK_IN' | 'MANUAL_OUT' | 'POS_SALE' | 'VEHICLE_TASK_USE';
 
-export interface Employee {
+export interface StockMovement {
   id: string;
   orgId: string;
-  userId: string | null;
+  productId: string;
+  type: StockMovementType;
+  quantity: number;
+  note: string;
+  referenceId: string | null;
+  supplierId: string | null;
+  actorId: string;
+  serialNumbers: string[] | null;
+  createdAt: Date;
+}
+
+export interface Supplier {
+  id: string;
+  orgId: string;
   name: string;
-  email: string;
-  phone: string;
-  jobTitle: string;
-  status: EmployeeStatus;
-  hireDate: Date;
+  contactPhone: string | null;
+  notes: string | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface POSSale {
+  id: string;
+  orgId: string;
+  customerId: string | null;
+  items: POSSaleItem[];
+  totalAmount: number;
+  paymentMode: PaymentMode;
+  receiptNumber: string;
+  receiptUrl: string | null;
+  createdBy: string;
+  createdAt: Date;
+}
+
+export interface POSSaleItem {
+  id: string;
+  saleId: string;
+  itemId: string;
+  itemName: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
 }
 
 export interface Mechanic {
@@ -184,100 +212,114 @@ export interface Mechanic {
   orgId: string;
   name: string;
   storeName: string;
-  phone: string;
-  contactName: string | null;
+  phone: string | null;
+  address: string | null;
+  balance: number;
+  active: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface MechanicSalesRecordItem {
-  inventoryItemId: string | null;
-  description: string;
-  quantity: number;
-}
-
-export interface MechanicSalesRecord {
+export interface MechanicLedgerEntry {
   id: string;
   orgId: string;
   mechanicId: string;
-  fromDate: Date;
-  toDate: Date;
-  items: MechanicSalesRecordItem[];
-  totalAmount: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export type PosBuyerType = 'mechanic' | 'customer' | 'walk_in';
-
-export type PosOrderStatus = 'draft' | 'paid' | 'cancelled';
-
-export interface PosOrderItem {
-  inventoryItemId: string | null;
+  type: 'DEBIT' | 'CREDIT';
+  amount: number;
   description: string;
-  quantity: number;
-  unitPrice: number;
-  lineTotal: number;
-}
-
-export interface PosOrder {
-  id: string;
-  orgId: string;
-  buyerType: PosBuyerType;
-  mechanicId: string | null;
-  customerId: string | null;
-  buyerName: string | null;
-  buyerContact: string | null;
-  vehicleTaskId: string | null;
-  items: PosOrderItem[];
-  subtotal: number;
-  tax: number;
-  total: number;
-  status: PosOrderStatus;
-  paymentMethod: PaymentMethod | null;
+  referenceType: string | null;
+  referenceId: string | null;
+  itemCount: number | null;
+  actorId: string;
   createdAt: Date;
-  updatedAt: Date;
 }
 
-export type PayrollStatus = 'draft' | 'approved' | 'paid';
-
-export interface PayrollEntry {
+export interface LeaveRequest {
   id: string;
   orgId: string;
   employeeId: string;
-  periodStart: Date;
-  periodEnd: Date;
-  grossPay: number;
-  deductions: number;
-  netPay: number;
-  status: PayrollStatus;
+  fromDate: Date;
+  toDate: Date;
+  reason: string | null;
+  status: LeaveStatus;
+  leaveType: 'UNPAID' | 'PAID' | 'SICK';
+  reviewedBy: string | null;
+  reviewedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export type NotificationType = 'info' | 'warning' | 'success' | 'task';
-
-export interface AppNotification {
+export interface SalaryRecord {
   id: string;
   orgId: string;
-  userId: string;
-  title: string;
-  body: string;
-  type: NotificationType;
-  read: boolean;
+  employeeId: string;
+  month: number;
+  year: number;
+  fullSalary: number;
+  workingDays: number;
+  leaveDays: number;
+  perDayRate: number;
+  deduction: number;
+  payableAmount: number;
+  status: SalaryStatus;
+  receiptUrl: string | null;
+  notes: string | null;
+  createdBy: string;
+  approvedBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface StoreSettings {
+  id: string;
+  orgId: string;
+  storeName: string;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  gstin: string | null;
+  taxRate: number;
+  logoUrl: string | null;
+  whatsappProvider: 'META' | 'TWILIO' | 'NONE';
+  whatsappApiKey: string | null;
+  whatsappPhoneNumberId: string | null;
+  whatsappTemplateId: string | null;
+  workingDaysPerMonth: number;
+  defaultLeaveType: 'UNPAID' | 'PAID';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface NotificationLog {
+  id: string;
+  orgId: string;
+  type: 'WHATSAPP' | 'EMAIL';
+  recipient: string;
+  templateId: string | null;
+  message: string;
+  status: 'PENDING' | 'SENT' | 'FAILED';
+  error: string | null;
+  referenceType: string;
+  referenceId: string;
+  retryCount: number;
   createdAt: Date;
 }
 
-export interface WorkshopAnalytics {
-  customerCount: number;
-  vehicleCount: number;
-  activeTaskCount: number;
-  completedTaskCount: number;
-  inventoryItemCount: number;
-  lowStockCount: number;
-  employeeCount: number;
-  mechanicCount: number;
-  paidOrderCount: number;
-  totalRevenue: number;
-  pendingPayrollCount: number;
+export interface SerializedItem {
+  id: string;
+  orgId: string;
+  productId: string;
+  serialNumber: string;
+  isAvailable: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface TaskDraft {
+  id: string;
+  orgId: string;
+  userId: string;
+  step: number;
+  data: Record<string, unknown>;
+  updatedAt: Date;
 }

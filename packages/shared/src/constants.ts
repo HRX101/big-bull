@@ -5,45 +5,46 @@ export const COLLECTIONS = {
   auditLogs: 'auditLogs',
   customers: 'customers',
   vehicles: 'vehicles',
+  services: 'services',
   vehicleTasks: 'vehicleTasks',
-  inventoryCategories: 'inventoryCategories',
-  inventoryItems: 'inventoryItems',
-  employees: 'employees',
+  taskStatusEvents: 'taskStatusEvents',
+  categories: 'categories',
+  products: 'products',
+  stockMovements: 'stockMovements',
+  suppliers: 'suppliers',
+  posSales: 'posSales',
+  posSaleItems: 'posSaleItems',
   mechanics: 'mechanics',
-  mechanicSalesRecords: 'mechanicSalesRecords',
-  posOrders: 'posOrders',
-  payrollEntries: 'payrollEntries',
-  notifications: 'notifications',
+  mechanicLedgerEntries: 'mechanicLedgerEntries',
+  leaveRequests: 'leaveRequests',
+  salaryRecords: 'salaryRecords',
+  storeSettings: 'storeSettings',
+  notificationLogs: 'notificationLogs',
+  drafts: 'drafts',
+  serializedItems: 'serializedItems',
 } as const;
 
 export const DEFAULT_ORG_SLUG = 'big-bull-car-spa';
-
-/** Hardcoded WhatsApp sender number (India) until configurable in settings. */
-export const WHATSAPP_FROM_NUMBER = '8972424853';
 
 export const AUTH_ROUTES = {
   signIn: '/auth/sign-in',
   signUp: '/auth/sign-up',
   forgotPassword: '/auth/forgot-password',
   verifyEmail: '/auth/verify-email',
-  authAction: '/auth/action',
   onboarding: '/auth/onboarding',
 } as const;
 
 export const PROTECTED_ROUTES = {
   dashboard: '/dashboard',
-  customers: '/customers',
-  vehicles: '/vehicles',
-  tasks: '/tasks',
+  settings: '/settings',
+  vehicleTasks: '/vehicle-tasks',
   inventory: '/inventory',
+  suppliers: '/suppliers',
+  pos: '/pos',
+  transactions: '/transactions',
+  customers: '/customers',
   employees: '/employees',
   mechanics: '/mechanics',
-  pos: '/pos',
-  payroll: '/payroll',
-  auditLogs: '/audit-logs',
-  notifications: '/notifications',
-  analytics: '/analytics',
-  settings: '/settings',
 } as const;
 
 export const PUBLIC_ROUTES = [
@@ -54,13 +55,27 @@ export const PUBLIC_ROUTES = [
   AUTH_ROUTES.verifyEmail,
 ] as const;
 
-export const NAV_ITEMS = [
-  { href: PROTECTED_ROUTES.dashboard, label: 'Dashboard', phase: 1 },
-  { href: PROTECTED_ROUTES.tasks, label: 'Vehicle Task', phase: 2 },
-  { href: PROTECTED_ROUTES.inventory, label: 'Inventory', phase: 3 },
-  { href: PROTECTED_ROUTES.pos, label: 'POS', phase: 4 },
-  { href: PROTECTED_ROUTES.customers, label: 'Customers', phase: 2 },
-  { href: PROTECTED_ROUTES.mechanics, label: 'Mechanics', phase: 3 },
-  { href: PROTECTED_ROUTES.employees, label: 'Employee Management', phase: 3 },
-  { href: PROTECTED_ROUTES.settings, label: 'Settings', phase: 1 },
+export const TASK_STATUSES = [
+  'RECEIVED',
+  'IN_PROGRESS',
+  'READY_FOR_PICKUP',
+  'COMPLETED',
+  'CANCELLED',
 ] as const;
+
+export type TaskStatus = (typeof TASK_STATUSES)[number];
+
+export const LEAVE_STATUSES = ['PENDING', 'APPROVED', 'REJECTED'] as const;
+export type LeaveStatus = (typeof LEAVE_STATUSES)[number];
+
+export const SALARY_STATUSES = ['PENDING', 'APPROVED', 'PAID'] as const;
+export type SalaryStatus = (typeof SALARY_STATUSES)[number];
+
+export const PAYMENT_MODES = ['CASH', 'UPI', 'CARD', 'NET_BANKING', 'OTHER'] as const;
+export type PaymentMode = (typeof PAYMENT_MODES)[number];
+
+export const STOCK_MOVEMENT_TYPES = ['RESTOCK_IN', 'MANUAL_OUT', 'POS_SALE', 'VEHICLE_TASK_USE'] as const;
+export type StockMovementType = (typeof STOCK_MOVEMENT_TYPES)[number];
+
+export const UNITS = ['piece', 'litre', 'kg', 'box', 'pack', 'set', 'pair', 'metre'] as const;
+export type Unit = (typeof UNITS)[number];

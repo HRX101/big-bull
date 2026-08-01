@@ -1,99 +1,77 @@
 import {
-  ApprovePayrollEntryUseCase,
+  AddMechanicLedgerEntryUseCase,
+  ApproveSalaryRecordUseCase,
   BootstrapDefaultOrgUseCase,
+  ChangeTaskStatusUseCase,
+  CreateCategoryUseCase,
   CreateCustomerUseCase,
-  CreateEmployeeUseCase,
-  CreateInventoryCategoryUseCase,
-  CreateInventoryItemUseCase,
-  DeleteInventoryCategoryUseCase,
-  DeleteInventoryItemUseCase,
-  DeleteMechanicUseCase,
+  CreateLeaveRequestUseCase,
   CreateMechanicUseCase,
-  CreateMechanicSalesRecordUseCase,
-  CreatePayrollEntryUseCase,
-  CreatePosOrderUseCase,
+  CreatePOSSaleUseCase,
+  CreateProductUseCase,
+  CreateSalaryRecordUseCase,
+  CreateSupplierUseCase,
   CreateVehicleTaskUseCase,
-  CreateVehicleUseCase,
-  DeleteCustomerUseCase,
-  DeleteVehicleTaskUseCase,
-  GetWorkshopAnalyticsUseCase,
-  ListAuditLogsUseCase,
-  ListCustomersUseCase,
-  ListEmployeesUseCase,
-  ListInventoryCategoriesUseCase,
-  ListInventoryUseCase,
-  ListMechanicsUseCase,
-  ListMechanicSalesRecordsUseCase,
-  ListNotificationsUseCase,
-  ListPayrollEntriesUseCase,
-  ListPosOrdersUseCase,
-  ListVehicleTasksUseCase,
-  ListVehiclesUseCase,
-  MarkNotificationReadUseCase,
-  PayPosOrderUseCase,
+  GetEmployeesUseCase,
+  GetStoreSettingsUseCase,
+  RecordStockMovementUseCase,
+  RecordTaskPaymentUseCase,
+  ReviewLeaveRequestUseCase,
+  SearchCustomersUseCase,
   SignInUseCase,
   SignUpUseCase,
-  TransitionVehicleTaskUseCase,
-  UpdateCustomerUseCase,
-  UpdateInventoryCategoryUseCase,
-  UpdateInventoryItemUseCase,
-  UpdateMechanicUseCase,
-  UpdateVehicleTaskPaymentUseCase,
-  UpdateVehicleTaskUseCase,
+  UpdateStoreSettingsUseCase,
 } from '@car-spa/application';
 import { FirebaseAuthRepository } from './repositories/auth.repository';
 import { FirestoreOrganizationRepository } from './repositories/organization.repository';
 import { FirestoreMembershipRepository } from './repositories/membership.repository';
 import { FirestoreUserRepository } from './repositories/user.repository';
 import { FirestoreAuditRepository } from './repositories/audit.repository';
-import {
-  FirestoreAnalyticsRepository,
-  FirestoreCustomerRepository,
-  FirestoreEmployeeRepository,
-  FirestoreInventoryCategoryRepository,
-  FirestoreInventoryRepository,
-  FirestoreMechanicRepository,
-  FirestoreMechanicSalesRecordRepository,
-  FirestoreNotificationRepository,
-  FirestorePayrollRepository,
-  FirestorePosOrderRepository,
-  FirestoreVehicleRepository,
-  FirestoreVehicleTaskRepository,
-} from './repositories/operations.repository';
 import { FirebaseClaimsService } from './services/claims.service';
-import { ClientReceiptService } from './services/receipt.service';
-import { CallableWhatsAppMessagingService } from './services/whatsapp.service';
+import { FirestoreCustomerRepository } from './repositories/customer.repository';
+import { FirestoreVehicleRepository } from './repositories/vehicle.repository';
+import { FirestoreServiceRepository } from './repositories/service.repository';
+import { FirestoreVehicleTaskRepository } from './repositories/vehicle-task.repository';
+import { FirestoreTaskStatusEventRepository } from './repositories/task-status-event.repository';
+import { FirestoreCategoryRepository } from './repositories/category.repository';
+import { FirestoreProductRepository } from './repositories/product.repository';
+import { FirestoreStockMovementRepository } from './repositories/stock-movement.repository';
+import { FirestoreSupplierRepository } from './repositories/supplier.repository';
+import { FirestorePOSSaleRepository } from './repositories/pos-sale.repository';
+import { FirestoreMechanicRepository } from './repositories/mechanic.repository';
+import { FirestoreMechanicLedgerRepository } from './repositories/mechanic-ledger.repository';
+import { FirestoreLeaveRequestRepository } from './repositories/leave-request.repository';
+import { FirestoreSalaryRecordRepository } from './repositories/salary-record.repository';
+import { FirestoreStoreSettingsRepository } from './repositories/settings.repository';
+import { FirestoreNotificationRepository } from './repositories/notification.repository';
+import { FirestoreDraftRepository } from './repositories/draft.repository';
+import { FirestoreSerializedItemRepository } from './repositories/serialized-item.repository';
 
+const authRepository = new FirebaseAuthRepository();
+const organizationRepository = new FirestoreOrganizationRepository();
 const membershipRepository = new FirestoreMembershipRepository();
 const userRepository = new FirestoreUserRepository();
 const auditRepository = new FirestoreAuditRepository();
 const claimsService = new FirebaseClaimsService();
-const authRepository = new FirebaseAuthRepository(membershipRepository, userRepository);
-const organizationRepository = new FirestoreOrganizationRepository();
 
 const customerRepository = new FirestoreCustomerRepository();
 const vehicleRepository = new FirestoreVehicleRepository();
+const serviceRepository = new FirestoreServiceRepository();
 const vehicleTaskRepository = new FirestoreVehicleTaskRepository();
-const inventoryCategoryRepository = new FirestoreInventoryCategoryRepository();
-const inventoryRepository = new FirestoreInventoryRepository();
-const employeeRepository = new FirestoreEmployeeRepository();
+const taskStatusEventRepository = new FirestoreTaskStatusEventRepository();
+const categoryRepository = new FirestoreCategoryRepository();
+const productRepository = new FirestoreProductRepository();
+const stockMovementRepository = new FirestoreStockMovementRepository();
+const supplierRepository = new FirestoreSupplierRepository();
+const posSaleRepository = new FirestorePOSSaleRepository();
 const mechanicRepository = new FirestoreMechanicRepository();
-const mechanicSalesRecordRepository = new FirestoreMechanicSalesRecordRepository();
-const posOrderRepository = new FirestorePosOrderRepository();
-const payrollRepository = new FirestorePayrollRepository();
+const mechanicLedgerRepository = new FirestoreMechanicLedgerRepository();
+const leaveRequestRepository = new FirestoreLeaveRequestRepository();
+const salaryRecordRepository = new FirestoreSalaryRecordRepository();
+const storeSettingsRepository = new FirestoreStoreSettingsRepository();
 const notificationRepository = new FirestoreNotificationRepository();
-const analyticsRepository = new FirestoreAnalyticsRepository(
-  customerRepository,
-  vehicleRepository,
-  vehicleTaskRepository,
-  inventoryRepository,
-  employeeRepository,
-  mechanicRepository,
-  posOrderRepository,
-  payrollRepository,
-);
-const receiptService = new ClientReceiptService(posOrderRepository);
-const whatsAppMessagingService = new CallableWhatsAppMessagingService();
+const draftRepository = new FirestoreDraftRepository();
+const serializedItemRepository = new FirestoreSerializedItemRepository();
 
 export const signInUseCase = new SignInUseCase(authRepository);
 export const signUpUseCase = new SignUpUseCase(authRepository);
@@ -106,181 +84,68 @@ export const bootstrapDefaultOrgUseCase = new BootstrapDefaultOrgUseCase(
   auditRepository,
 );
 
-export const listCustomersUseCase = new ListCustomersUseCase(authRepository, customerRepository);
-export const createCustomerUseCase = new CreateCustomerUseCase(
-  authRepository,
-  customerRepository,
-  auditRepository,
-);
-export const updateCustomerUseCase = new UpdateCustomerUseCase(
-  authRepository,
-  customerRepository,
-  auditRepository,
-);
-export const deleteCustomerUseCase = new DeleteCustomerUseCase(
-  authRepository,
-  customerRepository,
-  auditRepository,
-);
-
-export const listVehiclesUseCase = new ListVehiclesUseCase(authRepository, vehicleRepository);
-export const createVehicleUseCase = new CreateVehicleUseCase(
-  authRepository,
-  vehicleRepository,
-  auditRepository,
-);
-
-export const listVehicleTasksUseCase = new ListVehicleTasksUseCase(
-  authRepository,
-  vehicleTaskRepository,
-);
+export const createCustomerUseCase = new CreateCustomerUseCase(customerRepository, auditRepository);
+export const searchCustomersUseCase = new SearchCustomersUseCase(customerRepository);
 export const createVehicleTaskUseCase = new CreateVehicleTaskUseCase(
-  authRepository,
-  vehicleTaskRepository,
-  auditRepository,
-  notificationRepository,
-);
-export const updateVehicleTaskUseCase = new UpdateVehicleTaskUseCase(
-  authRepository,
-  vehicleTaskRepository,
-  auditRepository,
-);
-export const updateVehicleTaskPaymentUseCase = new UpdateVehicleTaskPaymentUseCase(
-  authRepository,
-  vehicleTaskRepository,
-  auditRepository,
-);
-export const deleteVehicleTaskUseCase = new DeleteVehicleTaskUseCase(
-  authRepository,
-  vehicleTaskRepository,
-  auditRepository,
-);
-export const transitionVehicleTaskUseCase = new TransitionVehicleTaskUseCase(
-  authRepository,
   vehicleTaskRepository,
   customerRepository,
+  vehicleRepository,
+  taskStatusEventRepository,
   auditRepository,
-  whatsAppMessagingService,
+  draftRepository,
 );
-
-export const listInventoryCategoriesUseCase = new ListInventoryCategoriesUseCase(
-  authRepository,
-  inventoryCategoryRepository,
-);
-export const createInventoryCategoryUseCase = new CreateInventoryCategoryUseCase(
-  authRepository,
-  inventoryCategoryRepository,
+export const changeTaskStatusUseCase = new ChangeTaskStatusUseCase(
+  vehicleTaskRepository,
+  taskStatusEventRepository,
   auditRepository,
 );
-export const updateInventoryCategoryUseCase = new UpdateInventoryCategoryUseCase(
-  authRepository,
-  inventoryCategoryRepository,
+export const recordTaskPaymentUseCase = new RecordTaskPaymentUseCase(
+  vehicleTaskRepository,
   auditRepository,
 );
-export const deleteInventoryCategoryUseCase = new DeleteInventoryCategoryUseCase(
-  authRepository,
-  inventoryCategoryRepository,
-  inventoryRepository,
+export const createCategoryUseCase = new CreateCategoryUseCase(
+  categoryRepository,
   auditRepository,
 );
-
-export const listInventoryUseCase = new ListInventoryUseCase(authRepository, inventoryRepository);
-export const createInventoryItemUseCase = new CreateInventoryItemUseCase(
-  authRepository,
-  inventoryRepository,
-  inventoryCategoryRepository,
+export const createProductUseCase = new CreateProductUseCase(
+  productRepository,
+  categoryRepository,
+  stockMovementRepository,
   auditRepository,
 );
-export const updateInventoryItemUseCase = new UpdateInventoryItemUseCase(
-  authRepository,
-  inventoryRepository,
-  inventoryCategoryRepository,
+export const recordStockMovementUseCase = new RecordStockMovementUseCase(
+  productRepository,
+  stockMovementRepository,
   auditRepository,
 );
-export const deleteInventoryItemUseCase = new DeleteInventoryItemUseCase(
-  authRepository,
-  inventoryRepository,
+export const createSupplierUseCase = new CreateSupplierUseCase(
+  supplierRepository,
   auditRepository,
 );
-
-export const listEmployeesUseCase = new ListEmployeesUseCase(authRepository, employeeRepository);
-export const createEmployeeUseCase = new CreateEmployeeUseCase(
-  authRepository,
-  employeeRepository,
-  auditRepository,
-);
-
-export const listMechanicsUseCase = new ListMechanicsUseCase(authRepository, mechanicRepository);
-export const createMechanicUseCase = new CreateMechanicUseCase(
-  authRepository,
-  mechanicRepository,
-  auditRepository,
-);
-export const updateMechanicUseCase = new UpdateMechanicUseCase(
-  authRepository,
-  mechanicRepository,
-  auditRepository,
-);
-export const deleteMechanicUseCase = new DeleteMechanicUseCase(
-  authRepository,
-  mechanicRepository,
-  auditRepository,
-);
-export const listMechanicSalesRecordsUseCase = new ListMechanicSalesRecordsUseCase(
-  authRepository,
-  mechanicSalesRecordRepository,
-);
-export const createMechanicSalesRecordUseCase = new CreateMechanicSalesRecordUseCase(
-  authRepository,
-  mechanicRepository,
-  mechanicSalesRecordRepository,
-  auditRepository,
-);
-
-export const listPosOrdersUseCase = new ListPosOrdersUseCase(authRepository, posOrderRepository);
-export const createPosOrderUseCase = new CreatePosOrderUseCase(
-  authRepository,
-  posOrderRepository,
-  inventoryRepository,
-  mechanicRepository,
+export const createPOSSaleUseCase = new CreatePOSSaleUseCase(
+  posSaleRepository,
+  productRepository as never,
   customerRepository,
+  stockMovementRepository,
   auditRepository,
 );
-export const payPosOrderUseCase = new PayPosOrderUseCase(
-  authRepository,
-  posOrderRepository,
-  inventoryRepository,
+export const createMechanicUseCase = new CreateMechanicUseCase(mechanicRepository, auditRepository);
+export const addMechanicLedgerEntryUseCase = new AddMechanicLedgerEntryUseCase(
+  mechanicRepository,
+  mechanicLedgerRepository,
   auditRepository,
 );
-
-export const listPayrollEntriesUseCase = new ListPayrollEntriesUseCase(
-  authRepository,
-  payrollRepository,
-);
-export const createPayrollEntryUseCase = new CreatePayrollEntryUseCase(
-  authRepository,
-  payrollRepository,
+export const createLeaveRequestUseCase = new CreateLeaveRequestUseCase(leaveRequestRepository, auditRepository);
+export const reviewLeaveRequestUseCase = new ReviewLeaveRequestUseCase(leaveRequestRepository, auditRepository);
+export const createSalaryRecordUseCase = new CreateSalaryRecordUseCase(
+  salaryRecordRepository,
+  leaveRequestRepository,
   auditRepository,
 );
-export const approvePayrollEntryUseCase = new ApprovePayrollEntryUseCase(
-  authRepository,
-  payrollRepository,
-  auditRepository,
-);
-
-export const listAuditLogsUseCase = new ListAuditLogsUseCase(authRepository, auditRepository);
-export const listNotificationsUseCase = new ListNotificationsUseCase(
-  authRepository,
-  notificationRepository,
-);
-export const markNotificationReadUseCase = new MarkNotificationReadUseCase(
-  authRepository,
-  notificationRepository,
-);
-export const getWorkshopAnalyticsUseCase = new GetWorkshopAnalyticsUseCase(
-  authRepository,
-  analyticsRepository,
-);
+export const approveSalaryRecordUseCase = new ApproveSalaryRecordUseCase(salaryRecordRepository, auditRepository);
+export const getStoreSettingsUseCase = new GetStoreSettingsUseCase(storeSettingsRepository);
+export const updateStoreSettingsUseCase = new UpdateStoreSettingsUseCase(storeSettingsRepository, auditRepository);
+export const getEmployeesUseCase = new GetEmployeesUseCase(userRepository);
 
 export {
   authRepository,
@@ -291,18 +156,23 @@ export {
   claimsService,
   customerRepository,
   vehicleRepository,
+  serviceRepository,
   vehicleTaskRepository,
-  inventoryCategoryRepository,
-  inventoryRepository,
-  employeeRepository,
+  taskStatusEventRepository,
+  categoryRepository,
+  productRepository,
+  stockMovementRepository,
+  supplierRepository,
+  posSaleRepository,
   mechanicRepository,
-  posOrderRepository,
-  payrollRepository,
+  mechanicLedgerRepository,
+  leaveRequestRepository,
+  salaryRecordRepository,
+  storeSettingsRepository,
   notificationRepository,
-  analyticsRepository,
-  receiptService,
+  draftRepository,
+  serializedItemRepository,
 };
 
 export * from './firebase/client';
 export * from './firebase/config';
-export { getAppOrigin, getAuthActionUrl } from './firebase/app-url';

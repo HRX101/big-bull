@@ -1,7 +1,17 @@
 import type { UserRepository } from '@car-spa/application';
 import type { UserProfile } from '@car-spa/domain';
 import { COLLECTIONS } from '@car-spa/shared';
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  where,
+} from 'firebase/firestore';
 import { getFirebaseDb } from '../firebase/client';
 import { fromFirestoreDate, parseRole } from '../firebase/mappers';
 
@@ -26,6 +36,15 @@ export class FirestoreUserRepository implements UserRepository {
     return mapUser(snapshot.id, snapshot.data());
   }
 
+  async findByOrgId(orgId: string) {
+    const q = query(
+      collection(getFirebaseDb(), COLLECTIONS.users),
+      where('orgId', '==', orgId),
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => mapUser(d.id, d.data()));
+  }
+
   async upsert(profile: Omit<UserProfile, 'createdAt' | 'updatedAt'>) {
     const ref = doc(getFirebaseDb(), COLLECTIONS.users, profile.id);
     const existing = await getDoc(ref);
@@ -34,7 +53,7 @@ export class FirestoreUserRepository implements UserRepository {
       {
         email: profile.email,
         displayName: profile.displayName,
-        photoUrl: profile.photoUrl ?? existing.data()?.photoUrl ?? null,
+        photoUrl: profile.photoUrl,
         emailVerified: profile.emailVerified,
         orgId: profile.orgId,
         role: profile.role,
@@ -43,6 +62,13 @@ export class FirestoreUserRepository implements UserRepository {
       },
       { merge: true },
     );
+    const saved = await getDoc(ref);
+    return mapUser(saved.id, saved.data()!);
+  }
+
+  async update(id: string, data: Partial<UserProfile>) {
+    const ref = doc(getFirebaseDb(), COLLECTIONS.users, id);
+    await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
     const saved = await getDoc(ref);
     return mapUser(saved.id, saved.data()!);
   }

@@ -1,110 +1,336 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { employeeSchema } from '@car-spa/domain';
+import { useAuthStore } from '@/features/authentication/stores/auth-store';
+import { UsersRound, Plus, UserCheck, UserX, Calendar, Check, X, DollarSign } from 'lucide-react';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/shared/badge';
-import { DataTable } from '@/components/shared/data-table';
-import { PageHeader } from '@/components/shared/page-header';
-import { useCreateEmployee, useEmployees } from '@/hooks/use-operations';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
+import {
+  useEmployees,
+  useToggleEmployeeStatus,
+  useLeaveRequests,
+  useMyLeaveRequests,
+  useReviewLeaveRequest,
+} from '../api/use-employees';
+import { AddEmployeeDialog } from './add-employee-dialog';
+import { LeaveRequestDialog } from './leave-request-dialog';
+import { SalarySection } from './salary-section';
+import type { UserProfile, Membership } from '@car-spa/domain';
+
+type Tab = 'employees' | 'leave-requests' | 'salary';
+
+const STATUS_BG: Record<string, string> = {
+  PENDING: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  APPROVED: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  REJECTED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+};
 
 export function EmployeesPage() {
-  const { data: employees = [], isLoading } = useEmployees();
-  const createEmployee = useCreateEmployee();
-  const [showForm, setShowForm] = useState(false);
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm({
-    resolver: zodResolver(employeeSchema),
-    defaultValues: { status: 'active', hireDate: new Date().toISOString().slice(0, 10) },
-  });
+  const session = useAuthStore((s) => s.session);
+  const orgId = session?.orgId ?? '';
+  const userId = session?.userId ?? '';
+  const isOwner = session?.role === 'owner';
 
-  const onSubmit = handleSubmit(async (data) => {
-    const result = await createEmployee.mutateAsync(data);
-    if (result.success) {
-      reset();
-      setShowForm(false);
-    }
-  });
+  const [tab, setTab] = useState<Tab>(isOwner ? 'employees' : 'leave-requests');
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
+
+  const employeesQuery = useEmployees(orgId);
+  const toggleStatus = useToggleEmployeeStatus();
+  const leaveRequestsQuery = useLeaveRequests(orgId);
+  const myLeaveRequestsQuery = useMyLeaveRequests(userId);
+  const reviewLeaveRequest = useReviewLeaveRequest();
+
+  const employees = employeesQuery.data ?? [];
+  const allLeaveRequests = leaveRequestsQuery.data ?? [];
+  const myLeaveRequests = myLeaveRequestsQuery.data ?? [];
+
+  const leaveData = isOwner ? allLeaveRequests : myLeaveRequests;
+  const leaveLoading = isOwner ? leaveRequestsQuery.isLoading : myLeaveRequestsQuery.isLoading;
+
+  const statusLabel: Record<string, string> = {
+    PENDING: 'Pending',
+    APPROVED: 'Approved',
+    REJECTED: 'Rejected',
+  };
+
+  const leaveTypeLabel: Record<string, string> = {
+    UNPAID: 'Unpaid',
+    PAID: 'Paid',
+    SICK: 'Sick',
+  };
+
+  function getEmployeeName(employeeId: string) {
+    return employees.find((e) => e.id === employeeId)?.displayName ?? 'Unknown';
+  }
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Employees"
-        description="Workshop staff records."
-        action={
-          <Button onClick={() => setShowForm((v) => !v)}>
-            {showForm ? 'Cancel' : 'Add employee'}
-          </Button>
-        }
-      />
-      {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle>New employee</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={onSubmit} className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Name</Label>
-                <Input {...register('name')} />
-              </div>
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input type="email" {...register('email')} />
-              </div>
-              <div className="space-y-2">
-                <Label>Phone</Label>
-                <Input {...register('phone')} />
-              </div>
-              <div className="space-y-2">
-                <Label>Job title</Label>
-                <Input {...register('jobTitle')} />
-              </div>
-              <div className="space-y-2">
-                <Label>Hire date</Label>
-                <Input type="date" {...register('hireDate')} />
-              </div>
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <select
-                  className="border-input bg-input h-10 w-full rounded-md border px-3 text-sm"
-                  {...register('status')}
-                >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-              </div>
-              {errors.name && (
-                <p className="text-destructive text-sm md:col-span-2">{errors.name.message}</p>
-              )}
-              <Button type="submit" disabled={createEmployee.isPending}>
-                Save employee
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-3xl tracking-tight">{isOwner ? 'Employees' : 'My Portal'}</h1>
+          <p className="text-muted-foreground">
+            {isOwner ? 'Manage your team and their requests.' : 'Your leaves, salary and credited payments.'}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {isOwner && (
+            <Button onClick={() => setAddDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Employee
+            </Button>
+          )}
+          {!isOwner && (
+            <Button onClick={() => setLeaveDialogOpen(true)}>
+              <Calendar className="mr-2 h-4 w-4" />
+              Request Leave
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-muted inline-flex rounded-md p-0.5">
+        {isOwner && (
+          <button
+            onClick={() => setTab('employees')}
+            className={`inline-flex items-center gap-2 rounded-sm px-4 py-2 text-sm font-medium transition-colors ${
+              tab === 'employees' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <UsersRound className="h-4 w-4" />
+            Employees
+          </button>
+        )}
+        <button
+          onClick={() => setTab('leave-requests')}
+          className={`inline-flex items-center gap-2 rounded-sm px-4 py-2 text-sm font-medium transition-colors ${
+            tab === 'leave-requests' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <Calendar className="h-4 w-4" />
+          Leave Requests
+        </button>
+        <button
+          onClick={() => setTab('salary')}
+          className={`inline-flex items-center gap-2 rounded-sm px-4 py-2 text-sm font-medium transition-colors ${
+            tab === 'salary' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <DollarSign className="h-4 w-4" />
+          {isOwner ? 'Salary' : 'My Salary'}
+        </button>
+      </div>
+
+      {tab === 'employees' ? (
+        <>
+          {employeesQuery.isLoading ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Card key={i}>
+                  <CardContent className="space-y-3 p-4">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="h-4 w-20" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : employees.length === 0 ? (
+            <EmptyState
+              title="No employees"
+              description="Add your first employee to get started."
+              action={
+                <Button onClick={() => setAddDialogOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Employee
+                </Button>
+              }
+            />
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {employees.map((emp) => (
+                <EmployeeCard
+                  key={emp.id}
+                  employee={emp}
+                  membership={emp.membership}
+                  onToggleStatus={(membershipId, active) => toggleStatus.mutate({ membershipId, active })}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      ) : tab === 'salary' ? (
+        <SalarySection orgId={orgId} isOwner={isOwner} employeeId={isOwner ? undefined : userId} />
+      ) : (
+        <div className="space-y-4">
+          {!isOwner && (
+            <div className="flex justify-end">
+              <Button onClick={() => setLeaveDialogOpen(true)}>
+                <Calendar className="mr-2 h-4 w-4" />
+                Request Leave
               </Button>
-            </form>
-          </CardContent>
-        </Card>
+            </div>
+          )}
+
+          {leaveLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-20 w-full" />
+              ))}
+            </div>
+          ) : leaveData.length === 0 ? (
+            <EmptyState
+              title="No leave requests"
+              description={
+                isOwner
+                  ? 'No employees have submitted leave requests yet.'
+                  : 'You have not submitted any leave requests.'
+              }
+            />
+          ) : (
+            <div className="overflow-hidden rounded-lg border">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50">
+                  <tr>
+                    {isOwner && <th className="px-4 py-3 text-left font-medium">Employee</th>}
+                    <th className="px-4 py-3 text-left font-medium">Type</th>
+                    <th className="px-4 py-3 text-left font-medium">Dates</th>
+                    <th className="px-4 py-3 text-left font-medium">Reason</th>
+                    <th className="px-4 py-3 text-left font-medium">Status</th>
+                    {isOwner && <th className="px-4 py-3 text-right font-medium">Actions</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {leaveData.map((lr) => (
+                    <tr key={lr.id} className="group hover:bg-muted/30">
+                      {isOwner && (
+                        <td className="px-4 py-3 font-medium">{getEmployeeName(lr.employeeId)}</td>
+                      )}
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {leaveTypeLabel[lr.leaveType] ?? lr.leaveType}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {new Date(lr.fromDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                        {' – '}
+                        {new Date(lr.toDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground max-w-[200px] truncate">
+                        {lr.reason ?? '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            STATUS_BG[lr.status] ?? 'bg-muted text-muted-foreground'
+                          }`}
+                        >
+                          {statusLabel[lr.status] ?? lr.status}
+                        </span>
+                      </td>
+                      {isOwner && (
+                        <td className="px-4 py-3 text-right">
+                          {lr.status === 'PENDING' && (
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-green-600 hover:text-green-700"
+                                disabled={reviewLeaveRequest.isPending}
+                                onClick={() => reviewLeaveRequest.mutate({ leaveId: lr.id, status: 'APPROVED' })}
+                              >
+                                <Check className="h-4 w-4" />
+                                Approve
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700"
+                                disabled={reviewLeaveRequest.isPending}
+                                onClick={() => reviewLeaveRequest.mutate({ leaveId: lr.id, status: 'REJECTED' })}
+                              >
+                                <X className="h-4 w-4" />
+                                Reject
+                              </Button>
+                            </div>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       )}
-      {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
-      <DataTable
-        headers={['Name', 'Title', 'Phone', 'Status']}
-        rows={employees.map((e) => [
-          e.name,
-          e.jobTitle,
-          e.phone,
-          <Badge key={e.id} variant={e.status === 'active' ? 'success' : 'outline'}>
-            {e.status}
-          </Badge>,
-        ])}
+
+      <AddEmployeeDialog
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+      />
+
+      <LeaveRequestDialog
+        open={leaveDialogOpen}
+        onOpenChange={setLeaveDialogOpen}
       />
     </div>
+  );
+}
+
+function EmployeeCard({
+  employee,
+  membership,
+  onToggleStatus,
+}: {
+  employee: UserProfile;
+  membership: Membership | null;
+  onToggleStatus: (membershipId: string, active: boolean) => void;
+}) {
+  const isActive = membership ? (membership as Membership & { active?: boolean }).active !== false : true;
+
+  return (
+    <Card className="transition-colors hover:border-muted-foreground/30">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-3">
+          <div className="bg-muted flex h-10 w-10 items-center justify-center rounded-full">
+            <UsersRound className="text-muted-foreground h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-medium">{employee.displayName}</p>
+            <p className="text-muted-foreground truncate text-sm">{employee.email}</p>
+          </div>
+        </div>
+        <div className="mt-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium capitalize">
+              {employee.role ?? 'employee'}
+            </span>
+            <span
+              className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                isActive
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                  : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+              }`}
+            >
+              {isActive ? 'Active' : 'Inactive'}
+            </span>
+          </div>
+          {membership && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onToggleStatus(membership.id, !isActive)}
+            >
+              {isActive ? (
+                <UserX className="h-4 w-4 text-red-500" />
+              ) : (
+                <UserCheck className="h-4 w-4 text-green-500" />
+              )}
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - apps/web/.env.local
+    environment:
+      - NEXT_PUBLIC_USE_FIREBASE_EMULATORS=false
+      - NODE_ENV=production
+    depends_on:
+      - firebase-emulator
+
+  firebase-emulator:
+    image: node:20-alpine
+    working_dir: /app
+    ports:
+      - "4000:4000"
+      - "9099:9099"
+      - "8080:8080"
+      - "5001:5001"
+      - "9199:9199"
+    command: >
+      sh -c "npm install -g firebase-tools &&
+             firebase emulators:start --project big-bull-car-spa --import=./firebase/emulator-data"
+    volumes:
+      - .:/app
+    environment:
+      - FIREBASE_AUTH_EMULATOR_HOST=0.0.0.0:9099
+      - FIRESTORE_EMULATOR_HOST=0.0.0.0:8080
+
+volumes:
+  emulator-data:
