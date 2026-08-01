@@ -9,9 +9,22 @@ import {
   leaveRequestRepository,
   salaryRecordRepository,
   productRepository,
+  stockMovementRepository,
 } from '@car-spa/infrastructure';
 import { motion } from 'framer-motion';
-import { Car, DollarSign, Clock, AlertTriangle, BarChart3, Activity, Package, X, ShoppingCart } from 'lucide-react';
+import {
+  Car,
+  DollarSign,
+  Clock,
+  AlertTriangle,
+  BarChart3,
+  Activity,
+  Package,
+  X,
+  ShoppingCart,
+  ArrowDownCircle,
+  ArrowUpCircle,
+} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/shared/empty-state';
@@ -45,6 +58,78 @@ const STATUS_COLORS: Record<string, string> = {
 
 function useOrgId() {
   return useAuthStore((s) => s.session?.orgId ?? '');
+}
+
+type ActivityItem =
+  | { kind: 'task'; id: string; createdAt: Date; status: string; totalAmount: number }
+  | { kind: 'sale'; id: string; createdAt: Date; receiptNumber: string; totalAmount: number }
+  | {
+      kind: 'movement';
+      id: string;
+      createdAt: Date;
+      type: string;
+      quantity: number;
+      productName: string;
+    };
+
+function activityDisplay(item: ActivityItem): {
+  Icon: typeof ArrowDownCircle;
+  iconBg: string;
+  iconColor: string;
+  title: string;
+  meta: string;
+} {
+  if (item.kind === 'task') {
+    return {
+      Icon: Car,
+      iconBg: 'bg-blue-500/10',
+      iconColor: 'text-blue-600',
+      title: `Task #${item.id.slice(0, 8)}`,
+      meta: `${STATUS_LABELS[item.status] ?? item.status} · ₹${item.totalAmount.toLocaleString('en-IN')}`,
+    };
+  }
+  if (item.kind === 'sale') {
+    return {
+      Icon: ShoppingCart,
+      iconBg: 'bg-emerald-500/10',
+      iconColor: 'text-emerald-600',
+      title: `Sale ${item.receiptNumber}`,
+      meta: `₹${item.totalAmount.toLocaleString('en-IN')}`,
+    };
+  }
+  const isIn = item.type === 'RESTOCK_IN';
+  return {
+    Icon: isIn ? ArrowDownCircle : ArrowUpCircle,
+    iconBg: isIn ? 'bg-green-500/10' : 'bg-red-500/10',
+    iconColor: isIn ? 'text-green-600' : 'text-red-600',
+    title: `${isIn ? 'Restocked' : 'Stock deducted'} · ${item.productName}`,
+    meta: `${isIn ? '+' : '-'}${item.quantity} units`,
+  };
+}
+
+function ActivityRow({ item }: { item: ActivityItem }) {
+  const display = activityDisplay(item);
+  return (
+    <div className="border-border flex items-center gap-3 rounded-md border px-3 py-2 text-sm">
+      <span
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${display.iconBg}`}
+      >
+        <display.Icon className={`h-4 w-4 ${display.iconColor}`} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate">{display.title}</p>
+        <p className="text-muted-foreground text-xs">
+          {display.meta} ·{' '}
+          {new Date(item.createdAt).toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
+        </p>
+      </div>
+    </div>
+  );
 }
 
 export function DashboardHome() {
@@ -103,6 +188,18 @@ export function OwnerDashboard() {
     enabled: !!orgId,
   });
 
+  const recentMovementsQuery = useQuery({
+    queryKey: ['recent-stock-movements', orgId],
+    queryFn: () => stockMovementRepository.findByOrgId(orgId, { limit: 15 }),
+    enabled: !!orgId,
+  });
+
+  const recentSalesQuery = useQuery({
+    queryKey: ['recent-pos-sales', orgId],
+    queryFn: () => posSaleRepository.findByOrgId(orgId, { limit: 10 }),
+    enabled: !!orgId,
+  });
+
   const loading = !orgId;
   const tasksToday = tasksTodayQuery.data ?? 0;
   const revenueToday = revenueTodayQuery.data ?? 0;
@@ -114,6 +211,44 @@ export function OwnerDashboard() {
   );
   const taskCounts = taskCountsQuery.data;
   const recentTasks = recentTasksQuery.data ?? [];
+  const recentMovements = recentMovementsQuery.data ?? [];
+  const recentSales = recentSalesQuery.data ?? [];
+
+  const productNameById = new Map(
+    (inventoryQuery.data ?? []).map((p) => [p.id, p.name]),
+  );
+
+  const activityItems: ActivityItem[] = [
+    ...recentTasks.map((task) => ({
+      kind: 'task' as const,
+      id: task.id,
+      createdAt: task.createdAt,
+      status: task.status,
+      totalAmount: task.totalAmount,
+    })),
+    ...recentSales.map((sale) => ({
+      kind: 'sale' as const,
+      id: sale.id,
+      createdAt: sale.createdAt,
+      receiptNumber: sale.receiptNumber,
+      totalAmount: sale.totalAmount,
+    })),
+    ...recentMovements.map((movement) => ({
+      kind: 'movement' as const,
+      id: movement.id,
+      createdAt: movement.createdAt,
+      type: movement.type,
+      quantity: movement.quantity,
+      productName: productNameById.get(movement.productId) ?? 'Product',
+    })),
+  ]
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .slice(0, 10);
+
+  const activityLoading =
+    recentTasksQuery.isLoading ||
+    recentSalesQuery.isLoading ||
+    recentMovementsQuery.isLoading;
 
   const chartData = taskCounts
     ? Object.entries(taskCounts).map(([status, count]) => ({
@@ -268,55 +403,21 @@ export function OwnerDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {recentTasksQuery.isLoading ? (
+            {activityLoading ? (
               <div className="space-y-3">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Skeleton key={i} className="h-12 w-full" />
                 ))}
               </div>
-            ) : recentTasks.length === 0 ? (
+            ) : activityItems.length === 0 ? (
               <EmptyState
                 title="No activity"
-                description="Recent vehicle tasks will appear here."
+                description="Recent stock movements, sales and tasks will appear here."
               />
             ) : (
               <div className="space-y-3">
-                {recentTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className="border-border flex items-center gap-3 rounded-md border px-3 py-2 text-sm"
-                  >
-                    <span
-                      className={`h-2 w-2 shrink-0 rounded-full ${
-                        task.status === 'COMPLETED'
-                          ? 'bg-green-500'
-                          : task.status === 'CANCELLED'
-                            ? 'bg-red-500'
-                            : task.status === 'IN_PROGRESS'
-                              ? 'bg-amber-500'
-                              : task.status === 'READY_FOR_PICKUP'
-                                ? 'bg-purple-500'
-                                : 'bg-blue-500'
-                      }`}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate">
-                        Task <span className="font-medium">#{task.id.slice(0, 8)}</span>{' '}
-                        <span className="text-muted-foreground">
-                          {STATUS_LABELS[task.status] ?? task.status}
-                        </span>
-                      </p>
-                      <p className="text-muted-foreground text-xs">
-                        ₹{task.totalAmount.toLocaleString('en-IN')} ·{' '}
-                        {new Date(task.createdAt).toLocaleDateString('en-IN', {
-                          day: '2-digit',
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </p>
-                    </div>
-                  </div>
+                {activityItems.map((item) => (
+                  <ActivityRow key={`${item.kind}-${item.id}`} item={item} />
                 ))}
               </div>
             )}

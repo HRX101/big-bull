@@ -4,7 +4,6 @@ import { COLLECTIONS } from '@car-spa/shared';
 import {
   addDoc,
   collection,
-  getDoc,
   getDocs,
   limit as firestoreLimit,
   orderBy,
@@ -59,8 +58,19 @@ export class FirestoreStockMovementRepository implements StockMovementRepository
       ...data,
       createdAt: serverTimestamp(),
     });
-    const saved = await getDoc(ref);
-    return mapMovement(saved.id, saved.data()!);
+    return {
+      id: ref.id,
+      orgId: data.orgId,
+      productId: data.productId,
+      type: data.type,
+      quantity: data.quantity,
+      note: data.note,
+      referenceId: data.referenceId ?? null,
+      supplierId: data.supplierId ?? null,
+      actorId: data.actorId,
+      serialNumbers: data.serialNumbers ?? null,
+      createdAt: new Date(),
+    };
   }
 
   async getDerivedStock(productId: string) {

@@ -7,6 +7,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  increment,
   orderBy,
   query,
   serverTimestamp,
@@ -68,26 +69,20 @@ export class FirestoreSerializedItemRepository implements SerializedItemReposito
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
-    const saved = await getDoc(ref);
-    return mapItem(saved.id, saved.data()!);
+    return { id: ref.id, ...data, createdAt: new Date(), updatedAt: new Date() };
   }
 
   async bulkCreate(data: Array<Omit<SerializedItem, 'id' | 'createdAt' | 'updatedAt'>>) {
     if (data.length === 0) return [];
     const db = getFirebaseDb();
     const batch = writeBatch(db);
-    const refs: Array<{ ref: ReturnType<typeof doc>; data: typeof data[0] }> = [];
+    const results: SerializedItem[] = [];
     for (const item of data) {
       const ref = doc(collection(db, COLLECTIONS.serializedItems));
       batch.set(ref, { ...item, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-      refs.push({ ref, data: item });
+      results.push({ id: ref.id, ...item, createdAt: new Date(), updatedAt: new Date() });
     }
     await batch.commit();
-    const results: SerializedItem[] = [];
-    for (const { ref, data: itemData } of refs) {
-      const saved = await getDoc(ref);
-      results.push(mapItem(saved.id, saved.data()!));
-    }
     return results;
   }
 
@@ -96,6 +91,57 @@ export class FirestoreSerializedItemRepository implements SerializedItemReposito
     await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
     const saved = await getDoc(ref);
     return mapItem(saved.id, saved.data()!);
+  }
+
+  async createSerializedRestock(input: {
+    orgId: string;
+    productId: string;
+    serialNumbers: string[];
+    note?: string;
+    actorId: string;
+  }) {
+    const db = getFirebaseDb();
+    const batch = writeBatch(db);
+    const items: SerializedItem[] = [];
+    for (const serialNumber of input.serialNumbers) {
+      const ref = doc(collection(db, COLLECTIONS.serializedItems));
+      batch.set(ref, {
+        orgId: input.orgId,
+        productId: input.productId,
+        serialNumber,
+        isAvailable: true,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      items.push({ id: ref.id, orgId: input.orgId, productId: input.productId, serialNumber, isAvailable: true, createdAt: new Date(), updatedAt: new Date() });
+    }
+    const movementRef = doc(collection(db, COLLECTIONS.stockMovements));
+    batch.set(movementRef, {
+      orgId: input.orgId,
+      productId: input.productId,
+      type: 'RESTOCK_IN',
+      quantity: input.serialNumbers.length,
+      note: input.note ?? '',
+      referenceId: null,
+      supplierId: null,
+      actorId: input.actorId,
+      serialNumbers: input.serialNumbers,
+      createdAt: serverTimestamp(),
+    });
+    batch.update(doc(db, COLLECTIONS.products, input.productId), {
+      currentStock: increment(input.serialNumbers.length),
+    });
+    batch.set(doc(collection(db, COLLECTIONS.auditLogs)), {
+      orgId: input.orgId,
+      actorId: input.actorId,
+      action: 'stockMovement.create',
+      resourceType: 'stockMovement',
+      resourceId: movementRef.id,
+      metadata: { productId: input.productId, type: 'RESTOCK_IN', quantity: input.serialNumbers.length, serialized: true },
+      createdAt: serverTimestamp(),
+    });
+    await batch.commit();
+    return { items, movementId: movementRef.id };
   }
 
   async delete(id: string) {

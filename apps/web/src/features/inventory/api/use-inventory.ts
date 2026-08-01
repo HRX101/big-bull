@@ -468,6 +468,31 @@ export function useCreateSerializedItems() {
   });
 }
 
+export function useRestockSerializedItems() {
+  const qc = useQueryClient();
+  const { orgId, userId, role } = useSession();
+  return useMutation({
+    mutationFn: ({ productId, serialNumbers }: { productId: string; serialNumbers: string[] }) => {
+      if (!can(role, 'inventory:create') || !can(role, 'inventory:update')) throw new Error('Permission denied');
+      if (!orgId || !userId) throw new Error('No session');
+      return serializedItemRepository.createSerializedRestock({
+        orgId,
+        productId,
+        serialNumbers,
+        actorId: userId,
+        note: `Serialized restock: ${serialNumbers.join(', ')}`,
+      });
+    },
+    onSuccess: (_data, vars) => {
+      toast.success(`${vars.serialNumbers.length} serialized item(s) restocked`);
+      qc.invalidateQueries({ queryKey: ['serializedItems', vars.productId] });
+      qc.invalidateQueries({ queryKey: ['stockMovements'] });
+      qc.invalidateQueries({ queryKey: ['products'] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
 export function useRemoveSerializedItems() {
   const qc = useQueryClient();
   const { role } = useSession();

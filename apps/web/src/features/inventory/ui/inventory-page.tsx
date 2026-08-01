@@ -26,7 +26,7 @@ import {
   useArchivedProducts, useUnarchiveProduct,
   useArchivedCategories, useUnarchiveCategory,
   useArchivedSuppliers, useUnarchiveSupplier,
-  useStockMovements, useRecordStockMovement,
+  useStockMovements, useRecordStockMovement, useRestockSerializedItems,
   useSuppliers, useCreateSupplier, useHardDeleteSupplier, useSupplierByPhone,
   useSerializedItems, useAvailableSerializedItems, useCreateSerializedItems, useRemoveSerializedItems,
 } from '../api/use-inventory';
@@ -976,12 +976,12 @@ function EditProductDialog({ product, categories, suppliers, canViewCost, onOpen
 /* ────── INVENTORY ────── */
 
 function StockLedgerView({ products, selectedProductId, onSelectProduct }: { products: Product[]; categories: Category[]; selectedProductId: string | null; onSelectProduct: (id: string | null) => void }) {
-  const recordMovement = useRecordStockMovement();
   const movementsQ = useStockMovements(selectedProductId ?? '');
   const movements: StockMovement[] = useMemo(() => movementsQ.data ?? [], [movementsQ.data]);
   const serializedItemsQ = useSerializedItems(selectedProductId ?? '');
   const allSerials: SerializedItem[] = useMemo(() => serializedItemsQ.data ?? [], [serializedItemsQ.data]);
   const createSerials = useCreateSerializedItems();
+  const restockSerials = useRestockSerializedItems();
 
   const [mFilter, setMFilter] = useState<'ALL' | 'IN' | 'OUT' | 'SALE'>('ALL');
   const product = useMemo(() => products.find(p => p.id === selectedProductId), [products, selectedProductId]);
@@ -1019,26 +1019,23 @@ function StockLedgerView({ products, selectedProductId, onSelectProduct }: { pro
 
   const handleAddSerialNumber = async () => {
     if (!selectedProductId || !product || addingSerial) return;
-    const serial = serialInput.trim();
-    if (!serial) {
-      toast.error('Enter a serial number first');
+    const serials = [...new Set(serialInput.split(/[\n,]+/).map(s => s.trim()).filter(Boolean))];
+    if (serials.length === 0) {
+      toast.error('Enter at least one serial number');
       return;
     }
-    if (allSerials.some(s => s.serialNumber === serial)) {
-      toast.error(`Serial ${serial} already exists`);
+    const existing = serials.filter(s => allSerials.some(item => item.serialNumber === s));
+    if (existing.length > 0) {
+      toast.error(`Serial already exists: ${existing.join(', ')}`);
       return;
     }
     setAddingSerial(true);
     try {
-      const result = await recordMovement.mutateAsync({
-        productId: selectedProductId, type: 'RESTOCK_IN', quantity: 1,
-        note: `Serialized add: ${serial}`,
-        supplierId: undefined,
-      });
-      if (!result.success) return;
-      await createSerials.mutateAsync({ productId: selectedProductId, serialNumbers: [serial] });
-      setSerialInput('');
-      setSerialPage(1);
+      const result = await restockSerials.mutateAsync({ productId: selectedProductId, serialNumbers: serials });
+      if (result) {
+        setSerialInput('');
+        setSerialPage(1);
+      }
     } finally {
       setAddingSerial(false);
     }
@@ -1138,19 +1135,19 @@ function StockLedgerView({ products, selectedProductId, onSelectProduct }: { pro
                     value={serialInput}
                     onChange={e => setSerialInput(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddSerialNumber(); } }}
-                    placeholder="Enter serial number..."
+                    placeholder="Enter serial numbers (comma/newline separated)..."
                     className="h-8 text-sm"
-                    disabled={addingSerial || recordMovement.isPending}
-                    aria-label="Serial number"
+                    disabled={addingSerial || restockSerials.isPending}
+                    aria-label="Serial numbers"
                   />
                   <Button
                     size="icon"
                     variant="outline"
                     className="h-8 w-8 shrink-0"
                     onClick={handleAddSerialNumber}
-                    disabled={addingSerial || recordMovement.isPending || !serialInput.trim()}
-                    aria-label="Add serial"
-                    title="Add serial number"
+                    disabled={addingSerial || restockSerials.isPending || !serialInput.trim()}
+                    aria-label="Add serials"
+                    title="Add serial numbers"
                   >
                     <Plus className="h-4 w-4" />
                   </Button>

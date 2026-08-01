@@ -255,6 +255,13 @@ export interface SerializedItemRepository {
   findAvailableByProductId(productId: string): Promise<SerializedItem[]>;
   create(data: Omit<SerializedItem, 'id' | 'createdAt' | 'updatedAt'>): Promise<SerializedItem>;
   bulkCreate(data: Array<Omit<SerializedItem, 'id' | 'createdAt' | 'updatedAt'>>): Promise<SerializedItem[]>;
+  createSerializedRestock(input: {
+    orgId: string;
+    productId: string;
+    serialNumbers: string[];
+    note?: string;
+    actorId: string;
+  }): Promise<{ items: SerializedItem[]; movementId: string }>;
   update(id: string, data: Partial<SerializedItem>): Promise<SerializedItem>;
   delete(id: string): Promise<void>;
 }

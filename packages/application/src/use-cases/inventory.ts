@@ -108,7 +108,9 @@ export class RecordStockMovementUseCase {
       if (!product) return err(new Error('Product not found'));
 
       const isOut = parsed.data.type === 'MANUAL_OUT' || parsed.data.type === 'POS_SALE' || parsed.data.type === 'VEHICLE_TASK_USE';
-      const currentStock = await this.movementRepo.getDerivedStock(parsed.data.productId);
+      const currentStock = isOut
+        ? await this.movementRepo.getDerivedStock(parsed.data.productId)
+        : product.currentStock;
       if (isOut && currentStock < parsed.data.quantity) return err(new Error(`Insufficient stock. Available: ${currentStock}`));
 
       const movement = await this.movementRepo.create({
