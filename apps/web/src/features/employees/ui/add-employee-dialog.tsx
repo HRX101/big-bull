@@ -83,12 +83,12 @@ export function AddEmployeeDialog({ open, onOpenChange, onSuccess }: AddEmployee
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={(e) => {
         if (e.target === overlayRef.current) onOpenChange(false);
       }}
     >
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Add Employee</CardTitle>
           <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
@@ -121,7 +121,7 @@ export function AddEmployeeDialog({ open, onOpenChange, onSuccess }: AddEmployee
               <Input id="emp-password" type="text" {...register('password')} />
               {errors.password && <p className="text-destructive text-sm">{errors.password.message}</p>}
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="emp-salary">Salary Amount (₹)</Label>
                 <Input

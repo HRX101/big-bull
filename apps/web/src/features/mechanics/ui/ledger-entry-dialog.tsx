@@ -78,12 +78,12 @@ export function LedgerEntryDialog({ open, onOpenChange, mechanicId, type }: Ledg
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={(e) => {
         if (e.target === overlayRef.current) onOpenChange(false);
       }}
     >
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>
             {isCredit ? 'Enter Sales (CREDIT)' : 'Issue Items (DEBIT)'}
@@ -95,7 +95,7 @@ export function LedgerEntryDialog({ open, onOpenChange, mechanicId, type }: Ledg
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4">
             {isCredit && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="fromDate">From Date</Label>
                   <Input id="fromDate" type="date" {...register('fromDate')} />

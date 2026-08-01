@@ -102,12 +102,12 @@ export function SalaryDialog({ open, onOpenChange, employees, onSuccess }: Salar
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={(e) => {
         if (e.target === overlayRef.current) onOpenChange(false);
       }}
     >
-      <Card className="w-full max-w-lg">
+      <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Generate Salary</CardTitle>
           <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
@@ -147,7 +147,7 @@ export function SalaryDialog({ open, onOpenChange, employees, onSuccess }: Salar
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="salary-month">Month</Label>
                 <Input
@@ -195,7 +195,7 @@ export function SalaryDialog({ open, onOpenChange, employees, onSuccess }: Salar
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="salary-working">Working Days</Label>
                 <Input

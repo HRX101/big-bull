@@ -127,7 +127,7 @@ export function SalarySection({ orgId, isOwner, employeeId }: SalarySectionProps
         />
       ) : (
         <div className="space-y-4">
-          <div className="overflow-hidden rounded-lg border">
+          <div className="overflow-x-auto rounded-lg border">
             <table className="w-full text-sm">
               <thead className="bg-muted/50">
                 <tr>

@@ -159,7 +159,7 @@ function AirSaleDialog({ onClose }: { onClose: () => void }) {
           onClick={(e) => e.stopPropagation()}
         >
           <div className="border-border sticky top-0 z-10 flex items-center justify-between border-b bg-background p-4">
-            <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
               <Wind className="text-primary h-5 w-5" />
               <h2 id="air-sale-title" className="text-lg font-semibold">Air in Tyre</h2>
             </div>

@@ -28,7 +28,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (loading || !session || !session.emailVerified || requiresOnboarding(session)) {
     return (
-      <div className="flex min-h-screen flex-col gap-4 p-8">
+      <div className="flex min-h-screen flex-col gap-4 p-4 sm:p-8">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-64 w-full" />
       </div>

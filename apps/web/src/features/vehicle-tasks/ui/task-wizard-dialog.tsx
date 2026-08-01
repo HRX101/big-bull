@@ -211,7 +211,7 @@ export function TaskWizardDialog({ open, onOpenChange, onSuccess }: TaskWizardDi
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={(e) => {
         if (e.target === overlayRef.current) onOpenChange(false);
       }}
@@ -346,7 +346,7 @@ export function TaskWizardDialog({ open, onOpenChange, onSuccess }: TaskWizardDi
               {newVehicleMode && (
                 <div className="space-y-3 rounded-md border p-4">
                   <p className="text-sm font-medium">New Vehicle</p>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="brand">Brand</Label>
                       <Input id="brand" placeholder="e.g. Maruti" {...newVehicleForm.register('brand')} />

@@ -55,12 +55,12 @@ export function LeaveRequestDialog({ open, onOpenChange, onSuccess }: LeaveReque
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={(e) => {
         if (e.target === overlayRef.current) onOpenChange(false);
       }}
     >
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Request Leave</CardTitle>
           <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
@@ -69,7 +69,7 @@ export function LeaveRequestDialog({ open, onOpenChange, onSuccess }: LeaveReque
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="leave-from">From Date</Label>
                 <Input id="leave-from" type="date" {...register('fromDate')} />

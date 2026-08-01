@@ -43,9 +43,9 @@ export function MechanicsPage() {
   }
 
   return (
-    <div className="flex gap-6">
-      <aside className="w-80 shrink-0 space-y-4">
-        <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-6 lg:flex-row">
+      <aside className="w-full shrink-0 space-y-4 lg:w-80">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-display text-lg">Mechanics</h2>
           <Button size="sm" onClick={() => { setEditingMechanic(null); setDialogOpen(true); }}>
             <Plus className="mr-1 h-4 w-4" />
@@ -104,14 +104,14 @@ export function MechanicsPage() {
         ) : (
           <>
             <Card>
-              <CardContent className="flex items-center justify-between p-4">
-                <div className="flex items-center gap-4">
-                  <div className="bg-muted flex h-12 w-12 items-center justify-center rounded-full">
+              <CardContent className="flex flex-wrap items-center justify-between gap-4 p-4">
+                <div className="flex min-w-0 items-center gap-4">
+                  <div className="bg-muted flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
                     <Wrench className="text-muted-foreground h-6 w-6" />
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold">{selectedMechanic.name}</h3>
-                    <p className="text-muted-foreground flex items-center gap-2 text-sm">
+                  <div className="min-w-0">
+                    <h3 className="truncate text-lg font-semibold">{selectedMechanic.name}</h3>
+                    <p className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
                       <Store className="h-3.5 w-3.5" />
                       {selectedMechanic.storeName}
                       {selectedMechanic.phone && (
@@ -136,7 +136,7 @@ export function MechanicsPage() {
               </CardContent>
             </Card>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <Button onClick={() => openLedgerDialog('CREDIT')}>
                 <ArrowUpRight className="mr-2 h-4 w-4" />
                 Enter Sales
@@ -147,7 +147,7 @@ export function MechanicsPage() {
               </Button>
             </div>
 
-            <div className="overflow-hidden rounded-lg border">
+            <div className="overflow-x-auto rounded-lg border">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
                   <tr>
@@ -357,7 +357,7 @@ function DeleteConfirm({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>{title}</CardTitle>

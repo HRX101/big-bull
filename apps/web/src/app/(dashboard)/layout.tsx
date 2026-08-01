@@ -6,11 +6,11 @@ import { ErrorBoundary } from '@/components/shared/error-boundary';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthGuard>
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen overflow-x-hidden">
         <Sidebar />
-        <div className="flex flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col">
           <TopBar />
-          <main className="flex-1 p-8">
+          <main className="flex-1 p-4 sm:p-6 lg:p-8">
             <ErrorBoundary>{children}</ErrorBoundary>
           </main>
         </div>

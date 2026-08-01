@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect } from 'react';
 import {
   LayoutDashboard,
   Settings,
@@ -16,6 +17,7 @@ import {
 import { cn } from '@/lib/utils';
 import { PROTECTED_ROUTES, hasPermission } from '@car-spa/shared';
 import { useAuth } from '@/features/authentication/hooks/use-auth';
+import { useSidebarStore } from '@/features/dashboard/stores/use-sidebar-store';
 
 const allNavItems = [
   { href: PROTECTED_ROUTES.dashboard, label: 'Dashboard', icon: LayoutDashboard },
@@ -29,10 +31,11 @@ const allNavItems = [
   { href: PROTECTED_ROUTES.settings, label: 'Settings', icon: Settings },
 ];
 
-export function Sidebar() {
+function SidebarContent() {
   const pathname = usePathname();
   const { session } = useAuth();
   const role = session?.role ?? 'employee';
+  const { setMobileOpen } = useSidebarStore();
 
   const navItems = allNavItems.filter((item) => {
     if (item.href === PROTECTED_ROUTES.employees) {
@@ -48,7 +51,7 @@ export function Sidebar() {
   });
 
   return (
-    <aside className="border-border/60 bg-card/40 flex w-60 flex-col border-r p-4">
+    <>
       <div className="mb-8 px-2">
         <p className="font-display text-2xl tracking-tight">Big Bull Car Spa</p>
         <p className="text-muted-foreground text-xs">Powered by Nexarise</p>
@@ -65,6 +68,7 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => setMobileOpen(false)}
               className={cn(
                 'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
                 active
@@ -78,6 +82,46 @@ export function Sidebar() {
           );
         })}
       </nav>
-    </aside>
+    </>
+  );
+}
+
+export function Sidebar() {
+  const { mobileOpen, setMobileOpen } = useSidebarStore();
+
+  useEffect(() => {
+    if (mobileOpen) {
+      const previous = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      function handleEscape(e: KeyboardEvent) {
+        if (e.key === 'Escape') setMobileOpen(false);
+      }
+      document.addEventListener('keydown', handleEscape);
+      return () => {
+        document.body.style.overflow = previous;
+        document.removeEventListener('keydown', handleEscape);
+      };
+    }
+  }, [mobileOpen, setMobileOpen]);
+
+  return (
+    <>
+      <aside className="border-border/60 bg-card/40 hidden w-60 shrink-0 flex-col border-r p-4 lg:flex">
+        <SidebarContent />
+      </aside>
+
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div
+            className="bg-black/50 absolute inset-0"
+            aria-hidden="true"
+            onClick={() => setMobileOpen(false)}
+          />
+          <aside className="bg-background relative flex h-full w-64 max-w-[85vw] flex-col overflow-y-auto border-r p-4">
+            <SidebarContent />
+          </aside>
+        </div>
+      )}
+    </>
   );
 }

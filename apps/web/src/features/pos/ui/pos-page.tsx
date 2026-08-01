@@ -153,7 +153,7 @@ export function POSPage() {
       transition={{ duration: 0.4 }}
       className="space-y-6"
     >
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl tracking-tight">Point of Sale</h1>
           <p className="text-muted-foreground">Create walk-in sales and manage inventory.</p>
@@ -216,7 +216,7 @@ export function POSPage() {
               </div>
 
               {inventoryQuery.isLoading ? (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {Array.from({ length: 4 }).map((_, i) => (
                     <Skeleton key={i} className="h-16 w-full" />
                   ))}
@@ -224,7 +224,7 @@ export function POSPage() {
               ) : filteredItems.length === 0 ? (
                 <EmptyState title="No items found" description="Try a different search term." />
               ) : (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {filteredItems.map((item) => {
                     const selected = selectedItemIds.has(item.id);
                     return (

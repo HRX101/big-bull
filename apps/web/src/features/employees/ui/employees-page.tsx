@@ -68,14 +68,14 @@ export function EmployeesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl tracking-tight">{isOwner ? 'Employees' : 'My Portal'}</h1>
           <p className="text-muted-foreground">
             {isOwner ? 'Manage your team and their requests.' : 'Your leaves, salary and credited payments.'}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {isOwner && (
             <Button onClick={() => setAddDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
@@ -91,11 +91,11 @@ export function EmployeesPage() {
         </div>
       </div>
 
-      <div className="bg-muted inline-flex rounded-md p-0.5">
+      <div className="bg-muted inline-flex max-w-full overflow-x-auto rounded-md p-0.5">
         {isOwner && (
           <button
             onClick={() => setTab('employees')}
-            className={`inline-flex items-center gap-2 rounded-sm px-4 py-2 text-sm font-medium transition-colors ${
+            className={`inline-flex shrink-0 items-center gap-2 rounded-sm px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
               tab === 'employees' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -105,7 +105,7 @@ export function EmployeesPage() {
         )}
         <button
           onClick={() => setTab('leave-requests')}
-          className={`inline-flex items-center gap-2 rounded-sm px-4 py-2 text-sm font-medium transition-colors ${
+          className={`inline-flex shrink-0 items-center gap-2 rounded-sm px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
             tab === 'leave-requests' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
@@ -114,7 +114,7 @@ export function EmployeesPage() {
         </button>
         <button
           onClick={() => setTab('salary')}
-          className={`inline-flex items-center gap-2 rounded-sm px-4 py-2 text-sm font-medium transition-colors ${
+          className={`inline-flex shrink-0 items-center gap-2 rounded-sm px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
             tab === 'salary' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
@@ -190,7 +190,7 @@ export function EmployeesPage() {
               }
             />
           ) : (
-            <div className="overflow-hidden rounded-lg border">
+            <div className="overflow-x-auto rounded-lg border">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
                   <tr>

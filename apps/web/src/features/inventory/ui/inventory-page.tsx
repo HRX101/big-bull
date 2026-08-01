@@ -122,22 +122,22 @@ export function InventoryPage() {
   ];
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-0 sm:p-6">
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div>
             <h1 className="font-display text-3xl tracking-tight">Inventory</h1>
             <p className="text-muted-foreground text-sm mt-1">Manage products, stock, and suppliers</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {tab === 'products' && (
-              <div className="relative">
+              <div className="relative w-full sm:w-72">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by name, SKU, or category..."
                   value={searchQuery}
                   onChange={e => { setSearch(e.target.value); setPage(1); }}
-                  className="w-72 pl-9"
+                  className="w-full pl-9"
                   aria-label="Search products"
                 />
               </div>
@@ -147,15 +147,15 @@ export function InventoryPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2" role="tablist" aria-label="Inventory sections">
-          <div className="flex gap-1 rounded-lg bg-muted p-1 w-fit">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex max-w-full gap-1 overflow-x-auto rounded-lg bg-muted p-1" role="tablist" aria-label="Inventory sections">
             {tabs.map(t => (
               <button
                 key={t.key}
                 role="tab"
                 aria-selected={tab === t.key}
                 onClick={() => { setTab(t.key); setSelectedCatId(null); setSelectedProductId(null); setPage(1); }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                   tab === t.key ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -164,7 +164,7 @@ export function InventoryPage() {
             ))}
           </div>
           {tab === 'products' && (
-            <div className="flex items-center gap-2 ml-auto">
+            <div className="flex flex-wrap items-center gap-1">
               <SortButton field="name" label="Name" current={sortField} dir={sortDir} onClick={toggleSort} />
               <SortButton field="sku" label="SKU" current={sortField} dir={sortDir} onClick={toggleSort} />
               <SortButton field="currentStock" label="Stock" current={sortField} dir={sortDir} onClick={toggleSort} />
@@ -314,10 +314,10 @@ function CategoryCard({ category }: { category: Category }) {
 
   return (
     <>
-      <Card>
-        <CardHeader className="flex flex-row items-start justify-between">
-          <div>
-            <CardTitle className="text-lg">{category.name}</CardTitle>
+      <Card className="min-w-0">
+        <CardHeader className="flex flex-row items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <CardTitle className="truncate text-lg">{category.name}</CardTitle>
             <p className="text-sm text-muted-foreground">Prefix: <span className="font-mono">{category.codePrefix}</span></p>
           </div>
           <div className="flex items-center gap-1">
@@ -346,7 +346,7 @@ function CategoryCard({ category }: { category: Category }) {
               {category.attributeSchema.length > 0 && (
                 <div className="space-y-1 mt-2">
                   {category.attributeSchema.map((a, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs bg-muted/50 rounded px-2 py-1">
+                    <div key={i} className="flex flex-wrap items-center gap-2 text-xs bg-muted/50 rounded px-2 py-1">
                       <span className="font-medium">{a.label}</span>
                       <span className="text-muted-foreground">({a.type})</span>
                       {a.required && <Badge variant="destructive" className="text-[10px] px-1 py-0">required</Badge>}
@@ -448,7 +448,7 @@ function CreateCategoryDialog() {
             <Input id="cat-prefix" value={codePrefix} onChange={e => { setCodePrefix(e.target.value.toUpperCase().slice(0, 5)); setDirty(true); }} placeholder="e.g. TYR, ENG, BAT" maxLength={5} />
             {validation.some(v => v.includes('Prefix')) && <p className="text-destructive text-xs mt-1">{validation.find(v => v.includes('Prefix'))}</p>}
           </Field>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Default Low Stock Threshold" tooltip="Products in this category will alert when stock falls below this number" id="cat-threshold">
               <Input id="cat-threshold" type="number" min={0} value={threshold} onChange={e => { setThreshold(Number(e.target.value)); setDirty(true); }} />
             </Field>
@@ -467,8 +467,8 @@ function CreateCategoryDialog() {
             {attributes.map((attr, i) => (
               <div key={i} className="flex items-start gap-2 p-3 border rounded-md bg-muted/30">
                 <div className="flex-1 space-y-2">
-                  <div className="flex gap-2 items-start">
-                    <div className="flex-1">
+                  <div className="flex flex-wrap gap-2 items-start">
+                    <div className="flex-1 min-w-[200px]">
                       <Input
                         placeholder="Label (e.g. Size)"
                         value={attr.label}
@@ -789,7 +789,7 @@ function CreateProductDialog({ categories, suppliers, canViewCost }: { categorie
               )}
             </Field>
           ))}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {canViewCost && (
               <Field label="Cost Price" tooltip="Purchase cost per unit. Only owners can view or set this." id="prod-cost">
                 <Input id="prod-cost" type="text" inputMode="decimal" value={costPrice} onChange={e => { setCostPrice(e.target.value.replace(/[^0-9.]/g, '')); setDirty(true); }} placeholder="0.00" />
@@ -804,7 +804,7 @@ function CreateProductDialog({ categories, suppliers, canViewCost }: { categorie
               </select>
             </Field>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Low Stock Threshold" tooltip="Alert when stock falls below this number" id="prod-threshold">
               <Input id="prod-threshold" type="text" inputMode="numeric" value={threshold} onChange={e => { setThreshold(e.target.value.replace(/\D/g, '')); setDirty(true); }} placeholder="5" />
             </Field>
@@ -823,9 +823,9 @@ function CreateProductDialog({ categories, suppliers, canViewCost }: { categorie
               <Button type="button" variant="outline" size="icon" className="shrink-0" onClick={() => setShowAddSupplier(true)} title="Add new supplier"><Plus className="h-4 w-4" /></Button>
             </div>
             {showAddSupplier && (
-              <div className="flex gap-2 mt-2">
-                <Input value={newSupplierPhone} onChange={e => setNewSupplierPhone(e.target.value)} placeholder="Phone" className="text-sm w-32" />
-                <Input value={newSupplierName} onChange={e => setNewSupplierName(e.target.value)} placeholder="Supplier name" className="text-sm" />
+              <div className="flex flex-wrap gap-2 mt-2">
+                <Input value={newSupplierPhone} onChange={e => setNewSupplierPhone(e.target.value)} placeholder="Phone" className="text-sm w-full sm:w-32" />
+                <Input value={newSupplierName} onChange={e => setNewSupplierName(e.target.value)} placeholder="Supplier name" className="text-sm flex-1 min-w-[140px]" />
                 <Button type="button" size="sm" disabled={!newSupplierName.trim() || addSupplier.isPending} onClick={async () => {
                   const r = await addSupplier.mutateAsync({ name: newSupplierName.trim(), contactPhone: newSupplierPhone.trim() || undefined });
                   if (r.success) { setSupplierId(r.value.id); setShowAddSupplier(false); setNewSupplierName(''); setNewSupplierPhone(''); }
@@ -933,7 +933,7 @@ function EditProductDialog({ product, categories, suppliers, canViewCost, onOpen
               )}
             </Field>
           ))}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {canViewCost && (
               <Field label="Cost Price" tooltip="Purchase cost per unit. Only owners can view or set this." id="edit-prod-cost">
                 <Input id="edit-prod-cost" type="text" inputMode="decimal" value={costPrice} onChange={e => { setCostPrice(e.target.value.replace(/[^0-9.]/g, '')); setDirty(true); }} placeholder="0.00" />
@@ -948,7 +948,7 @@ function EditProductDialog({ product, categories, suppliers, canViewCost, onOpen
               </select>
             </Field>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Low Stock Threshold" tooltip="Alert when stock falls below this number" id="edit-prod-threshold">
               <Input id="edit-prod-threshold" type="text" inputMode="numeric" value={threshold} onChange={e => { setThreshold(e.target.value.replace(/\D/g, '')); setDirty(true); }} placeholder="5" />
             </Field>
@@ -1091,10 +1091,10 @@ function StockLedgerView({ products, selectedProductId, onSelectProduct }: { pro
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      {product.name}
-                      <span className="text-muted-foreground font-mono text-sm font-normal">({product.sku})</span>
+                  <div className="min-w-0">
+                    <CardTitle className="flex min-w-0 items-center gap-2">
+                      <span className="truncate">{product.name}</span>
+                      <span className="text-muted-foreground font-mono text-sm font-normal shrink-0">({product.sku})</span>
                     </CardTitle>
                   </div>
                 </div>
@@ -1346,15 +1346,15 @@ function AdjustOutCard({ product }: { product: Product }) {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              {product.name}
-              <span className="text-muted-foreground font-mono text-sm font-normal">({product.sku})</span>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="min-w-0">
+            <CardTitle className="flex min-w-0 items-center gap-2">
+              <span className="truncate">{product.name}</span>
+              <span className="text-muted-foreground font-mono text-sm font-normal shrink-0">({product.sku})</span>
             </CardTitle>
             <p className="text-muted-foreground text-sm mt-1">Adjust Out</p>
           </div>
-          <div className="flex gap-1">
+          <div className="flex shrink-0 gap-1">
             {(['bulk', 'individual'] as const).map(m => (
               <button
                 key={m}
@@ -1455,12 +1455,12 @@ function ArchivedView({ products, categories, suppliers, isLoading, error, onRef
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2 border-b pb-2">
+      <div className="flex flex-wrap gap-2 border-b pb-2">
         {subTabs.map(t => (
           <button
             key={t.key}
             onClick={() => handleSubTabChange(t.key)}
-            className={`px-3 py-1.5 text-sm rounded-t transition-colors ${subTab === t.key ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            className={`whitespace-nowrap px-3 py-1.5 text-sm rounded-t transition-colors ${subTab === t.key ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >
             {t.label} ({t.count})
           </button>
@@ -1489,7 +1489,7 @@ function ArchivedProductCard({ product, onAction }: { product: Product; onAction
 
   return (
     <>
-      <Card className="border-muted/50 opacity-80 hover:opacity-100 transition-opacity">
+      <Card className="border-muted/50 opacity-80 hover:opacity-100 transition-opacity min-w-0">
         <CardContent className="p-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
@@ -1551,7 +1551,7 @@ function ArchivedCategoryCard({ category, onAction }: { category: Category; onAc
 
   return (
     <>
-      <Card className="border-muted/50 opacity-80 hover:opacity-100 transition-opacity">
+      <Card className="border-muted/50 opacity-80 hover:opacity-100 transition-opacity min-w-0">
         <CardContent className="p-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
@@ -1609,7 +1609,7 @@ function ArchivedSupplierCard({ supplier, onAction }: { supplier: Supplier; onAc
 
   return (
     <>
-      <Card className="border-muted/50 opacity-80 hover:opacity-100 transition-opacity">
+      <Card className="border-muted/50 opacity-80 hover:opacity-100 transition-opacity min-w-0">
         <CardContent className="p-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">

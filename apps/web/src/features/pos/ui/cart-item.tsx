@@ -18,7 +18,7 @@ interface CartItemProps {
 
 export function CartItem({ item, onUpdateQuantity, onRemove }: CartItemProps) {
   return (
-    <div className="flex items-center gap-3 rounded-lg border p-3 text-sm">
+    <div className="flex flex-wrap items-center gap-3 rounded-lg border p-3 text-sm">
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium">{item.itemName}</p>
         <p className="text-muted-foreground">₹{item.unitPrice.toFixed(2)} ea</p>

@@ -41,7 +41,7 @@ export function CustomersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-3xl tracking-tight">Customers</h1>
         <Button onClick={() => setDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
@@ -92,7 +92,7 @@ export function CustomersPage() {
           </div>
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2">
+            <div className="flex flex-wrap items-center justify-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
