@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
       headers: [
         { key: 'X-Content-Type-Options', value: 'nosniff' },
         { key: 'X-Frame-Options', value: 'DENY' },
+        { key: 'Cross-Origin-Opener-Policy', value: 'unsafe-none' },
         { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
         {
           key: 'Content-Security-Policy',
