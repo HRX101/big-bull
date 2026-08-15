@@ -32,6 +32,6 @@
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.23",
-    "sonner": "^2.0.7"
+    "sonner": "^2.0.8"
   }
 }
