@@ -116,6 +116,22 @@
       ]
     },
     {
+      "collectionGroup": "supplierPurchaseEntries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "supplierId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "supplierPurchaseEntries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "orgId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "mechanicLedgerEntries",
       "queryScope": "COLLECTION",
       "fields": [

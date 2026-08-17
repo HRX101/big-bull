@@ -2,15 +2,11 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { signUpSchema } from '@car-spa/domain';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useSignUp } from '@/features/authentication/hooks/use-auth-mutations';
 import { AUTH_ROUTES } from '@car-spa/shared';
+import { useSignUp } from '@/features/authentication/hooks/use-auth-mutations';
+import { PasswordInput } from './password-input';
 
 export function SignUpForm() {
   const router = useRouter();
@@ -27,64 +23,124 @@ export function SignUpForm() {
   });
 
   return (
-    <Card className="border-border/60 bg-card/80 w-full max-w-md backdrop-blur">
-      <CardHeader>
-        <p className="font-display text-3xl tracking-tight">Big Bull Car Spa</p>
-        <CardTitle className="text-muted-foreground text-base font-normal">
-          Create your account
-        </CardTitle>
-        <CardDescription>Start managing your automotive workshop.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="displayName">Full name</Label>
-            <Input id="displayName" {...register('displayName')} />
-            {errors.displayName && (
-              <p className="text-destructive text-sm">{errors.displayName.message}</p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" autoComplete="email" {...register('email')} />
-            {errors.email && <p className="text-destructive text-sm">{errors.email.message}</p>}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              autoComplete="new-password"
-              {...register('password')}
-            />
-            {errors.password && (
-              <p className="text-destructive text-sm">{errors.password.message}</p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm password</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              autoComplete="new-password"
-              {...register('confirmPassword')}
-            />
-            {errors.confirmPassword && (
-              <p className="text-destructive text-sm">{errors.confirmPassword.message}</p>
-            )}
-          </div>
-          {signUp.error && <p className="text-destructive text-sm">{signUp.error.message}</p>}
-          <Button type="submit" className="w-full" disabled={signUp.isPending}>
-            {signUp.isPending ? 'Creating account…' : 'Create account'}
-          </Button>
-        </form>
-        <p className="text-muted-foreground mt-4 text-center text-sm">
-          Already have an account?{' '}
-          <Link href={AUTH_ROUTES.signIn} className="hover:text-foreground">
-            Sign in
-          </Link>
-        </p>
-      </CardContent>
-    </Card>
+    <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+      {/* Full name */}
+      <div>
+        <label
+          htmlFor="displayName"
+          className="mb-1.5 block text-[13px] font-semibold text-zinc-800"
+        >
+          Full name<span className="font-normal text-zinc-400">*</span>
+        </label>
+        <input
+          id="displayName"
+          autoComplete="name"
+          placeholder="Enter your full name"
+          className="w-full rounded-lg border-[1.5px] border-zinc-200 bg-zinc-50 px-3.5 py-2.5 text-sm text-slate-900 transition-all duration-150 outline-none focus:border-blue-600 focus:bg-white focus:ring-[3px] focus:ring-blue-600/15"
+          {...register('displayName')}
+        />
+        {errors.displayName && (
+          <p className="mt-1.5 text-[12.5px] font-medium text-red-600">
+            {errors.displayName.message}
+          </p>
+        )}
+      </div>
+
+      {/* Email */}
+      <div>
+        <label htmlFor="email" className="mb-1.5 block text-[13px] font-semibold text-zinc-800">
+          Email<span className="font-normal text-zinc-400">*</span>
+        </label>
+        <input
+          id="email"
+          type="email"
+          autoComplete="email"
+          placeholder="Enter your email"
+          className="w-full rounded-lg border-[1.5px] border-zinc-200 bg-zinc-50 px-3.5 py-2.5 text-sm text-slate-900 transition-all duration-150 outline-none focus:border-blue-600 focus:bg-white focus:ring-[3px] focus:ring-blue-600/15"
+          {...register('email')}
+        />
+        {errors.email && (
+          <p className="mt-1.5 text-[12.5px] font-medium text-red-600">{errors.email.message}</p>
+        )}
+      </div>
+
+      {/* Password */}
+      <div>
+        <label htmlFor="password" className="mb-1.5 block text-[13px] font-semibold text-zinc-800">
+          Password<span className="font-normal text-zinc-400">*</span>
+        </label>
+        <PasswordInput
+          id="password"
+          autoComplete="new-password"
+          placeholder="Create a password"
+          {...register('password')}
+        />
+        {errors.password && (
+          <p className="mt-1.5 text-[12.5px] font-medium text-red-600">{errors.password.message}</p>
+        )}
+      </div>
+
+      {/* Confirm password */}
+      <div>
+        <label
+          htmlFor="confirmPassword"
+          className="mb-1.5 block text-[13px] font-semibold text-zinc-800"
+        >
+          Confirm password<span className="font-normal text-zinc-400">*</span>
+        </label>
+        <PasswordInput
+          id="confirmPassword"
+          autoComplete="new-password"
+          placeholder="Re-enter your password"
+          {...register('confirmPassword')}
+        />
+        {errors.confirmPassword && (
+          <p className="mt-1.5 text-[12.5px] font-medium text-red-600">
+            {errors.confirmPassword.message}
+          </p>
+        )}
+      </div>
+
+      {/* Server error */}
+      {signUp.error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-[11px] text-[13px] font-medium text-red-600">
+          {signUp.error.message}
+        </div>
+      )}
+
+      {/* Create Account Button */}
+      <button
+        type="submit"
+        disabled={signUp.isPending}
+        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-[11px] text-sm font-bold text-white transition-colors duration-150 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-65"
+      >
+        {signUp.isPending ? (
+          <>
+            <svg
+              className="h-[15px] w-[15px] shrink-0 animate-spin"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4z"
+              />
+            </svg>
+            Creating account...
+          </>
+        ) : (
+          'Create account'
+        )}
+      </button>
+    </form>
   );
 }

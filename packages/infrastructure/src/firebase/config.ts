@@ -31,7 +31,3 @@ export function getFirebaseConfig(): FirebaseConfig {
 
   return config;
 }
-
-export function useEmulators(): boolean {
-  return process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === 'true';
-}

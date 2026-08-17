@@ -117,7 +117,15 @@ export class FirestoreSerializedItemRepository implements SerializedItemReposito
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
-      items.push({ id: ref.id, orgId: input.orgId, productId: input.productId, serialNumber, isAvailable: true, createdAt: new Date(), updatedAt: new Date() });
+      items.push({
+        id: ref.id,
+        orgId: input.orgId,
+        productId: input.productId,
+        serialNumber,
+        isAvailable: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
     }
     const movementRef = doc(collection(db, COLLECTIONS.stockMovements));
     batch.set(movementRef, {
@@ -141,7 +149,12 @@ export class FirestoreSerializedItemRepository implements SerializedItemReposito
       action: 'stockMovement.create',
       resourceType: 'stockMovement',
       resourceId: movementRef.id,
-      metadata: { productId: input.productId, type: 'RESTOCK_IN', quantity: input.serialNumbers.length, serialized: true },
+      metadata: {
+        productId: input.productId,
+        type: 'RESTOCK_IN',
+        quantity: input.serialNumbers.length,
+        serialized: true,
+      },
       createdAt: serverTimestamp(),
     });
     await batch.commit();
@@ -150,5 +163,32 @@ export class FirestoreSerializedItemRepository implements SerializedItemReposito
 
   async delete(id: string) {
     await deleteDoc(doc(getFirebaseDb(), COLLECTIONS.serializedItems, id));
+  }
+
+  async deleteMany(ids: string[]) {
+    if (ids.length === 0) return;
+    const db = getFirebaseDb();
+    for (let i = 0; i < ids.length; i += 500) {
+      const batch = writeBatch(db);
+      for (const id of ids.slice(i, i + 500)) {
+        batch.delete(doc(db, COLLECTIONS.serializedItems, id));
+      }
+      await batch.commit();
+    }
+  }
+
+  async bulkSetUnavailable(ids: string[]) {
+    if (ids.length === 0) return;
+    const db = getFirebaseDb();
+    for (let i = 0; i < ids.length; i += 500) {
+      const batch = writeBatch(db);
+      for (const id of ids.slice(i, i + 500)) {
+        batch.update(doc(db, COLLECTIONS.serializedItems, id), {
+          isAvailable: false,
+          updatedAt: serverTimestamp(),
+        });
+      }
+      await batch.commit();
+    }
   }
 }

@@ -10,9 +10,12 @@ import {
   getDocs,
   limit as firestoreLimit,
   query,
+  runTransaction,
   serverTimestamp,
+  setDoc,
   updateDoc,
   where,
+  writeBatch,
 } from 'firebase/firestore';
 import { getFirebaseDb } from '../firebase/client';
 import { fromFirestoreDate } from '../firebase/mappers';
@@ -45,10 +48,7 @@ export class FirestoreCategoryRepository implements CategoryRepository {
   }
 
   async findByOrgId(orgId: string, options?: { limit?: number }) {
-    let q = query(
-      collection(getFirebaseDb(), COLLECTIONS.categories),
-      where('orgId', '==', orgId),
-    );
+    let q = query(collection(getFirebaseDb(), COLLECTIONS.categories), where('orgId', '==', orgId));
     if (options?.limit) q = query(q, firestoreLimit(options.limit));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => mapCategory(d.id, d.data()));
@@ -67,26 +67,49 @@ export class FirestoreCategoryRepository implements CategoryRepository {
   }
 
   async getNextSequence(orgId: string, prefix: string) {
-    const q = query(
-      collection(getFirebaseDb(), COLLECTIONS.products),
-      where('orgId', '==', orgId),
-    );
+    const db = getFirebaseDb();
+    const seqRef = doc(collection(db, COLLECTIONS.sequences), `${orgId}_${prefix}`);
+    const seedMarker = 'SEQUENCE_NEEDS_SEED';
+    try {
+      return await runTransaction(db, async (tx) => {
+        const snap = await tx.get(seqRef);
+        if (!snap.exists()) throw new Error(seedMarker);
+        const count = Number(snap.data().count) || 0;
+        tx.update(seqRef, { count: count + 1 });
+        return count + 1;
+      });
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== seedMarker) throw error;
+      const count = await this.countWithPrefix(orgId, prefix);
+      await setDoc(seqRef, { orgId, prefix, count: count + 1 });
+      return count + 1;
+    }
+  }
+
+  private async countWithPrefix(orgId: string, prefix: string) {
+    const q = query(collection(getFirebaseDb(), COLLECTIONS.products), where('orgId', '==', orgId));
     const snapshot = await getDocs(q);
-    const matching = snapshot.docs.filter((d) => {
-      const sku = String(d.data().sku || '');
-      return sku.startsWith(`${prefix}-`);
-    });
-    return matching.length + 1;
+    return snapshot.docs.filter((d) => String(d.data().sku || '').startsWith(`${prefix}-`)).length;
   }
 
   async create(data: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>) {
-    const ref = await addDoc(collection(getFirebaseDb(), COLLECTIONS.categories), {
+    const db = getFirebaseDb();
+    const ref = doc(collection(db, COLLECTIONS.categories));
+    const seqRef = doc(collection(db, COLLECTIONS.sequences), `${data.orgId}_${data.codePrefix}`);
+    const batch = writeBatch(db);
+    batch.set(ref, {
       ...data,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
-    const saved = await getDoc(ref);
-    return mapCategory(saved.id, saved.data()!);
+    batch.set(seqRef, { orgId: data.orgId, prefix: data.codePrefix, count: 0 });
+    await batch.commit();
+    return {
+      id: ref.id,
+      ...data,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Category;
   }
 
   async update(id: string, data: Partial<Category>) {

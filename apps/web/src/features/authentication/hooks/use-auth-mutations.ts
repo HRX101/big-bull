@@ -30,10 +30,18 @@ export function useSignUp() {
 }
 
 export function useGoogleSignIn() {
-  const setSession = useAuthStore((s) => s.setSession);
   return useMutation({
     mutationFn: () => authRepository.signInWithGoogle(),
-    onSuccess: (session) => setSession(session),
+  });
+}
+
+export function useGoogleRedirectResult() {
+  const setSession = useAuthStore((s) => s.setSession);
+  return useMutation({
+    mutationFn: () => authRepository.getRedirectResult(),
+    onSuccess: (session) => {
+      if (session) setSession(session);
+    },
   });
 }
 

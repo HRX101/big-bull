@@ -1,6 +1,10 @@
 'use client';
 
-import { createCustomerUseCase, customerRepository, searchCustomersUseCase } from '@car-spa/infrastructure';
+import {
+  createCustomerUseCase,
+  customerRepository,
+  searchCustomersUseCase,
+} from '@car-spa/infrastructure';
 import { useAuthStore } from '@/features/authentication/stores/auth-store';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';

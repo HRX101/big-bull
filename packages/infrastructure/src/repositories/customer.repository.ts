@@ -73,10 +73,7 @@ export class FirestoreCustomerRepository implements CustomerRepository {
     const lower = queryStr.toLowerCase();
     return snapshot.docs
       .map((d) => mapCustomer(d.id, d.data()))
-      .filter(
-        (c) =>
-          c.name.toLowerCase().includes(lower) || c.phone.includes(queryStr),
-      );
+      .filter((c) => c.name.toLowerCase().includes(lower) || c.phone.includes(queryStr));
   }
 
   async create(data: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>) {

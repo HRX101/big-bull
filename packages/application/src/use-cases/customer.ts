@@ -9,11 +9,7 @@ export class CreateCustomerUseCase {
     private readonly auditRepo: AuditRepository,
   ) {}
 
-  async execute(
-    input: unknown,
-    orgId: string,
-    actorId: string,
-  ): Promise<Result<Customer>> {
+  async execute(input: unknown, orgId: string, actorId: string): Promise<Result<Customer>> {
     const parsed = customerSchema.safeParse(input);
     if (!parsed.success) {
       return err(new Error(parsed.error.errors[0]?.message ?? 'Invalid input'));

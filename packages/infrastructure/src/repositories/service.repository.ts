@@ -38,10 +38,7 @@ export class FirestoreServiceRepository implements ServiceRepository {
   }
 
   async findByOrgId(orgId: string) {
-    const q = query(
-      collection(getFirebaseDb(), COLLECTIONS.services),
-      where('orgId', '==', orgId),
-    );
+    const q = query(collection(getFirebaseDb(), COLLECTIONS.services), where('orgId', '==', orgId));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => mapService(d.id, d.data()));
   }

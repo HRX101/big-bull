@@ -8,14 +8,16 @@ test.describe('Authentication smoke', () => {
 
   test('sign in page renders', async ({ page }) => {
     await page.goto('/auth/sign-in');
-    await expect(page.getByText('Big Bull Car Spa')).toBeVisible();
-    await expect(page.getByLabel('Email')).toBeVisible();
-    await expect(page.getByLabel('Password')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+    const form = page.locator('form');
+
+    await expect(page.getByRole('heading', { name: 'Sign in to your account' })).toBeVisible();
+    await expect(form.locator('#email')).toBeVisible();
+    await expect(form.locator('#password')).toBeVisible();
+    await expect(form.getByRole('button', { name: 'Sign in' })).toBeVisible();
   });
 
   test('sign up page renders', async ({ page }) => {
     await page.goto('/auth/sign-up');
-    await expect(page.getByText('Create your account')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Create your account' })).toBeVisible();
   });
 });

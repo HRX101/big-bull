@@ -154,6 +154,13 @@ service cloud.firestore {
       allow update, delete: if docBelongsToOrg() && isOwner();
     }
 
+    match /supplierPurchaseEntries/{docId} {
+      allow get: if docBelongsToOrg();
+      allow list: if isAuthenticated();
+      allow create: if requestBelongsToOrg() && isOwner();
+      allow update, delete: if docBelongsToOrg() && isOwner();
+    }
+
     match /mechanics/{docId} {
       allow get: if docBelongsToOrg();
       allow list: if isAuthenticated();
@@ -201,6 +208,28 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /notificationTemplates/{docId} {
+      allow get: if docBelongsToOrg();
+      allow list: if isAuthenticated();
+      allow create: if requestBelongsToOrg() && isOwner();
+      allow update: if docBelongsToOrg() && isOwner();
+      allow delete: if false;
+    }
+
+    match /whatsappLogs/{docId} {
+      allow get: if docBelongsToOrg();
+      allow list: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+
+    match /whatsappDedupe/{docId} {
+      allow get: if isAuthenticated();
+      allow list: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+
     match /drafts/{docId} {
       allow get, list: if isAuthenticated() && resource.data.userId == request.auth.uid;
       allow create, update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
@@ -212,6 +241,14 @@ service cloud.firestore {
       allow create: if requestBelongsToOrg() && isEmployeeOrOwner();
       allow update: if docBelongsToOrg() && isEmployeeOrOwner();
       allow delete: if docBelongsToOrg() && isOwner();
+    }
+
+    match /sequences/{seqId} {
+      allow get: if isAuthenticated() && (resource == null || docBelongsToOrg());
+      allow list: if isAuthenticated();
+      allow create: if requestBelongsToOrg() && isEmployeeOrOwner();
+      allow update: if docBelongsToOrg() && isEmployeeOrOwner();
+      allow delete: if false;
     }
 
     match /{document=**} {

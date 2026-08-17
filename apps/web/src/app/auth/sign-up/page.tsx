@@ -1,9 +1,5 @@
-import { SignUpForm } from '@/features/authentication/ui/sign-up-form';
+import { AuthShell } from '@/features/authentication/ui/auth-shell';
 
 export default function SignUpPage() {
-  return (
-    <main className="flex min-h-screen items-center justify-center p-6">
-      <SignUpForm />
-    </main>
-  );
+  return <AuthShell mode="sign-up" />;
 }

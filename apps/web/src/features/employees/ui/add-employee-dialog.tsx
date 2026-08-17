@@ -83,12 +83,12 @@ export function AddEmployeeDialog({ open, onOpenChange, onSuccess }: AddEmployee
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       onClick={(e) => {
         if (e.target === overlayRef.current) onOpenChange(false);
       }}
     >
-      <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <Card className="max-h-[90vh] w-full max-w-md overflow-y-auto">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Add Employee</CardTitle>
           <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
@@ -100,7 +100,9 @@ export function AddEmployeeDialog({ open, onOpenChange, onSuccess }: AddEmployee
             <div className="space-y-2">
               <Label htmlFor="emp-name">Display Name</Label>
               <Input id="emp-name" {...register('displayName')} />
-              {errors.displayName && <p className="text-destructive text-sm">{errors.displayName.message}</p>}
+              {errors.displayName && (
+                <p className="text-destructive text-sm">{errors.displayName.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="emp-email">Email</Label>
@@ -112,14 +114,16 @@ export function AddEmployeeDialog({ open, onOpenChange, onSuccess }: AddEmployee
                 <Label htmlFor="emp-password">Password</Label>
                 <button
                   type="button"
-                  className="text-muted-foreground text-xs underline hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground text-xs underline"
                   onClick={() => setValue('password', generatePassword())}
                 >
                   Generate
                 </button>
               </div>
               <Input id="emp-password" type="text" {...register('password')} />
-              {errors.password && <p className="text-destructive text-sm">{errors.password.message}</p>}
+              {errors.password && (
+                <p className="text-destructive text-sm">{errors.password.message}</p>
+              )}
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
@@ -130,7 +134,9 @@ export function AddEmployeeDialog({ open, onOpenChange, onSuccess }: AddEmployee
                   step="0.01"
                   min={0}
                   placeholder="e.g. 15000"
-                  {...register('salaryAmount', { setValueAs: (v) => (v === '' ? undefined : Number(v)) })}
+                  {...register('salaryAmount', {
+                    setValueAs: (v) => (v === '' ? undefined : Number(v)),
+                  })}
                 />
                 {errors.salaryAmount && (
                   <p className="text-destructive text-sm">{errors.salaryAmount.message}</p>
@@ -144,7 +150,9 @@ export function AddEmployeeDialog({ open, onOpenChange, onSuccess }: AddEmployee
                   min={1}
                   max={31}
                   placeholder="e.g. 26"
-                  {...register('minWorkDays', { setValueAs: (v) => (v === '' ? undefined : Number(v)) })}
+                  {...register('minWorkDays', {
+                    setValueAs: (v) => (v === '' ? undefined : Number(v)),
+                  })}
                 />
                 {errors.minWorkDays && (
                   <p className="text-destructive text-sm">{errors.minWorkDays.message}</p>

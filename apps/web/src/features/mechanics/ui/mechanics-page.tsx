@@ -1,19 +1,33 @@
 'use client';
 
 import { useAuthStore } from '@/features/authentication/stores/auth-store';
-import { Search, Plus, Wrench, Edit, Trash2, ArrowUpRight, ArrowDownLeft, ChevronLeft, ChevronRight, Store, Phone } from 'lucide-react';
+import {
+  Search,
+  Plus,
+  Wrench,
+  Edit,
+  Trash2,
+  ArrowUpRight,
+  ArrowDownLeft,
+  ChevronLeft,
+  ChevronRight,
+  Store,
+  Phone,
+} from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/shared/empty-state';
+import { PaginationControls } from '@/components/shared/pagination';
 import { useMechanics, useMechanicLedger, useDeleteMechanic } from '../api/use-mechanics';
 import { MechanicDialog } from './mechanic-dialog';
 import { LedgerEntryDialog } from './ledger-entry-dialog';
 import type { Mechanic, MechanicLedgerEntry } from '@car-spa/domain';
 
-const LEDGER_PAGE_SIZE = 10;
+const LEDGER_PAGE_SIZE = 5;
+const MECHANIC_PAGE_SIZE = 5;
 
 export function MechanicsPage() {
   const session = useAuthStore((s) => s.session);
@@ -27,16 +41,24 @@ export function MechanicsPage() {
   const [ledgerDialogOpen, setLedgerDialogOpen] = useState(false);
   const [ledgerEntryType, setLedgerEntryType] = useState<'CREDIT' | 'DEBIT'>('CREDIT');
   const [ledgerPage, setLedgerPage] = useState(0);
+  const [mechanicPage, setMechanicPage] = useState(0);
 
   const mechanicsQuery = useMechanics(orgId);
   const ledgerQuery = useMechanicLedger(selectedMechanicId ?? '');
   const deleteMechanic = useDeleteMechanic();
 
   const mechanics = mechanicsQuery.data ?? [];
-  const filtered = mechanics.filter((m) =>
-    !searchQuery || m.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  const filtered = mechanics.filter(
+    (m) => !searchQuery || m.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
   const selectedMechanic = mechanics.find((m) => m.id === selectedMechanicId);
+
+  const mechanicTotalPages = Math.max(1, Math.ceil(filtered.length / MECHANIC_PAGE_SIZE));
+  const safeMechanicPage = Math.min(mechanicPage, mechanicTotalPages - 1);
+  const pagedMechanics = filtered.slice(
+    safeMechanicPage * MECHANIC_PAGE_SIZE,
+    (safeMechanicPage + 1) * MECHANIC_PAGE_SIZE,
+  );
 
   const ledgerEntries = ledgerQuery.data ?? [];
   const ledgerTotalPages = Math.max(1, Math.ceil(ledgerEntries.length / LEDGER_PAGE_SIZE));
@@ -56,7 +78,13 @@ export function MechanicsPage() {
       <aside className="w-full shrink-0 space-y-4 lg:w-80">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-display text-lg">Mechanics</h2>
-          <Button size="sm" onClick={() => { setEditingMechanic(null); setDialogOpen(true); }}>
+          <Button
+            size="sm"
+            onClick={() => {
+              setEditingMechanic(null);
+              setDialogOpen(true);
+            }}
+          >
             <Plus className="mr-1 h-4 w-4" />
             Add
           </Button>
@@ -68,7 +96,10 @@ export function MechanicsPage() {
             placeholder="Search by name…"
             className="pl-10"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setMechanicPage(0);
+            }}
           />
         </div>
 
@@ -84,18 +115,33 @@ export function MechanicsPage() {
             description={searchQuery ? 'Try a different search term.' : 'Add your first mechanic.'}
           />
         ) : (
-          <nav className="space-y-2">
-            {filtered.map((mechanic) => (
-              <MechanicCard
-                key={mechanic.id}
-                mechanic={mechanic}
-                selected={selectedMechanicId === mechanic.id}
-                onSelect={() => { setSelectedMechanicId(mechanic.id); setLedgerPage(0); }}
-                onEdit={() => { setEditingMechanic(mechanic); setDialogOpen(true); }}
-                onDelete={() => setDeleteConfirmId(mechanic.id)}
-              />
-            ))}
-          </nav>
+          <>
+            <nav className="space-y-2">
+              {pagedMechanics.map((mechanic) => (
+                <MechanicCard
+                  key={mechanic.id}
+                  mechanic={mechanic}
+                  selected={selectedMechanicId === mechanic.id}
+                  onSelect={() => {
+                    setSelectedMechanicId(mechanic.id);
+                    setLedgerPage(0);
+                  }}
+                  onEdit={() => {
+                    setEditingMechanic(mechanic);
+                    setDialogOpen(true);
+                  }}
+                  onDelete={() => setDeleteConfirmId(mechanic.id)}
+                />
+              ))}
+            </nav>
+            <PaginationControls
+              page={safeMechanicPage}
+              totalPages={mechanicTotalPages}
+              onPageChange={setMechanicPage}
+              itemCount={filtered.length}
+              itemLabel="mechanics"
+            />
+          </>
         )}
       </aside>
 
@@ -135,7 +181,9 @@ export function MechanicsPage() {
                 </div>
                 <div className="text-right">
                   <p className="text-muted-foreground text-xs">Current Balance</p>
-                  <p className={`text-2xl font-bold ${selectedMechanic.balance >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  <p
+                    className={`text-2xl font-bold ${selectedMechanic.balance >= 0 ? 'text-red-600' : 'text-green-600'}`}
+                  >
                     ₹{Math.abs(selectedMechanic.balance).toLocaleString('en-IN')}
                     <span className="ml-1 text-sm font-normal">
                       {selectedMechanic.balance >= 0 ? '(Dr)' : '(Cr)'}
@@ -168,15 +216,22 @@ export function MechanicsPage() {
                     <th className="px-4 py-3 text-left font-medium">Actor</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className="divide-border divide-y">
                   {ledgerEntries.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                      <td
+                        colSpan={6}
+                        className="text-muted-foreground px-4 py-8 text-center text-sm"
+                      >
                         No ledger entries yet.
                       </td>
                     </tr>
                   ) : (
-                    <LedgerRows entries={ledgerEntries} rendered={pagedLedgerEntries} currentBalance={selectedMechanic.balance} />
+                    <LedgerRows
+                      entries={ledgerEntries}
+                      rendered={pagedLedgerEntries}
+                      currentBalance={selectedMechanic.balance}
+                    />
                   )}
                 </tbody>
               </table>
@@ -269,9 +324,7 @@ function MechanicCard({
         }
       }}
       className={`w-full cursor-pointer rounded-lg border p-3 text-left transition-colors ${
-        selected
-          ? 'border-primary bg-primary/5'
-          : 'border-border hover:border-muted-foreground/30'
+        selected ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground/30'
       }`}
     >
       <div className="flex items-start justify-between gap-2">
@@ -291,21 +344,29 @@ function MechanicCard({
         <div className="flex shrink-0 gap-1">
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
             className="text-muted-foreground hover:text-foreground rounded p-1 transition-colors"
           >
             <Edit className="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
             className="text-muted-foreground hover:text-destructive rounded p-1 transition-colors"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
-      <div className={`mt-2 text-sm font-semibold ${mechanic.balance >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+      <div
+        className={`mt-2 text-sm font-semibold ${mechanic.balance >= 0 ? 'text-red-600' : 'text-green-600'}`}
+      >
         ₹{Math.abs(mechanic.balance).toLocaleString('en-IN')}
         <span className="text-muted-foreground ml-1 text-xs font-normal">
           {mechanic.balance >= 0 ? 'Dr' : 'Cr'}
@@ -315,10 +376,21 @@ function MechanicCard({
   );
 }
 
-function LedgerRows({ entries, rendered, currentBalance }: { entries: MechanicLedgerEntry[]; rendered: MechanicLedgerEntry[]; currentBalance: number }) {
+function LedgerRows({
+  entries,
+  rendered,
+  currentBalance,
+}: {
+  entries: MechanicLedgerEntry[];
+  rendered: MechanicLedgerEntry[];
+  currentBalance: number;
+}) {
   const withBalance = (() => {
     const sorted = [...entries].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-    const totalEffect = sorted.reduce((sum, e) => sum + (e.type === 'DEBIT' ? e.amount : -e.amount), 0);
+    const totalEffect = sorted.reduce(
+      (sum, e) => sum + (e.type === 'DEBIT' ? e.amount : -e.amount),
+      0,
+    );
     let running = currentBalance - totalEffect;
     const map = new Map<string, number>();
     for (const e of sorted) {
@@ -334,8 +406,12 @@ function LedgerRows({ entries, rendered, currentBalance }: { entries: MechanicLe
         const bal = withBalance.get(entry.id) ?? 0;
         return (
           <tr key={entry.id} className="hover:bg-muted/30">
-            <td className="px-4 py-3 text-muted-foreground">
-              {entry.createdAt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+            <td className="text-muted-foreground px-4 py-3">
+              {entry.createdAt.toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+              })}
             </td>
             <td className="px-4 py-3">
               <span
@@ -361,17 +437,17 @@ function LedgerRows({ entries, rendered, currentBalance }: { entries: MechanicLe
                 </span>
               )}
             </td>
-            <td className={`px-4 py-3 text-right font-medium tabular-nums ${
-              entry.type === 'DEBIT' ? 'text-red-600' : 'text-green-600'
-            }`}>
+            <td
+              className={`px-4 py-3 text-right font-medium tabular-nums ${
+                entry.type === 'DEBIT' ? 'text-red-600' : 'text-green-600'
+              }`}
+            >
               {entry.type === 'DEBIT' ? '+' : '−'}₹{entry.amount.toLocaleString('en-IN')}
             </td>
             <td className="px-4 py-3 text-right font-medium tabular-nums">
               ₹{bal.toLocaleString('en-IN')}
             </td>
-            <td className="px-4 py-3 text-muted-foreground">
-              {entry.actorId.slice(0, 8)}…
-            </td>
+            <td className="text-muted-foreground px-4 py-3">{entry.actorId.slice(0, 8)}…</td>
           </tr>
         );
       })}
@@ -395,7 +471,7 @@ function DeleteConfirm({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>{title}</CardTitle>

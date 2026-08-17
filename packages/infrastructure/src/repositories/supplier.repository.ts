@@ -8,6 +8,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  increment,
   limit as firestoreLimit,
   query,
   serverTimestamp,
@@ -24,6 +25,8 @@ function mapSupplier(id: string, data: Record<string, unknown>): Supplier {
     name: String(data.name),
     contactPhone: data.contactPhone ? String(data.contactPhone) : null,
     notes: data.notes ? String(data.notes) : null,
+    totalAmount: Number(data.totalAmount) || 0,
+    advanceAmount: Number(data.advanceAmount) || 0,
     createdAt: fromFirestoreDate(data.createdAt),
     updatedAt: fromFirestoreDate(data.updatedAt),
   };
@@ -40,10 +43,7 @@ export class FirestoreSupplierRepository implements SupplierRepository {
   }
 
   async findByOrgId(orgId: string, options?: { limit?: number }) {
-    let q = query(
-      collection(getFirebaseDb(), COLLECTIONS.suppliers),
-      where('orgId', '==', orgId),
-    );
+    let q = query(collection(getFirebaseDb(), COLLECTIONS.suppliers), where('orgId', '==', orgId));
     if (options?.limit) q = query(q, firestoreLimit(options.limit));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => mapSupplier(d.id, d.data()));
@@ -67,8 +67,12 @@ export class FirestoreSupplierRepository implements SupplierRepository {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
-    const saved = await getDoc(ref);
-    return mapSupplier(saved.id, saved.data()!);
+    return {
+      id: ref.id,
+      ...data,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Supplier;
   }
 
   async update(id: string, data: Partial<Supplier>) {
@@ -80,5 +84,15 @@ export class FirestoreSupplierRepository implements SupplierRepository {
 
   async delete(id: string) {
     await deleteDoc(doc(getFirebaseDb(), COLLECTIONS.suppliers, id));
+  }
+
+  async updateAmounts(id: string, delta: { totalAmount?: number; advanceAmount?: number }) {
+    const ref = doc(getFirebaseDb(), COLLECTIONS.suppliers, id);
+    const payload: Record<string, unknown> = { updatedAt: serverTimestamp() };
+    if (delta.totalAmount !== undefined) payload.totalAmount = increment(delta.totalAmount);
+    if (delta.advanceAmount !== undefined) payload.advanceAmount = increment(delta.advanceAmount);
+    await updateDoc(ref, payload);
+    const saved = await getDoc(ref);
+    return mapSupplier(saved.id, saved.data()!);
   }
 }

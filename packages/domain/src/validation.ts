@@ -73,7 +73,10 @@ export const recordPaymentSchema = z.object({
 });
 
 export const attributeDefinitionSchema = z.object({
-  key: z.string().min(1, 'Key is required').regex(/^[a-z_]+$/, 'Use lowercase with underscores'),
+  key: z
+    .string()
+    .min(1, 'Key is required')
+    .regex(/^[a-z_]+$/, 'Use lowercase with underscores'),
   label: z.string().min(1, 'Label is required'),
   type: z.enum(['text', 'number', 'select']),
   options: z.array(z.string()).optional(),
@@ -121,6 +124,15 @@ export const supplierSchema = z.object({
   name: z.string().min(1, 'Supplier name is required'),
   contactPhone: z.string().optional().or(z.literal('')),
   notes: z.string().optional().or(z.literal('')),
+  totalAmount: z.number().min(0).default(0),
+  advanceAmount: z.number().min(0).default(0),
+});
+
+export const supplierPurchaseEntrySchema = z.object({
+  supplierId: z.string().min(1),
+  type: z.enum(['PURCHASE', 'ADVANCE']),
+  amount: z.number().positive('Amount must be positive'),
+  description: z.string().min(1, 'Description is required'),
 });
 
 export const posSaleSchema = z.object({
@@ -132,6 +144,7 @@ export const posSaleSchema = z.object({
         itemName: z.string().optional().or(z.literal('')),
         quantity: z.number().min(1, 'Quantity must be at least 1'),
         unitPrice: z.number().min(0),
+        serialNumbers: z.array(z.string()).optional(),
       }),
     )
     .min(1, 'At least one item is required'),
@@ -167,6 +180,9 @@ export const salaryRecordSchema = z.object({
   fullSalary: z.number().positive('Salary must be positive'),
   workingDays: z.number().positive('Working days must be positive'),
   leaveDays: z.number().min(0, 'Leave days cannot be negative'),
+  perDayRate: z.number().positive('Per day rate must be positive').optional(),
+  deduction: z.number().min(0, 'Deduction cannot be negative').optional(),
+  payableAmount: z.number().min(0, 'Payable amount cannot be negative').optional(),
   notes: z.string().optional().or(z.literal('')),
 });
 
@@ -178,27 +194,30 @@ export const storeSettingsSchema = z.object({
   gstin: z.string().optional().or(z.literal('')),
   taxRate: z.number().min(0).max(100).default(0),
   logoUrl: z.string().optional().or(z.literal('')),
-  whatsappProvider: z.enum(['META', 'TWILIO', 'NONE']).default('NONE'),
+  whatsappProvider: z.enum(['META', 'TWILIO', 'WASENDER', 'NONE']).default('NONE'),
   whatsappApiKey: z.string().optional().or(z.literal('')),
   whatsappPhoneNumberId: z.string().optional().or(z.literal('')),
   whatsappTemplateId: z.string().optional().or(z.literal('')),
+  whatsappTwilioFromNumber: z.string().optional().or(z.literal('')),
   workingDaysPerMonth: z.number().min(1).max(31).default(26),
   defaultLeaveType: z.enum(['UNPAID', 'PAID']).default('UNPAID'),
 });
 
-export const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1, 'Current password is required'),
-  newPassword: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[0-9]/, 'Password must contain at least one number'),
-  confirmPassword: z.string(),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
-});
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+      .regex(/[0-9]/, 'Password must contain at least one number'),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
 
 export type SignInInput = z.infer<typeof signInSchema>;
 export type SignUpInput = z.infer<typeof signUpSchema>;
@@ -215,6 +234,7 @@ export type StockMovementInput = z.infer<typeof stockMovementSchema>;
 export type POSSaleInput = z.infer<typeof posSaleSchema>;
 export type MechanicInput = z.infer<typeof mechanicSchema>;
 export type MechanicLedgerEntryInput = z.infer<typeof mechanicLedgerEntrySchema>;
+export type SupplierPurchaseEntryInput = z.infer<typeof supplierPurchaseEntrySchema>;
 export type LeaveRequestInput = z.infer<typeof leaveRequestSchema>;
 export type SalaryRecordInput = z.infer<typeof salaryRecordSchema>;
 export type StoreSettingsInput = z.infer<typeof storeSettingsSchema>;

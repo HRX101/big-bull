@@ -24,11 +24,7 @@ export class CreateVehicleTaskUseCase {
     private readonly draftRepo: DraftRepository,
   ) {}
 
-  async execute(
-    input: unknown,
-    orgId: string,
-    actorId: string,
-  ): Promise<Result<VehicleTask>> {
+  async execute(input: unknown, orgId: string, actorId: string): Promise<Result<VehicleTask>> {
     const parsed = vehicleTaskCreateSchema.safeParse(input);
     if (!parsed.success) {
       return err(new Error(parsed.error.errors[0]?.message ?? 'Invalid input'));
@@ -96,9 +92,7 @@ export class CreateVehicleTaskUseCase {
 
       return ok(task);
     } catch (error) {
-      return err(
-        error instanceof Error ? error : new Error('Failed to create task'),
-      );
+      return err(error instanceof Error ? error : new Error('Failed to create task'));
     }
   }
 }
@@ -110,11 +104,7 @@ export class ChangeTaskStatusUseCase {
     private readonly auditRepo: AuditRepository,
   ) {}
 
-  async execute(
-    input: unknown,
-    orgId: string,
-    actorId: string,
-  ): Promise<Result<TaskStatusEvent>> {
+  async execute(input: unknown, orgId: string, actorId: string): Promise<Result<TaskStatusEvent>> {
     const parsed = taskStatusChangeSchema.safeParse(input);
     if (!parsed.success) {
       return err(new Error(parsed.error.errors[0]?.message ?? 'Invalid input'));
@@ -159,9 +149,7 @@ export class ChangeTaskStatusUseCase {
 
       return ok(event);
     } catch (error) {
-      return err(
-        error instanceof Error ? error : new Error('Failed to change status'),
-      );
+      return err(error instanceof Error ? error : new Error('Failed to change status'));
     }
   }
 }
@@ -172,11 +160,7 @@ export class RecordTaskPaymentUseCase {
     private readonly auditRepo: AuditRepository,
   ) {}
 
-  async execute(
-    input: unknown,
-    orgId: string,
-    actorId: string,
-  ): Promise<Result<VehicleTask>> {
+  async execute(input: unknown, orgId: string, actorId: string): Promise<Result<VehicleTask>> {
     const parsed = recordPaymentSchema.safeParse(input);
     if (!parsed.success) {
       return err(new Error(parsed.error.errors[0]?.message ?? 'Invalid input'));
@@ -214,9 +198,7 @@ export class RecordTaskPaymentUseCase {
 
       return ok(updated);
     } catch (error) {
-      return err(
-        error instanceof Error ? error : new Error('Failed to record payment'),
-      );
+      return err(error instanceof Error ? error : new Error('Failed to record payment'));
     }
   }
 }

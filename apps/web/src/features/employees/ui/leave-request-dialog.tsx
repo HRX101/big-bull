@@ -55,12 +55,12 @@ export function LeaveRequestDialog({ open, onOpenChange, onSuccess }: LeaveReque
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       onClick={(e) => {
         if (e.target === overlayRef.current) onOpenChange(false);
       }}
     >
-      <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <Card className="max-h-[90vh] w-full max-w-md overflow-y-auto">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Request Leave</CardTitle>
           <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
@@ -73,12 +73,16 @@ export function LeaveRequestDialog({ open, onOpenChange, onSuccess }: LeaveReque
               <div className="space-y-2">
                 <Label htmlFor="leave-from">From Date</Label>
                 <Input id="leave-from" type="date" {...register('fromDate')} />
-                {errors.fromDate && <p className="text-destructive text-sm">{errors.fromDate.message}</p>}
+                {errors.fromDate && (
+                  <p className="text-destructive text-sm">{errors.fromDate.message}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="leave-to">To Date</Label>
                 <Input id="leave-to" type="date" {...register('toDate')} />
-                {errors.toDate && <p className="text-destructive text-sm">{errors.toDate.message}</p>}
+                {errors.toDate && (
+                  <p className="text-destructive text-sm">{errors.toDate.message}</p>
+                )}
               </div>
             </div>
             <div className="space-y-2">
@@ -92,7 +96,9 @@ export function LeaveRequestDialog({ open, onOpenChange, onSuccess }: LeaveReque
                 <option value="PAID">Paid</option>
                 <option value="SICK">Sick</option>
               </select>
-              {errors.leaveType && <p className="text-destructive text-sm">{errors.leaveType.message}</p>}
+              {errors.leaveType && (
+                <p className="text-destructive text-sm">{errors.leaveType.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="leave-reason">Reason</Label>

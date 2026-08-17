@@ -11,6 +11,9 @@ import {
   Search,
   X,
   CreditCard,
+  Receipt,
+  AlertTriangle,
+  type LucideIcon,
 } from 'lucide-react';
 import { PROTECTED_ROUTES, PAYMENT_MODES } from '@car-spa/shared';
 import type { PaymentMode } from '@car-spa/shared';
@@ -22,6 +25,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCreateSale } from '@/features/pos/api/use-pos';
 import { ReceiptModal } from '@/features/pos/ui/receipt-modal';
+import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 
 export function QuickActions() {
   const router = useRouter();
@@ -29,26 +33,61 @@ export function QuickActions() {
 
   return (
     <>
-      <div className="flex items-center gap-2">
-        <Button
-          size="sm"
-          variant="outline"
+      <div className="flex flex-wrap items-center gap-2">
+        <QuickButton
+          icon={Car}
+          chipClass="from-blue-500 to-sky-500"
+          label="Vehicle Task"
           onClick={() => router.push(PROTECTED_ROUTES.vehicleTasks)}
-        >
-          <Car className="mr-1.5 h-3.5 w-3.5" />
-          Vehicle Task
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => router.push(PROTECTED_ROUTES.pos)}>
-          <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
-          Sales
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => setAirOpen(true)}>
-          <Wind className="mr-1.5 h-3.5 w-3.5" />
-          Air
-        </Button>
+        />
+        <QuickButton
+          icon={ShoppingCart}
+          chipClass="from-emerald-500 to-teal-500"
+          label="POS Sale"
+          onClick={() => router.push(PROTECTED_ROUTES.pos)}
+        />
+        <QuickButton
+          icon={Wind}
+          chipClass="from-purple-500 to-fuchsia-500"
+          label="Air"
+          onClick={() => setAirOpen(true)}
+        />
+        <QuickButton
+          icon={Receipt}
+          chipClass="from-indigo-500 to-blue-600"
+          label="View Sales"
+          onClick={() => router.push(PROTECTED_ROUTES.transactions)}
+        />
       </div>
       {airOpen && <AirSaleDialog onClose={() => setAirOpen(false)} />}
     </>
+  );
+}
+
+function QuickButton({
+  icon: Icon,
+  chipClass,
+  label,
+  onClick,
+}: {
+  icon: LucideIcon;
+  chipClass: string;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group border-border bg-card text-foreground hover:border-primary/50 inline-flex items-center gap-2 rounded-full border py-1.5 pr-4 pl-1.5 text-sm font-semibold shadow-sm shadow-black/5 transition-all hover:-translate-y-0.5 hover:shadow-md"
+    >
+      <span
+        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-white shadow-sm ${chipClass}`}
+      >
+        <Icon className="h-3.5 w-3.5" />
+      </span>
+      {label}
+    </button>
   );
 }
 
@@ -66,6 +105,7 @@ function AirSaleDialog({ onClose }: { onClose: () => void }) {
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('CASH');
   const [completedSale, setCompletedSale] = useState<POSSale | null>(null);
   const [receiptName, setReceiptName] = useState<string | null>(null);
+  const [discardOpen, setDiscardOpen] = useState(false);
 
   const isNewCustomer = lookedUp && !customer && phone.trim().length >= 10;
   const amt = Number(amount);
@@ -139,31 +179,33 @@ function AirSaleDialog({ onClose }: { onClose: () => void }) {
       setReceiptName(null);
       return;
     }
-    if (phone || name || amount) {
-      if (!confirm('Discard this sale?')) return;
-    }
-    onClose();
+    if (phone || name || amount) setDiscardOpen(true);
+    else onClose();
   };
 
   return (
     <>
       <div
-        className="bg-black/50 fixed inset-0 z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
         onClick={close}
         role="dialog"
         aria-modal="true"
         aria-labelledby="air-sale-title"
       >
         <div
-          className="bg-background max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg shadow-lg"
+          className="bg-background max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl shadow-lg"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="border-border sticky top-0 z-10 flex items-center justify-between border-b bg-background p-4">
-      <div className="flex flex-wrap items-center gap-2">
-              <Wind className="text-primary h-5 w-5" />
-              <h2 id="air-sale-title" className="text-lg font-semibold">Air in Tyre</h2>
+          <div className="border-border bg-background sticky top-0 z-10 flex items-center justify-between border-b p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/15 text-purple-500">
+                <Wind className="h-4 w-4" />
+              </span>
+              <h2 id="air-sale-title" className="text-base font-semibold">
+                Air in Tyre
+              </h2>
             </div>
-            <button onClick={close} className="hover:bg-muted rounded p-1" aria-label="Close">
+            <button onClick={close} className="hover:bg-muted rounded-lg p-1" aria-label="Close">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -196,7 +238,7 @@ function AirSaleDialog({ onClose }: { onClose: () => void }) {
             </div>
 
             {customer && (
-              <div className="border-border flex items-center justify-between rounded-md border p-2 text-sm">
+              <div className="border-border flex items-center justify-between rounded-lg border p-2 text-sm">
                 <div className="min-w-0">
                   <p className="truncate font-medium">{customer.name}</p>
                   <p className="text-muted-foreground text-xs">{customer.phone}</p>
@@ -251,7 +293,7 @@ function AirSaleDialog({ onClose }: { onClose: () => void }) {
                 id="air-payment"
                 value={paymentMode}
                 onChange={(e) => setPaymentMode(e.target.value as PaymentMode)}
-                className="border-input bg-input ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                className="border-input bg-input ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-lg border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {PAYMENT_MODES.map((mode) => (
                   <option key={mode} value={mode}>
@@ -276,11 +318,23 @@ function AirSaleDialog({ onClose }: { onClose: () => void }) {
               disabled={createSale.isPending || !amt || amt <= 0}
             >
               <CreditCard className="mr-2 h-5 w-5" />
-              {createSale.isPending ? 'Processing…' : `Sell — ₹${amt ? amt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}`}
+              {createSale.isPending
+                ? 'Processing…'
+                : `Sell — ₹${amt ? amt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}`}
             </Button>
           </div>
         </div>
       </div>
+      <ConfirmDialog
+        open={discardOpen}
+        onOpenChange={setDiscardOpen}
+        onConfirm={onClose}
+        title="Discard this sale?"
+        description="You have entered details for this sale. They will be lost if you close."
+        confirmLabel="Discard"
+        variant="warning"
+        icon={AlertTriangle}
+      />
       <ReceiptModal
         sale={completedSale}
         customerName={receiptName}

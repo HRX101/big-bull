@@ -1,10 +1,4 @@
-import type {
-  LeaveStatus,
-  PaymentMode,
-  SalaryStatus,
-  TaskStatus,
-  UserRole,
-} from '@car-spa/shared';
+import type { LeaveStatus, PaymentMode, SalaryStatus, TaskStatus, UserRole } from '@car-spa/shared';
 
 export interface Organization {
   id: string;
@@ -180,8 +174,23 @@ export interface Supplier {
   name: string;
   contactPhone: string | null;
   notes: string | null;
+  totalAmount: number;
+  advanceAmount: number;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface SupplierPurchaseEntry {
+  id: string;
+  orgId: string;
+  supplierId: string;
+  type: 'PURCHASE' | 'ADVANCE';
+  amount: number;
+  description: string;
+  referenceType: string | null;
+  referenceId: string | null;
+  actorId: string;
+  createdAt: Date;
 }
 
 export interface POSSale {
@@ -205,6 +214,7 @@ export interface POSSaleItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  serialNumbers: string[] | null;
 }
 
 export interface Mechanic {
@@ -280,10 +290,11 @@ export interface StoreSettings {
   gstin: string | null;
   taxRate: number;
   logoUrl: string | null;
-  whatsappProvider: 'META' | 'TWILIO' | 'NONE';
+  whatsappProvider: 'META' | 'TWILIO' | 'WASENDER' | 'NONE';
   whatsappApiKey: string | null;
   whatsappPhoneNumberId: string | null;
   whatsappTemplateId: string | null;
+  whatsappTwilioFromNumber: string | null;
   workingDaysPerMonth: number;
   defaultLeaveType: 'UNPAID' | 'PAID';
   createdAt: Date;

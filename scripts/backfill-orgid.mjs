@@ -52,7 +52,8 @@ function fieldsToObj(fields) {
     else if ('booleanValue' in val) obj[key] = val.booleanValue;
     else if ('nullValue' in val) obj[key] = null;
     else if ('mapValue' in val) obj[key] = val.mapValue.fields || {};
-    else if ('arrayValue' in val) obj[key] = (val.arrayValue.values || []).map(v => fieldsToObj({_: v})._);
+    else if ('arrayValue' in val)
+      obj[key] = (val.arrayValue.values || []).map((v) => fieldsToObj({ _: v })._);
     else if ('timestampValue' in val) obj[key] = val.timestampValue;
     else if ('referenceValue' in val) obj[key] = val.referenceValue;
     else obj[key] = val;
@@ -76,7 +77,7 @@ function objToFields(obj) {
     } else if (typeof val === 'object' && !Array.isArray(val)) {
       fields[key] = { mapValue: { fields: objToFields(val) } };
     } else if (Array.isArray(val)) {
-      fields[key] = { arrayValue: { values: val.map(v => ({ stringValue: String(v) })) } };
+      fields[key] = { arrayValue: { values: val.map((v) => ({ stringValue: String(v) })) } };
     }
   }
   return fields;
@@ -89,10 +90,10 @@ async function listAllDocs(collection) {
     let url = `${BASE}/${collection}?pageSize=500`;
     if (pageToken) url += `&pageToken=${pageToken}`;
     const data = await fetchJson(url);
-    const docs = (data.documents || []).map(d => ({
+    const docs = (data.documents || []).map((d) => ({
       id: d.name.split('/').pop(),
       ...fieldsToObj(d.fields),
-      _updateUrl: d.name,  // full resource name for PATCH
+      _updateUrl: d.name, // full resource name for PATCH
     }));
     allDocs = allDocs.concat(docs);
     pageToken = data.nextPageToken;
@@ -131,12 +132,14 @@ async function main() {
   for (const collection of COLLECTIONS) {
     try {
       const docs = await listAllDocs(collection);
-      const needsOrgId = docs.filter(d => !d.orgId && d.id !== orgId); // skip the org doc itself
+      const needsOrgId = docs.filter((d) => !d.orgId && d.id !== orgId); // skip the org doc itself
       if (needsOrgId.length === 0) {
         console.log(`   ${collection}: ${docs.length} docs, all have orgId ✓`);
         continue;
       }
-      console.log(`   ${collection}: ${docs.length} docs, ${needsOrgId.length} missing orgId — updating...`);
+      console.log(
+        `   ${collection}: ${docs.length} docs, ${needsOrgId.length} missing orgId — updating...`,
+      );
       for (const doc of needsOrgId) {
         await patchDocument(doc._updateUrl, { orgId });
         totalUpdated++;
@@ -150,7 +153,7 @@ async function main() {
   console.log(`\n✅ Done! Total documents updated: ${totalUpdated}`);
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('Fatal:', err);
   process.exit(1);
 });

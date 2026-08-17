@@ -9,11 +9,7 @@ export class CreateLeaveRequestUseCase {
     private readonly auditRepo: AuditRepository,
   ) {}
 
-  async execute(
-    input: unknown,
-    orgId: string,
-    employeeId: string,
-  ): Promise<Result<LeaveRequest>> {
+  async execute(input: unknown, orgId: string, employeeId: string): Promise<Result<LeaveRequest>> {
     const parsed = leaveRequestSchema.safeParse(input);
     if (!parsed.success) {
       return err(new Error(parsed.error.errors[0]?.message ?? 'Invalid input'));
@@ -41,9 +37,7 @@ export class CreateLeaveRequestUseCase {
 
       return ok(leave);
     } catch (error) {
-      return err(
-        error instanceof Error ? error : new Error('Failed to create leave request'),
-      );
+      return err(error instanceof Error ? error : new Error('Failed to create leave request'));
     }
   }
 }
@@ -88,9 +82,7 @@ export class ReviewLeaveRequestUseCase {
 
       return ok(updated);
     } catch (error) {
-      return err(
-        error instanceof Error ? error : new Error('Failed to review leave request'),
-      );
+      return err(error instanceof Error ? error : new Error('Failed to review leave request'));
     }
   }
 }

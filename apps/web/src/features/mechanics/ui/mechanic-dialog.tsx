@@ -18,7 +18,12 @@ interface MechanicDialogProps {
   editingMechanic?: Mechanic | null;
 }
 
-export function MechanicDialog({ open, onOpenChange, onSuccess, editingMechanic }: MechanicDialogProps) {
+export function MechanicDialog({
+  open,
+  onOpenChange,
+  onSuccess,
+  editingMechanic,
+}: MechanicDialogProps) {
   const createMechanic = useCreateMechanic();
   const updateMechanic = useUpdateMechanic();
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -59,7 +64,10 @@ export function MechanicDialog({ open, onOpenChange, onSuccess, editingMechanic 
 
   const onSubmit = handleSubmit(async (data) => {
     if (editingMechanic) {
-      await updateMechanic.mutateAsync({ id: editingMechanic.id, data: data as unknown as Record<string, unknown> });
+      await updateMechanic.mutateAsync({
+        id: editingMechanic.id,
+        data: data as unknown as Record<string, unknown>,
+      });
       onSuccess?.(editingMechanic);
     } else {
       const result = await createMechanic.mutateAsync(data);
@@ -72,7 +80,7 @@ export function MechanicDialog({ open, onOpenChange, onSuccess, editingMechanic 
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       onClick={(e) => {
         if (e.target === overlayRef.current) onOpenChange(false);
       }}
@@ -94,7 +102,9 @@ export function MechanicDialog({ open, onOpenChange, onSuccess, editingMechanic 
             <div className="space-y-2">
               <Label htmlFor="storeName">Store Name</Label>
               <Input id="storeName" {...register('storeName')} />
-              {errors.storeName && <p className="text-destructive text-sm">{errors.storeName.message}</p>}
+              {errors.storeName && (
+                <p className="text-destructive text-sm">{errors.storeName.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Phone</Label>
@@ -104,14 +114,20 @@ export function MechanicDialog({ open, onOpenChange, onSuccess, editingMechanic 
             <div className="space-y-2">
               <Label htmlFor="address">Address</Label>
               <Input id="address" {...register('address')} />
-              {errors.address && <p className="text-destructive text-sm">{errors.address.message}</p>}
+              {errors.address && (
+                <p className="text-destructive text-sm">{errors.address.message}</p>
+              )}
             </div>
             {(createMechanic.isError || updateMechanic.isError) && (
               <p className="text-destructive text-sm">
                 {(createMechanic.error ?? updateMechanic.error)?.message}
               </p>
             )}
-            <Button type="submit" className="w-full" disabled={createMechanic.isPending || updateMechanic.isPending}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={createMechanic.isPending || updateMechanic.isPending}
+            >
               {createMechanic.isPending || updateMechanic.isPending
                 ? 'Saving…'
                 : editingMechanic

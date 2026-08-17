@@ -6,7 +6,7 @@ describe('firestore rules tenancy', () => {
   it('denies unauthenticated access by default', () => {
     const rules = readFileSync(resolve(__dirname, '../../../../firebase/firestore.rules'), 'utf8');
     expect(rules).toContain('allow read, write: if false');
-    expect(rules).toContain('belongsToOrg');
+    expect(rules).toContain('docBelongsToOrg');
     expect(rules).toContain('isOwner()');
   });
 

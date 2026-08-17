@@ -17,13 +17,21 @@ import type {
   StockMovement,
   StoreSettings,
   Supplier,
+  SupplierPurchaseEntry,
   TaskDraft,
   TaskStatusEvent,
   UserProfile,
   Vehicle,
   VehicleTask,
 } from '@car-spa/domain';
-import type { LeaveStatus, PaymentMode, SalaryStatus, StockMovementType, TaskStatus, UserRole } from '@car-spa/shared';
+import type {
+  LeaveStatus,
+  PaymentMode,
+  SalaryStatus,
+  StockMovementType,
+  TaskStatus,
+  UserRole,
+} from '@car-spa/shared';
 
 export interface AuthCredentials {
   email: string;
@@ -39,7 +47,8 @@ export interface SignUpData {
 export interface AuthRepository {
   signIn(credentials: AuthCredentials): Promise<AuthSession>;
   signUp(data: SignUpData): Promise<AuthSession>;
-  signInWithGoogle(): Promise<AuthSession>;
+  signInWithGoogle(): Promise<void>;
+  getRedirectResult(): Promise<AuthSession | null>;
   signOut(): Promise<void>;
   sendPasswordReset(email: string): Promise<void>;
   sendEmailVerification(): Promise<void>;
@@ -152,24 +161,40 @@ export interface CategoryRepository {
 
 export interface ProductRepository {
   findById(id: string): Promise<Product | null>;
+  findByIds(ids: string[]): Promise<Product[]>;
   findByCategoryId(categoryId: string): Promise<Product[]>;
   findByOrgId(orgId: string, options?: { limit?: number }): Promise<Product[]>;
   search(orgId: string, query: string): Promise<Product[]>;
   findBySku(sku: string): Promise<Product | null>;
   create(data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product>;
+  createWithSequence(input: {
+    orgId: string;
+    codePrefix: string;
+    actorId?: string;
+    data: Omit<Product, 'id' | 'orgId' | 'sku' | 'createdAt' | 'updatedAt'>;
+  }): Promise<Product>;
   update(id: string, data: Partial<Product>): Promise<Product>;
   delete(id: string): Promise<void>;
+  deleteMany(ids: string[]): Promise<void>;
   updateCurrentStock(id: string, quantity: number): Promise<void>;
   getLowStock(orgId: string, threshold: number): Promise<Product[]>;
   getStockValue(orgId: string): Promise<{ total: number; byCategory: Record<string, number> }>;
-  getTopSelling(orgId: string, days: number, limit: number): Promise<Array<{ productId: string; name: string; sku: string; totalSold: number }>>;
+  getTopSelling(
+    orgId: string,
+    days: number,
+    limit: number,
+  ): Promise<Array<{ productId: string; name: string; sku: string; totalSold: number }>>;
   getSlowMoving(orgId: string, days: number): Promise<Product[]>;
   bulkCreate(data: Array<Omit<Product, 'id' | 'createdAt' | 'updatedAt'>>): Promise<Product[]>;
 }
 
 export interface StockMovementRepository {
   findByProductId(productId: string, options?: { limit?: number }): Promise<StockMovement[]>;
-  findByOrgId(orgId: string, options?: { limit?: number; productId?: string }): Promise<StockMovement[]>;
+  findByOrgId(
+    orgId: string,
+    options?: { limit?: number; productId?: string },
+  ): Promise<StockMovement[]>;
+  findBySupplierId(supplierId: string, options?: { limit?: number }): Promise<StockMovement[]>;
   create(data: Omit<StockMovement, 'id' | 'createdAt'>): Promise<StockMovement>;
   getDerivedStock(productId: string): Promise<number>;
 }
@@ -181,12 +206,53 @@ export interface SupplierRepository {
   create(data: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt'>): Promise<Supplier>;
   update(id: string, data: Partial<Supplier>): Promise<Supplier>;
   delete(id: string): Promise<void>;
+  updateAmounts(
+    id: string,
+    delta: { totalAmount?: number; advanceAmount?: number },
+  ): Promise<Supplier>;
+}
+
+export interface SupplierPurchaseRepository {
+  findBySupplierId(
+    supplierId: string,
+    options?: { limit?: number },
+  ): Promise<SupplierPurchaseEntry[]>;
+  findByOrgId(orgId: string, options?: { limit?: number }): Promise<SupplierPurchaseEntry[]>;
+  create(data: Omit<SupplierPurchaseEntry, 'id' | 'createdAt'>): Promise<SupplierPurchaseEntry>;
 }
 
 export interface POSSaleRepository {
   findById(id: string): Promise<POSSale | null>;
   findByOrgId(orgId: string, options?: { limit?: number; offset?: string }): Promise<POSSale[]>;
   create(data: Omit<POSSale, 'id' | 'createdAt'>): Promise<POSSale>;
+  createSaleBatch(input: {
+    orgId: string;
+    customerId: string | null;
+    items: Array<{
+      id: string;
+      itemId: string;
+      itemName: string;
+      quantity: number;
+      unitPrice: number;
+      totalPrice: number;
+      serialNumbers?: string[] | null;
+    }>;
+    totalAmount: number;
+    paymentMode: PaymentMode;
+    receiptNumber: string;
+    createdBy: string;
+    movements: Array<Omit<StockMovement, 'id' | 'createdAt'>>;
+    stockDeltas: Array<{ productId: string; delta: number }>;
+    serializedItemIds?: string[];
+    customerSpendDelta?: number;
+    audit?: {
+      actorId: string;
+      action: string;
+      resourceType: string;
+      resourceId: string;
+      metadata?: Record<string, unknown>;
+    };
+  }): Promise<POSSale>;
   getDailyTotal(orgId: string): Promise<number>;
   getMonthlyTotal(orgId: string): Promise<number>;
 }
@@ -201,7 +267,10 @@ export interface MechanicRepository {
 }
 
 export interface MechanicLedgerRepository {
-  findByMechanicId(mechanicId: string, options?: { limit?: number }): Promise<MechanicLedgerEntry[]>;
+  findByMechanicId(
+    mechanicId: string,
+    options?: { limit?: number },
+  ): Promise<MechanicLedgerEntry[]>;
   findByOrgId(orgId: string, options?: { limit?: number }): Promise<MechanicLedgerEntry[]>;
   create(data: Omit<MechanicLedgerEntry, 'id' | 'createdAt'>): Promise<MechanicLedgerEntry>;
 }
@@ -234,10 +303,7 @@ export interface StoreSettingsRepository {
 
 export interface NotificationRepository {
   findById(id: string): Promise<NotificationLog | null>;
-  findByReference(
-    referenceType: string,
-    referenceId: string,
-  ): Promise<NotificationLog[]>;
+  findByReference(referenceType: string, referenceId: string): Promise<NotificationLog[]>;
   create(data: Omit<NotificationLog, 'id' | 'createdAt'>): Promise<NotificationLog>;
   update(id: string, data: Partial<NotificationLog>): Promise<NotificationLog>;
   getFailedNotifications(orgId: string): Promise<NotificationLog[]>;
@@ -252,9 +318,14 @@ export interface DraftRepository {
 export interface SerializedItemRepository {
   findByProductId(productId: string, options?: { limit?: number }): Promise<SerializedItem[]>;
   findByOrgId(orgId: string, options?: { limit?: number }): Promise<SerializedItem[]>;
-  findAvailableByProductId(productId: string, options?: { limit?: number }): Promise<SerializedItem[]>;
+  findAvailableByProductId(
+    productId: string,
+    options?: { limit?: number },
+  ): Promise<SerializedItem[]>;
   create(data: Omit<SerializedItem, 'id' | 'createdAt' | 'updatedAt'>): Promise<SerializedItem>;
-  bulkCreate(data: Array<Omit<SerializedItem, 'id' | 'createdAt' | 'updatedAt'>>): Promise<SerializedItem[]>;
+  bulkCreate(
+    data: Array<Omit<SerializedItem, 'id' | 'createdAt' | 'updatedAt'>>,
+  ): Promise<SerializedItem[]>;
   createSerializedRestock(input: {
     orgId: string;
     productId: string;
@@ -264,4 +335,6 @@ export interface SerializedItemRepository {
   }): Promise<{ items: SerializedItem[]; movementId: string }>;
   update(id: string, data: Partial<SerializedItem>): Promise<SerializedItem>;
   delete(id: string): Promise<void>;
+  deleteMany(ids: string[]): Promise<void>;
+  bulkSetUnavailable(ids: string[]): Promise<void>;
 }

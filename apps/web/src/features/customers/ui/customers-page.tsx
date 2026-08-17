@@ -8,11 +8,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/shared/empty-state';
+import { PageHeader } from '@/components/shared/page-header';
 import { useCustomers, useCustomerSearch } from '../api/use-customers';
 import { CustomerDialog } from './customer-dialog';
 import type { Customer } from '@car-spa/domain';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
 
 export function CustomersPage() {
   const session = useAuthStore((s) => s.session);
@@ -25,7 +26,7 @@ export function CustomersPage() {
   const customersQuery = useCustomers(orgId);
   const searchQuery_ = useCustomerSearch(orgId, searchQuery);
   const isLoading = searchQuery ? searchQuery_.isLoading : customersQuery.isLoading;
-  const customers = searchQuery ? searchQuery_.data ?? [] : customersQuery.data ?? [];
+  const customers = searchQuery ? (searchQuery_.data ?? []) : (customersQuery.data ?? []);
 
   const totalPages = Math.max(1, Math.ceil(customers.length / PAGE_SIZE));
   const paged = customers.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -41,13 +42,20 @@ export function CustomersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-3xl tracking-tight">Customers</h1>
-        <Button onClick={() => setDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Customer
-        </Button>
-      </div>
+      <PageHeader
+        eyebrow="Customers"
+        title="Customers"
+        description="Manage your customers and their visits."
+        action={
+          <Button
+            className="bg-gradient-to-r from-sky-600 to-blue-600 shadow-md shadow-blue-900/25 hover:from-sky-500 hover:to-blue-500"
+            onClick={() => setDialogOpen(true)}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Customer
+          </Button>
+        }
+      />
 
       <div className="relative">
         <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
@@ -78,9 +86,7 @@ export function CustomersPage() {
         <EmptyState
           title="No customers found"
           description={
-            searchQuery
-              ? 'Try a different search term.'
-              : 'Add your first customer to get started.'
+            searchQuery ? 'Try a different search term.' : 'Add your first customer to get started.'
           }
         />
       ) : (
@@ -135,7 +141,7 @@ export function CustomersPage() {
 
 function CustomerCard({ customer }: { customer: Customer }) {
   return (
-    <Card className="transition-colors hover:border-muted-foreground/30">
+    <Card className="hover:border-muted-foreground/30 transition-colors">
       <CardContent className="p-4">
         <div className="flex items-center gap-3">
           <div className="bg-muted flex h-10 w-10 items-center justify-center rounded-full">

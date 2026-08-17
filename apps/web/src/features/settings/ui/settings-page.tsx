@@ -22,6 +22,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuthStore } from '@/features/authentication/stores/auth-store';
 import { useCategories } from '@/features/inventory/api/use-inventory';
+import { NotificationTemplateCard } from '@/features/settings/ui/notification-template-card';
+import { PaginationControls } from '@/components/shared/pagination';
+import { PageHeader } from '@/components/shared/page-header';
 import { useTheme } from 'next-themes';
 
 export function SettingsPage() {
@@ -35,6 +38,7 @@ export function SettingsPage() {
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [categoryPage, setCategoryPage] = useState(0);
   const { theme, setTheme } = useTheme();
 
   const { data: existingSettings, isLoading: settingsLoading } = useQuery({
@@ -45,6 +49,14 @@ export function SettingsPage() {
 
   const categoriesQ = useCategories(orgId ?? '');
   const categories = categoriesQ.data ?? [];
+
+  const CATEGORY_PAGE_SIZE = 5;
+  const categoryTotalPages = Math.max(1, Math.ceil(categories.length / CATEGORY_PAGE_SIZE));
+  const safeCategoryPage = Math.min(categoryPage, categoryTotalPages - 1);
+  const pagedCategories = categories.slice(
+    safeCategoryPage * CATEGORY_PAGE_SIZE,
+    (safeCategoryPage + 1) * CATEGORY_PAGE_SIZE,
+  );
 
   const settingsForm = useForm({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -61,6 +73,7 @@ export function SettingsPage() {
       whatsappApiKey: '',
       whatsappPhoneNumberId: '',
       whatsappTemplateId: '',
+      whatsappTwilioFromNumber: '',
       workingDaysPerMonth: 26,
       defaultLeaveType: 'UNPAID',
     },
@@ -80,6 +93,7 @@ export function SettingsPage() {
         whatsappApiKey: existingSettings.whatsappApiKey ?? '',
         whatsappPhoneNumberId: existingSettings.whatsappPhoneNumberId ?? '',
         whatsappTemplateId: existingSettings.whatsappTemplateId ?? '',
+        whatsappTwilioFromNumber: existingSettings.whatsappTwilioFromNumber ?? '',
         workingDaysPerMonth: existingSettings.workingDaysPerMonth,
         defaultLeaveType: existingSettings.defaultLeaveType,
       });
@@ -116,7 +130,13 @@ export function SettingsPage() {
   });
 
   const changePasswordMutation = useMutation({
-    mutationFn: async ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) => {
+    mutationFn: async ({
+      currentPassword,
+      newPassword,
+    }: {
+      currentPassword: string;
+      newPassword: string;
+    }) => {
       const auth = getFirebaseAuth();
       const user = auth.currentUser;
       if (!user || !user.email) throw new Error('No authenticated user found');
@@ -151,10 +171,11 @@ export function SettingsPage() {
       transition={{ duration: 0.4 }}
       className="space-y-6"
     >
-      <div>
-        <h1 className="font-display text-3xl tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">Workshop preferences and account settings.</p>
-      </div>
+      <PageHeader
+        eyebrow="Settings"
+        title="Settings"
+        description="Workshop preferences and account settings."
+      />
 
       <Card>
         <CardHeader>
@@ -175,7 +196,9 @@ export function SettingsPage() {
                 <Label htmlFor="storeName">Store name</Label>
                 <Input id="storeName" {...settingsForm.register('storeName')} />
                 {settingsForm.formState.errors.storeName && (
-                  <p className="text-destructive text-sm">{settingsForm.formState.errors.storeName.message}</p>
+                  <p className="text-destructive text-sm">
+                    {settingsForm.formState.errors.storeName.message}
+                  </p>
                 )}
               </div>
 
@@ -193,7 +216,9 @@ export function SettingsPage() {
                   <Label htmlFor="email">Email</Label>
                   <Input id="email" type="email" {...settingsForm.register('email')} />
                   {settingsForm.formState.errors.email && (
-                    <p className="text-destructive text-sm">{settingsForm.formState.errors.email.message}</p>
+                    <p className="text-destructive text-sm">
+                      {settingsForm.formState.errors.email.message}
+                    </p>
                   )}
                 </div>
               </div>
@@ -212,7 +237,9 @@ export function SettingsPage() {
                     {...settingsForm.register('taxRate', { valueAsNumber: true })}
                   />
                   {settingsForm.formState.errors.taxRate && (
-                    <p className="text-destructive text-sm">{settingsForm.formState.errors.taxRate.message}</p>
+                    <p className="text-destructive text-sm">
+                      {settingsForm.formState.errors.taxRate.message}
+                    </p>
                   )}
                 </div>
               </div>
@@ -239,7 +266,8 @@ export function SettingsPage() {
                   >
                     <option value="NONE">Disabled</option>
                     <option value="META">Meta (WhatsApp Business Cloud API)</option>
-                    <option value="TWILIO">Twilio (not yet supported by the sender)</option>
+                    <option value="TWILIO">Twilio</option>
+                    <option value="WASENDER">WasenderAPI</option>
                   </select>
                 </div>
                 {settingsForm.watch('whatsappProvider') === 'META' && (
@@ -256,7 +284,10 @@ export function SettingsPage() {
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
                         <Label htmlFor="whatsappPhoneNumberId">Phone number ID</Label>
-                        <Input id="whatsappPhoneNumberId" {...settingsForm.register('whatsappPhoneNumberId')} />
+                        <Input
+                          id="whatsappPhoneNumberId"
+                          {...settingsForm.register('whatsappPhoneNumberId')}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="whatsappTemplateId">Template name</Label>
@@ -266,6 +297,40 @@ export function SettingsPage() {
                           {...settingsForm.register('whatsappTemplateId')}
                         />
                       </div>
+                    </div>
+                  </>
+                )}
+                {settingsForm.watch('whatsappProvider') === 'TWILIO' && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="whatsappTwilioFromNumber">Twilio sender number</Label>
+                      <Input
+                        id="whatsappTwilioFromNumber"
+                        placeholder="+14155238886"
+                        {...settingsForm.register('whatsappTwilioFromNumber')}
+                      />
+                      <p className="text-muted-foreground text-xs">
+                        The WhatsApp-enabled phone number messages are sent from (e.g.
+                        +14155238886).
+                      </p>
+                    </div>
+                  </>
+                )}
+                {settingsForm.watch('whatsappProvider') === 'WASENDER' && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="whatsappApiKey">WasenderAPI Session Token</Label>
+                      <Input
+                        id="whatsappApiKey"
+                        type="password"
+                        placeholder="Paste your WasenderAPI session token"
+                        {...settingsForm.register('whatsappApiKey')}
+                      />
+                      <p className="text-muted-foreground text-xs">
+                        Get this from <strong>wasenderapi.com</strong> after creating a WhatsApp
+                        session. It is the Bearer token used to authenticate API requests. Messages
+                        are sent from the WhatsApp number linked to this session.
+                      </p>
                     </div>
                   </>
                 )}
@@ -298,12 +363,8 @@ export function SettingsPage() {
                 </div>
               </div>
 
-              {settingsSuccess && (
-                <p className="text-emerald-600 text-sm">{settingsSuccess}</p>
-              )}
-              {settingsError && (
-                <p className="text-destructive text-sm">{settingsError}</p>
-              )}
+              {settingsSuccess && <p className="text-sm text-emerald-600">{settingsSuccess}</p>}
+              {settingsError && <p className="text-destructive text-sm">{settingsError}</p>}
 
               <Button type="submit" disabled={updateSettingsMutation.isPending}>
                 <Save className="h-4 w-4" />
@@ -314,6 +375,10 @@ export function SettingsPage() {
         </CardContent>
       </Card>
 
+      {orgId && actorId && (
+        <NotificationTemplateCard orgId={orgId} actorId={actorId} canEdit={canManageSettings} />
+      )}
+
       {canManageSettings && (
         <Card>
           <CardHeader>
@@ -322,8 +387,8 @@ export function SettingsPage() {
               <CardTitle>Product Names</CardTitle>
             </div>
             <CardDescription>
-              Predefined product names per category. Shown as a dropdown when adding products, with a
-              &quot;New&quot; option to add more.
+              Predefined product names per category. Shown as a dropdown when adding products, with
+              a &quot;New&quot; option to add more.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -334,11 +399,20 @@ export function SettingsPage() {
                 No categories yet. Create categories in Inventory first.
               </p>
             ) : (
-              <div className="space-y-3">
-                {categories.map((cat) => (
-                  <CategoryProductNamesEditor key={cat.id} category={cat} />
-                ))}
-              </div>
+              <>
+                <div className="space-y-3">
+                  {pagedCategories.map((cat) => (
+                    <CategoryProductNamesEditor key={cat.id} category={cat} />
+                  ))}
+                </div>
+                <PaginationControls
+                  page={safeCategoryPage}
+                  totalPages={categoryTotalPages}
+                  onPageChange={setCategoryPage}
+                  itemCount={categories.length}
+                  itemLabel="categories"
+                />
+              </>
             )}
           </CardContent>
         </Card>
@@ -347,7 +421,11 @@ export function SettingsPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            {theme === 'dark' ? <Moon className="text-muted-foreground h-5 w-5" /> : <Sun className="text-muted-foreground h-5 w-5" />}
+            {theme === 'dark' ? (
+              <Moon className="text-muted-foreground h-5 w-5" />
+            ) : (
+              <Sun className="text-muted-foreground h-5 w-5" />
+            )}
             <CardTitle>Theme</CardTitle>
           </div>
           <CardDescription>Switch between light and dark mode.</CardDescription>
@@ -359,7 +437,7 @@ export function SettingsPage() {
               onClick={() => setTheme('light')}
               className="flex-1"
             >
-              <Sun className="h-4 w-4 mr-2" />
+              <Sun className="mr-2 h-4 w-4" />
               Light
             </Button>
             <Button
@@ -367,7 +445,7 @@ export function SettingsPage() {
               onClick={() => setTheme('dark')}
               className="flex-1"
             >
-              <Moon className="h-4 w-4 mr-2" />
+              <Moon className="mr-2 h-4 w-4" />
               Dark
             </Button>
           </div>
@@ -400,11 +478,7 @@ export function SettingsPage() {
 
             <div className="space-y-2">
               <Label htmlFor="newPassword">New password</Label>
-              <Input
-                id="newPassword"
-                type="password"
-                {...passwordForm.register('newPassword')}
-              />
+              <Input id="newPassword" type="password" {...passwordForm.register('newPassword')} />
               {passwordForm.formState.errors.newPassword && (
                 <p className="text-destructive text-sm">
                   {passwordForm.formState.errors.newPassword.message}
@@ -426,12 +500,8 @@ export function SettingsPage() {
               )}
             </div>
 
-            {passwordSuccess && (
-              <p className="text-emerald-600 text-sm">{passwordSuccess}</p>
-            )}
-            {passwordError && (
-              <p className="text-destructive text-sm">{passwordError}</p>
-            )}
+            {passwordSuccess && <p className="text-sm text-emerald-600">{passwordSuccess}</p>}
+            {passwordError && <p className="text-destructive text-sm">{passwordError}</p>}
 
             <Button type="submit" disabled={changePasswordMutation.isPending}>
               <Lock className="h-4 w-4" />
@@ -490,9 +560,7 @@ function CategoryProductNamesEditor({ category }: { category: Category }) {
     <div className="space-y-3 rounded-md border p-3">
       <p className="text-sm font-medium">
         {category.name}{' '}
-        <span className="text-muted-foreground text-xs font-normal">
-          ({category.codePrefix})
-        </span>
+        <span className="text-muted-foreground text-xs font-normal">({category.codePrefix})</span>
       </p>
       <div className="flex gap-2">
         <Input
@@ -507,7 +575,13 @@ function CategoryProductNamesEditor({ category }: { category: Category }) {
           placeholder="Add a name (e.g. MRF)"
           className="text-sm"
         />
-        <Button type="button" variant="outline" size="sm" onClick={addName} disabled={!newName.trim()}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={addName}
+          disabled={!newName.trim()}
+        >
           Add
         </Button>
       </div>
@@ -533,7 +607,7 @@ function CategoryProductNamesEditor({ category }: { category: Category }) {
         <Button type="button" size="sm" onClick={handleSave} disabled={saving || !dirty}>
           {saving ? 'Saving...' : 'Save'}
         </Button>
-        {saved && <span className="text-emerald-600 text-sm">Saved</span>}
+        {saved && <span className="text-sm text-emerald-600">Saved</span>}
         {error && <span className="text-destructive text-sm">{error}</span>}
       </div>
     </div>

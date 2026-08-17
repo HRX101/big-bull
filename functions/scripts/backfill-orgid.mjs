@@ -42,7 +42,7 @@ async function main() {
     process.exit(1);
   }
   const orgs = [];
-  orgsSnap.forEach(d => orgs.push({ id: d.id, ...d.data() }));
+  orgsSnap.forEach((d) => orgs.push({ id: d.id, ...d.data() }));
   for (const org of orgs) {
     console.log(`   - id: ${org.id}, slug: ${org.slug || '(no slug)'}`);
   }
@@ -60,7 +60,7 @@ async function main() {
       }
       const batch = db.batch();
       let count = 0;
-      snap.forEach(d => {
+      snap.forEach((d) => {
         const data = d.data();
         if (!data.orgId && d.id !== orgId) {
           batch.update(d.ref, { orgId });
@@ -82,7 +82,7 @@ async function main() {
   console.log(`\n✅ Done! Total documents updated: ${totalUpdated}`);
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('Fatal:', err);
   process.exit(1);
 });

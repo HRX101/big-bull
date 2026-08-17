@@ -29,6 +29,9 @@ function mapSettings(id: string, data: Record<string, unknown>): StoreSettings {
     whatsappApiKey: data.whatsappApiKey ? String(data.whatsappApiKey) : null,
     whatsappPhoneNumberId: data.whatsappPhoneNumberId ? String(data.whatsappPhoneNumberId) : null,
     whatsappTemplateId: data.whatsappTemplateId ? String(data.whatsappTemplateId) : null,
+    whatsappTwilioFromNumber: data.whatsappTwilioFromNumber
+      ? String(data.whatsappTwilioFromNumber)
+      : null,
     workingDaysPerMonth: Number(data.workingDaysPerMonth) || 26,
     defaultLeaveType: (data.defaultLeaveType as StoreSettings['defaultLeaveType']) || 'UNPAID',
     createdAt: fromFirestoreDate(data.createdAt),

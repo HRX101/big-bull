@@ -25,7 +25,9 @@ function mapVehicleTask(id: string, data: Record<string, unknown>): VehicleTask 
     customerId: String(data.customerId),
     vehicleId: String(data.vehicleId),
     serviceIds: Array.isArray(data.serviceIds) ? data.serviceIds.map(String) : [],
-    status: (['RECEIVED', 'IN_PROGRESS', 'READY_FOR_PICKUP', 'COMPLETED', 'CANCELLED'].includes(status)
+    status: (['RECEIVED', 'IN_PROGRESS', 'READY_FOR_PICKUP', 'COMPLETED', 'CANCELLED'].includes(
+      status,
+    )
       ? status
       : 'RECEIVED') as TaskStatus,
     paymentMode: (data.paymentMode as VehicleTask['paymentMode']) || 'CASH',
@@ -49,7 +51,10 @@ export class FirestoreVehicleTaskRepository implements VehicleTaskRepository {
     return mapVehicleTask(snapshot.id, snapshot.data());
   }
 
-  async findByOrgId(orgId: string, options?: { status?: TaskStatus; limit?: number; offset?: string }) {
+  async findByOrgId(
+    orgId: string,
+    options?: { status?: TaskStatus; limit?: number; offset?: string },
+  ) {
     let q = query(
       collection(getFirebaseDb(), COLLECTIONS.vehicleTasks),
       where('orgId', '==', orgId),

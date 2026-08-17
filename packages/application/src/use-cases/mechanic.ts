@@ -9,11 +9,7 @@ export class CreateMechanicUseCase {
     private readonly auditRepo: AuditRepository,
   ) {}
 
-  async execute(
-    input: unknown,
-    orgId: string,
-    actorId: string,
-  ): Promise<Result<Mechanic>> {
+  async execute(input: unknown, orgId: string, actorId: string): Promise<Result<Mechanic>> {
     const parsed = mechanicSchema.safeParse(input);
     if (!parsed.success) {
       return err(new Error(parsed.error.errors[0]?.message ?? 'Invalid input'));
@@ -39,9 +35,7 @@ export class CreateMechanicUseCase {
 
       return ok(mechanic);
     } catch (error) {
-      return err(
-        error instanceof Error ? error : new Error('Failed to create mechanic'),
-      );
+      return err(error instanceof Error ? error : new Error('Failed to create mechanic'));
     }
   }
 }
@@ -68,8 +62,7 @@ export class AddMechanicLedgerEntryUseCase {
         return err(new Error('Mechanic not found'));
       }
 
-      const delta =
-        parsed.data.type === 'DEBIT' ? parsed.data.amount : -parsed.data.amount;
+      const delta = parsed.data.type === 'DEBIT' ? parsed.data.amount : -parsed.data.amount;
 
       await this.mechanicRepo.updateBalance(mechanic.id, delta);
 
@@ -96,9 +89,7 @@ export class AddMechanicLedgerEntryUseCase {
 
       return ok(entry);
     } catch (error) {
-      return err(
-        error instanceof Error ? error : new Error('Failed to add ledger entry'),
-      );
+      return err(error instanceof Error ? error : new Error('Failed to add ledger entry'));
     }
   }
 }

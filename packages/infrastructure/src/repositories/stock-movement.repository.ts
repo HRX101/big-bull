@@ -54,6 +54,16 @@ export class FirestoreStockMovementRepository implements StockMovementRepository
     return snapshot.docs.map((d) => mapMovement(d.id, d.data()));
   }
 
+  async findBySupplierId(supplierId: string, options?: { limit?: number }) {
+    let q = query(
+      collection(getFirebaseDb(), COLLECTIONS.stockMovements),
+      where('supplierId', '==', supplierId),
+    );
+    if (options?.limit) q = query(q, firestoreLimit(options.limit));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => mapMovement(d.id, d.data()));
+  }
+
   async create(data: Omit<StockMovement, 'id' | 'createdAt'>) {
     const ref = await addDoc(collection(getFirebaseDb(), COLLECTIONS.stockMovements), {
       ...data,

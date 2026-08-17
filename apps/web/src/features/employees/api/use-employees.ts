@@ -1,9 +1,16 @@
 'use client';
 
-import { membershipRepository, userRepository, leaveRequestRepository, createLeaveRequestUseCase, reviewLeaveRequestUseCase, getFirebaseAuth } from '@car-spa/infrastructure';
+import {
+  membershipRepository,
+  userRepository,
+  leaveRequestRepository,
+  createLeaveRequestUseCase,
+  reviewLeaveRequestUseCase,
+  getFirebaseAuth,
+} from '@car-spa/infrastructure';
 import { useAuthStore } from '@/features/authentication/stores/auth-store';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, type UserCredential } from 'firebase/auth';
 import type { Membership, UserProfile } from '@car-spa/domain';
 
 export type EmployeeWithMembership = UserProfile & { membership: Membership | null };
@@ -29,7 +36,9 @@ function friendlyAuthError(error: unknown): Error {
   const code = (error as { code?: string } | null)?.code ?? '';
   switch (code) {
     case 'auth/email-already-in-use':
-      return new Error('An employee account with this email already exists.');
+      return new Error(
+        'An account with this email already exists in the system. Use a different email.',
+      );
     case 'auth/invalid-email':
       return new Error('Enter a valid email address.');
     case 'auth/weak-password':
@@ -56,9 +65,14 @@ export function useCreateEmployee() {
       minWorkDays?: number | null;
     }) => {
       if (!session?.orgId) throw new Error('No session');
+      const auth = getFirebaseAuth();
+      let cred: UserCredential;
       try {
-        const auth = getFirebaseAuth();
-        const cred = await createUserWithEmailAndPassword(auth, input.email, input.password);
+        cred = await createUserWithEmailAndPassword(auth, input.email, input.password);
+      } catch (error) {
+        throw friendlyAuthError(error);
+      }
+      try {
         const userId = cred.user.uid;
         await membershipRepository.create({
           userId,
@@ -78,6 +92,7 @@ export function useCreateEmployee() {
         });
         return userId;
       } catch (error) {
+        await cred.user.delete().catch(() => undefined);
         throw friendlyAuthError(error);
       }
     },

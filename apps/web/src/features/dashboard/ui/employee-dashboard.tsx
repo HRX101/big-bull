@@ -21,24 +21,25 @@ import {
   Users,
   Wrench,
   XCircle,
+  Car,
   type LucideIcon,
 } from 'lucide-react';
-import { auditRepository, customerRepository, userRepository, vehicleRepository, vehicleTaskRepository } from '@car-spa/infrastructure';
+import {
+  auditRepository,
+  customerRepository,
+  userRepository,
+  vehicleRepository,
+  vehicleTaskRepository,
+} from '@car-spa/infrastructure';
 import { PROTECTED_ROUTES, type TaskStatus } from '@car-spa/shared';
 import { useAuthStore } from '@/features/authentication/stores/auth-store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/shared/empty-state';
+import { PageHeader } from '@/components/shared/page-header';
 import type { AuditLogEntry, Vehicle, VehicleTask } from '@car-spa/domain';
-
-const TASK_STYLES: Record<string, string> = {
-  RECEIVED: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  IN_PROGRESS: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  READY_FOR_PICKUP: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  COMPLETED: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  CANCELLED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-};
 
 const PENDING_TASK_STATUSES: TaskStatus[] = ['RECEIVED', 'IN_PROGRESS', 'READY_FOR_PICKUP'];
 
@@ -49,6 +50,23 @@ const TASK_STATUS_LABELS: Record<string, string> = {
   COMPLETED: 'Completed',
   CANCELLED: 'Cancelled',
 };
+
+function taskBadgeVariant(status: string) {
+  switch (status) {
+    case 'RECEIVED':
+      return 'info';
+    case 'IN_PROGRESS':
+      return 'warning';
+    case 'READY_FOR_PICKUP':
+      return 'purple';
+    case 'COMPLETED':
+      return 'success';
+    case 'CANCELLED':
+      return 'red';
+    default:
+      return 'secondary';
+  }
+}
 
 function formatAmount(amount: unknown) {
   const n = Number(amount);
@@ -109,24 +127,35 @@ function describeAction(entry: AuditLogEntry): { icon: LucideIcon; text: string 
   }
 }
 
-function TaskTodoRow({ task, customerName, vehicle }: { task: VehicleTask; customerName: string; vehicle: Vehicle | null }) {
+function TaskTodoRow({
+  task,
+  customerName,
+  vehicle,
+}: {
+  task: VehicleTask;
+  customerName: string;
+  vehicle: Vehicle | null;
+}) {
   return (
-    <div className="border-border flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
-      <div className="min-w-0">
+    <div className="border-border/60 bg-card hover:border-primary/40 flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm transition-colors">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/15 text-blue-500">
+        <Car className="h-4 w-4" />
+      </span>
+      <div className="min-w-0 flex-1">
         <p className="truncate font-medium">{customerName}</p>
-        <p className="text-muted-foreground text-xs">
+        <p className="text-muted-foreground truncate text-xs">
           {vehicle ? `${vehicle.brand} ${vehicle.model} · ${vehicle.vehicleNumber}` : 'Vehicle'}
           {task.notes ? ` · ${task.notes}` : ''}
         </p>
       </div>
-      <div className="flex shrink-0 items-center gap-2">
-        {task.totalAmount > 0 && (
-          <span className="text-muted-foreground text-xs">₹{task.totalAmount.toLocaleString('en-IN')}</span>
-        )}
-        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${TASK_STYLES[task.status] ?? ''}`}>
-          {TASK_STATUS_LABELS[task.status] ?? task.status}
+      {task.totalAmount > 0 && (
+        <span className="text-muted-foreground shrink-0 text-xs font-medium">
+          ₹{task.totalAmount.toLocaleString('en-IN')}
         </span>
-      </div>
+      )}
+      <Badge variant={taskBadgeVariant(task.status)}>
+        {TASK_STATUS_LABELS[task.status] ?? task.status}
+      </Badge>
     </div>
   );
 }
@@ -143,11 +172,23 @@ function PaginationControls({
   const safePage = Math.min(page, totalPages);
   return (
     <div className="flex items-center justify-center gap-3 pt-2">
-      <Button variant="outline" size="sm" disabled={safePage <= 1} onClick={() => onPageChange(safePage - 1)}>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={safePage <= 1}
+        onClick={() => onPageChange(safePage - 1)}
+      >
         <ChevronLeft className="h-4 w-4" />
       </Button>
-      <span className="text-sm text-muted-foreground">Page {safePage} of {totalPages}</span>
-      <Button variant="outline" size="sm" disabled={safePage >= totalPages} onClick={() => onPageChange(safePage + 1)}>
+      <span className="text-muted-foreground text-sm">
+        Page {safePage} of {totalPages}
+      </span>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={safePage >= totalPages}
+        onClick={() => onPageChange(safePage + 1)}
+      >
         <ChevronRight className="h-4 w-4" />
       </Button>
     </div>
@@ -186,10 +227,11 @@ export function EmployeeDashboard() {
   const [taskPage, setTaskPage] = useState(1);
   const [activityPage, setActivityPage] = useState(1);
   const TASK_PAGE_SIZE = 5;
-  const ACTIVITY_PAGE_SIZE = 10;
+  const ACTIVITY_PAGE_SIZE = 5;
 
   const users = usersQ.data ?? [];
-  const nameOf = (userId: string) => users.find((u) => u.id === userId)?.displayName ?? 'Team member';
+  const nameOf = (userId: string) =>
+    users.find((u) => u.id === userId)?.displayName ?? 'Team member';
 
   const customerById = useMemo(
     () => new Map((customersQ.data ?? []).map((c) => [c.id, c])),
@@ -204,15 +246,25 @@ export function EmployeeDashboard() {
   const pendingTasks = allTasks.filter((t) => PENDING_TASK_STATUSES.includes(t.status));
   const feed = logsQ.data ?? [];
   const loading =
-    usersQ.isLoading || logsQ.isLoading || tasksQ.isLoading || customersQ.isLoading || vehiclesQ.isLoading;
+    usersQ.isLoading ||
+    logsQ.isLoading ||
+    tasksQ.isLoading ||
+    customersQ.isLoading ||
+    vehiclesQ.isLoading;
 
   const taskTotalPages = Math.max(1, Math.ceil(pendingTasks.length / TASK_PAGE_SIZE));
   const safeTaskPage = Math.min(taskPage, taskTotalPages);
-  const paginatedTasks = pendingTasks.slice((safeTaskPage - 1) * TASK_PAGE_SIZE, safeTaskPage * TASK_PAGE_SIZE);
+  const paginatedTasks = pendingTasks.slice(
+    (safeTaskPage - 1) * TASK_PAGE_SIZE,
+    safeTaskPage * TASK_PAGE_SIZE,
+  );
 
   const activityTotalPages = Math.max(1, Math.ceil(feed.length / ACTIVITY_PAGE_SIZE));
   const safeActivityPage = Math.min(activityPage, activityTotalPages);
-  const paginatedFeed = feed.slice((safeActivityPage - 1) * ACTIVITY_PAGE_SIZE, safeActivityPage * ACTIVITY_PAGE_SIZE);
+  const paginatedFeed = feed.slice(
+    (safeActivityPage - 1) * ACTIVITY_PAGE_SIZE,
+    safeActivityPage * ACTIVITY_PAGE_SIZE,
+  );
 
   return (
     <motion.div
@@ -221,17 +273,24 @@ export function EmployeeDashboard() {
       transition={{ duration: 0.4 }}
       className="space-y-6"
     >
-      <div>
-        <h1 className="font-display text-3xl tracking-tight">Team Dashboard</h1>
-        <p className="text-muted-foreground">Pending work and activity across the workshop.</p>
-      </div>
+      <PageHeader
+        eyebrow="Team"
+        title="Team Dashboard"
+        description="Pending work and activity across the workshop."
+      />
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle className="flex items-center gap-2">
-            <ClipboardList className="h-4 w-4" />
+            <ClipboardList className="text-primary h-4 w-4" />
             Todo
           </CardTitle>
+          <Link
+            href={PROTECTED_ROUTES.vehicleTasks}
+            className="text-muted-foreground hover:text-foreground text-xs font-medium"
+          >
+            View all
+          </Link>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -241,34 +300,34 @@ export function EmployeeDashboard() {
               ))}
             </div>
           ) : pendingTasks.length === 0 ? (
-            <p className="text-muted-foreground rounded-md border border-dashed px-3 py-8 text-center text-sm">
+            <p className="text-muted-foreground rounded-xl border border-dashed px-3 py-8 text-center text-sm">
               No pending vehicle tasks.
             </p>
           ) : (
-            <div className="space-y-2">
+            <>
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
+                <p className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
                   Vehicle Tasks · {pendingTasks.length}
                 </p>
-                <Link
-                  href={PROTECTED_ROUTES.vehicleTasks}
-                  className="text-muted-foreground hover:text-foreground text-xs font-medium"
-                >
-                  View all
-                </Link>
               </div>
-              {paginatedTasks.map((task) => (
-                <TaskTodoRow
-                  key={task.id}
-                  task={task}
-                  customerName={customerById.get(task.customerId)?.name ?? 'Customer'}
-                  vehicle={vehicleById.get(task.vehicleId) ?? null}
-                />
-              ))}
+              <div className="space-y-2">
+                {paginatedTasks.map((task) => (
+                  <TaskTodoRow
+                    key={task.id}
+                    task={task}
+                    customerName={customerById.get(task.customerId)?.name ?? 'Customer'}
+                    vehicle={vehicleById.get(task.vehicleId) ?? null}
+                  />
+                ))}
+              </div>
               {taskTotalPages > 1 && (
-                <PaginationControls page={safeTaskPage} totalPages={taskTotalPages} onPageChange={setTaskPage} />
+                <PaginationControls
+                  page={safeTaskPage}
+                  totalPages={taskTotalPages}
+                  onPageChange={setTaskPage}
+                />
               )}
-            </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -276,7 +335,7 @@ export function EmployeeDashboard() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Activity className="h-4 w-4" />
+            <Activity className="text-primary h-4 w-4" />
             Activity
           </CardTitle>
         </CardHeader>
@@ -288,7 +347,10 @@ export function EmployeeDashboard() {
               ))}
             </div>
           ) : feed.length === 0 ? (
-            <EmptyState title="No activity yet" description="Actions across the workshop will appear here." />
+            <EmptyState
+              title="No activity yet"
+              description="Actions across the workshop will appear here."
+            />
           ) : (
             <>
               <div className="space-y-2">
@@ -297,24 +359,30 @@ export function EmployeeDashboard() {
                   return (
                     <div
                       key={entry.id}
-                      className="border-border flex items-start gap-3 rounded-md border px-3 py-2 text-sm"
+                      className="border-border/60 bg-card hover:border-border flex items-start gap-3 rounded-xl border px-3 py-2.5 text-sm transition-colors"
                     >
-                      <span className="bg-muted text-muted-foreground mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full">
-                        <Icon className="h-3.5 w-3.5" />
+                      <span className="bg-muted/70 text-muted-foreground mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl">
+                        <Icon className="h-4 w-4" />
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="break-words">
                           <span className="font-medium">{nameOf(entry.actorId)}</span>{' '}
                           <span className="text-muted-foreground">{text}</span>
                         </p>
-                        <p className="text-muted-foreground text-xs">{formatTime(entry.createdAt)}</p>
+                        <p className="text-muted-foreground text-xs">
+                          {formatTime(entry.createdAt)}
+                        </p>
                       </div>
                     </div>
                   );
                 })}
               </div>
               {activityTotalPages > 1 && (
-                <PaginationControls page={safeActivityPage} totalPages={activityTotalPages} onPageChange={setActivityPage} />
+                <PaginationControls
+                  page={safeActivityPage}
+                  totalPages={activityTotalPages}
+                  onPageChange={setActivityPage}
+                />
               )}
             </>
           )}

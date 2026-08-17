@@ -29,10 +29,7 @@ function mapDraft(id: string, data: Record<string, unknown>): TaskDraft {
 
 export class FirestoreDraftRepository implements DraftRepository {
   async findByUserAndType(userId: string, type: string) {
-    const q = query(
-      collection(getFirebaseDb(), COLLECTIONS.drafts),
-      where('userId', '==', userId),
-    );
+    const q = query(collection(getFirebaseDb(), COLLECTIONS.drafts), where('userId', '==', userId));
     const snapshot = await getDocs(q);
     const first = snapshot.docs[0];
     if (!first) return null;

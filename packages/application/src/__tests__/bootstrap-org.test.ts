@@ -28,6 +28,7 @@ describe('BootstrapDefaultOrgUseCase', () => {
       signIn: vi.fn(),
       signUp: vi.fn(),
       signInWithGoogle: vi.fn(),
+      getRedirectResult: vi.fn().mockResolvedValue(null),
       signOut: vi.fn(),
       sendPasswordReset: vi.fn(),
       sendEmailVerification: vi.fn(),

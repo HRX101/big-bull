@@ -1,12 +1,25 @@
 'use client';
 
 import { useAuthStore } from '@/features/authentication/stores/auth-store';
-import { UsersRound, Plus, UserCheck, UserX, Calendar, Check, X, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  UsersRound,
+  Plus,
+  UserCheck,
+  UserX,
+  Calendar,
+  Check,
+  X,
+  DollarSign,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/shared/empty-state';
+import { PageHeader } from '@/components/shared/page-header';
+import { PaginationControls } from '@/components/shared/pagination';
 import {
   useEmployees,
   useToggleEmployeeStatus,
@@ -27,7 +40,8 @@ const STATUS_BG: Record<string, string> = {
   REJECTED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
 };
 
-const LEAVE_PAGE_SIZE = 10;
+const LEAVE_PAGE_SIZE = 5;
+const EMPLOYEE_PAGE_SIZE = 5;
 
 export function EmployeesPage() {
   const session = useAuthStore((s) => s.session);
@@ -39,6 +53,7 @@ export function EmployeesPage() {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [leavePage, setLeavePage] = useState(0);
+  const [employeePage, setEmployeePage] = useState(0);
 
   const employeesQuery = useEmployees(orgId);
   const toggleStatus = useToggleEmployeeStatus();
@@ -54,7 +69,17 @@ export function EmployeesPage() {
   const leaveLoading = isOwner ? leaveRequestsQuery.isLoading : myLeaveRequestsQuery.isLoading;
   const leaveTotalPages = Math.max(1, Math.ceil(leaveData.length / LEAVE_PAGE_SIZE));
   const safeLeavePage = Math.min(leavePage, leaveTotalPages - 1);
-  const pagedLeaveData = leaveData.slice(safeLeavePage * LEAVE_PAGE_SIZE, (safeLeavePage + 1) * LEAVE_PAGE_SIZE);
+  const pagedLeaveData = leaveData.slice(
+    safeLeavePage * LEAVE_PAGE_SIZE,
+    (safeLeavePage + 1) * LEAVE_PAGE_SIZE,
+  );
+
+  const employeeTotalPages = Math.max(1, Math.ceil(employees.length / EMPLOYEE_PAGE_SIZE));
+  const safeEmployeePage = Math.min(employeePage, employeeTotalPages - 1);
+  const pagedEmployees = employees.slice(
+    safeEmployeePage * EMPLOYEE_PAGE_SIZE,
+    (safeEmployeePage + 1) * EMPLOYEE_PAGE_SIZE,
+  );
 
   const statusLabel: Record<string, string> = {
     PENDING: 'Pending',
@@ -74,35 +99,46 @@ export function EmployeesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl tracking-tight">{isOwner ? 'Employees' : 'My Portal'}</h1>
-          <p className="text-muted-foreground">
-            {isOwner ? 'Manage your team and their requests.' : 'Your leaves, salary and credited payments.'}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {isOwner && (
-            <Button onClick={() => setAddDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Employee
-            </Button>
-          )}
-          {!isOwner && (
-            <Button onClick={() => setLeaveDialogOpen(true)}>
-              <Calendar className="mr-2 h-4 w-4" />
-              Request Leave
-            </Button>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={isOwner ? 'Team' : 'Portal'}
+        title={isOwner ? 'Employees' : 'My Portal'}
+        description={
+          isOwner
+            ? 'Manage your team and their requests.'
+            : 'Your leaves, salary and credited payments.'
+        }
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            {isOwner && (
+              <Button
+                className="bg-gradient-to-r from-sky-600 to-blue-600 shadow-md shadow-blue-900/25 hover:from-sky-500 hover:to-blue-500"
+                onClick={() => setAddDialogOpen(true)}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Employee
+              </Button>
+            )}
+            {!isOwner && (
+              <Button
+                className="bg-gradient-to-r from-sky-600 to-blue-600 shadow-md shadow-blue-900/25 hover:from-sky-500 hover:to-blue-500"
+                onClick={() => setLeaveDialogOpen(true)}
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                Request Leave
+              </Button>
+            )}
+          </div>
+        }
+      />
 
       <div className="bg-muted inline-flex max-w-full overflow-x-auto rounded-md p-0.5">
         {isOwner && (
           <button
             onClick={() => setTab('employees')}
             className={`inline-flex shrink-0 items-center gap-2 rounded-sm px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
-              tab === 'employees' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              tab === 'employees'
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <UsersRound className="h-4 w-4" />
@@ -112,7 +148,9 @@ export function EmployeesPage() {
         <button
           onClick={() => setTab('leave-requests')}
           className={`inline-flex shrink-0 items-center gap-2 rounded-sm px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
-            tab === 'leave-requests' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            tab === 'leave-requests'
+              ? 'bg-card text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           <Calendar className="h-4 w-4" />
@@ -121,7 +159,9 @@ export function EmployeesPage() {
         <button
           onClick={() => setTab('salary')}
           className={`inline-flex shrink-0 items-center gap-2 rounded-sm px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
-            tab === 'salary' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            tab === 'salary'
+              ? 'bg-card text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           <DollarSign className="h-4 w-4" />
@@ -155,16 +195,27 @@ export function EmployeesPage() {
               }
             />
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {employees.map((emp) => (
-                <EmployeeCard
-                  key={emp.id}
-                  employee={emp}
-                  membership={emp.membership}
-                  onToggleStatus={(membershipId, active) => toggleStatus.mutate({ membershipId, active })}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {pagedEmployees.map((emp) => (
+                  <EmployeeCard
+                    key={emp.id}
+                    employee={emp}
+                    membership={emp.membership}
+                    onToggleStatus={(membershipId, active) =>
+                      toggleStatus.mutate({ membershipId, active })
+                    }
+                  />
+                ))}
+              </div>
+              <PaginationControls
+                page={safeEmployeePage}
+                totalPages={employeeTotalPages}
+                onPageChange={setEmployeePage}
+                itemCount={employees.length}
+                itemLabel="employees"
+              />
+            </>
           )}
         </>
       ) : tab === 'salary' ? (
@@ -208,21 +259,28 @@ export function EmployeesPage() {
                     {isOwner && <th className="px-4 py-3 text-right font-medium">Actions</th>}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className="divide-border divide-y">
                   {pagedLeaveData.map((lr) => (
                     <tr key={lr.id} className="group hover:bg-muted/30">
                       {isOwner && (
                         <td className="px-4 py-3 font-medium">{getEmployeeName(lr.employeeId)}</td>
                       )}
-                      <td className="px-4 py-3 text-muted-foreground">
+                      <td className="text-muted-foreground px-4 py-3">
                         {leaveTypeLabel[lr.leaveType] ?? lr.leaveType}
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {new Date(lr.fromDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                      <td className="text-muted-foreground px-4 py-3">
+                        {new Date(lr.fromDate).toLocaleDateString('en-IN', {
+                          day: '2-digit',
+                          month: 'short',
+                        })}
                         {' – '}
-                        {new Date(lr.toDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        {new Date(lr.toDate).toLocaleDateString('en-IN', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground max-w-[200px] truncate">
+                      <td className="text-muted-foreground max-w-[200px] truncate px-4 py-3">
                         {lr.reason ?? '—'}
                       </td>
                       <td className="px-4 py-3">
@@ -243,7 +301,9 @@ export function EmployeesPage() {
                                 size="sm"
                                 className="text-green-600 hover:text-green-700"
                                 disabled={reviewLeaveRequest.isPending}
-                                onClick={() => reviewLeaveRequest.mutate({ leaveId: lr.id, status: 'APPROVED' })}
+                                onClick={() =>
+                                  reviewLeaveRequest.mutate({ leaveId: lr.id, status: 'APPROVED' })
+                                }
                               >
                                 <Check className="h-4 w-4" />
                                 Approve
@@ -253,7 +313,9 @@ export function EmployeesPage() {
                                 size="sm"
                                 className="text-red-600 hover:text-red-700"
                                 disabled={reviewLeaveRequest.isPending}
-                                onClick={() => reviewLeaveRequest.mutate({ leaveId: lr.id, status: 'REJECTED' })}
+                                onClick={() =>
+                                  reviewLeaveRequest.mutate({ leaveId: lr.id, status: 'REJECTED' })
+                                }
                               >
                                 <X className="h-4 w-4" />
                                 Reject
@@ -300,15 +362,9 @@ export function EmployeesPage() {
         </div>
       )}
 
-      <AddEmployeeDialog
-        open={addDialogOpen}
-        onOpenChange={setAddDialogOpen}
-      />
+      <AddEmployeeDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
 
-      <LeaveRequestDialog
-        open={leaveDialogOpen}
-        onOpenChange={setLeaveDialogOpen}
-      />
+      <LeaveRequestDialog open={leaveDialogOpen} onOpenChange={setLeaveDialogOpen} />
     </div>
   );
 }
@@ -322,10 +378,12 @@ function EmployeeCard({
   membership: Membership | null;
   onToggleStatus: (membershipId: string, active: boolean) => void;
 }) {
-  const isActive = membership ? (membership as Membership & { active?: boolean }).active !== false : true;
+  const isActive = membership
+    ? (membership as Membership & { active?: boolean }).active !== false
+    : true;
 
   return (
-    <Card className="transition-colors hover:border-muted-foreground/30">
+    <Card className="hover:border-muted-foreground/30 transition-colors">
       <CardContent className="p-4">
         <div className="flex items-center gap-3">
           <div className="bg-muted flex h-10 w-10 items-center justify-center rounded-full">

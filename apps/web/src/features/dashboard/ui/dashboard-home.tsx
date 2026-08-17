@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useAuthStore } from '@/features/authentication/stores/auth-store';
 import { useInventoryDashboardData } from '@/features/inventory/api/use-inventory';
 import { useQuery } from '@tanstack/react-query';
@@ -17,28 +18,22 @@ import {
   DollarSign,
   Clock,
   AlertTriangle,
-  BarChart3,
   Activity,
   Package,
   X,
   ShoppingCart,
   ArrowDownCircle,
   ArrowUpCircle,
+  type LucideIcon,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/shared/empty-state';
+import { PageHeader } from '@/components/shared/page-header';
+import { PaginationControls } from '@/components/shared/pagination';
 import { QuickActions } from './quick-actions';
 import { EmployeeDashboard } from './employee-dashboard';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
 
 const STATUS_LABELS: Record<string, string> = {
   RECEIVED: 'Received',
@@ -46,14 +41,6 @@ const STATUS_LABELS: Record<string, string> = {
   READY_FOR_PICKUP: 'Ready for Pickup',
   COMPLETED: 'Completed',
   CANCELLED: 'Cancelled',
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  RECEIVED: '#3b82f6',
-  IN_PROGRESS: '#f59e0b',
-  READY_FOR_PICKUP: '#8b5cf6',
-  COMPLETED: '#22c55e',
-  CANCELLED: '#ef4444',
 };
 
 function useOrgId() {
@@ -73,17 +60,15 @@ type ActivityItem =
     };
 
 function activityDisplay(item: ActivityItem): {
-  Icon: typeof ArrowDownCircle;
-  iconBg: string;
-  iconColor: string;
+  Icon: LucideIcon;
+  tone: string;
   title: string;
   meta: string;
 } {
   if (item.kind === 'task') {
     return {
       Icon: Car,
-      iconBg: 'bg-blue-500/10',
-      iconColor: 'text-blue-600',
+      tone: 'text-blue-500',
       title: `Task #${item.id.slice(0, 8)}`,
       meta: `${STATUS_LABELS[item.status] ?? item.status} · ₹${item.totalAmount.toLocaleString('en-IN')}`,
     };
@@ -91,8 +76,7 @@ function activityDisplay(item: ActivityItem): {
   if (item.kind === 'sale') {
     return {
       Icon: ShoppingCart,
-      iconBg: 'bg-emerald-500/10',
-      iconColor: 'text-emerald-600',
+      tone: 'text-emerald-500',
       title: `Sale ${item.receiptNumber}`,
       meta: `₹${item.totalAmount.toLocaleString('en-IN')}`,
     };
@@ -100,8 +84,7 @@ function activityDisplay(item: ActivityItem): {
   const isIn = item.type === 'RESTOCK_IN';
   return {
     Icon: isIn ? ArrowDownCircle : ArrowUpCircle,
-    iconBg: isIn ? 'bg-green-500/10' : 'bg-red-500/10',
-    iconColor: isIn ? 'text-green-600' : 'text-red-600',
+    tone: isIn ? 'text-emerald-500' : 'text-red-500',
     title: `${isIn ? 'Restocked' : 'Stock deducted'} · ${item.productName}`,
     meta: `${isIn ? '+' : '-'}${item.quantity} units`,
   };
@@ -110,14 +93,14 @@ function activityDisplay(item: ActivityItem): {
 function ActivityRow({ item }: { item: ActivityItem }) {
   const display = activityDisplay(item);
   return (
-    <div className="border-border flex items-center gap-3 rounded-md border px-3 py-2 text-sm">
+    <div className="border-border/60 bg-card hover:border-border flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm transition-colors">
       <span
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${display.iconBg}`}
+        className={`bg-muted/60 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${display.tone}`}
       >
-        <display.Icon className={`h-4 w-4 ${display.iconColor}`} />
+        <display.Icon className="h-4 w-4" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate">{display.title}</p>
+        <p className="truncate font-medium">{display.title}</p>
         <p className="text-muted-foreground text-xs">
           {display.meta} ·{' '}
           {new Date(item.createdAt).toLocaleDateString('en-IN', {
@@ -128,8 +111,28 @@ function ActivityRow({ item }: { item: ActivityItem }) {
           })}
         </p>
       </div>
+      {item.kind === 'task' && (
+        <Badge variant={taskBadgeVariant(item.status)}>{STATUS_LABELS[item.status]}</Badge>
+      )}
     </div>
   );
+}
+
+function taskBadgeVariant(status: string) {
+  switch (status) {
+    case 'RECEIVED':
+      return 'info';
+    case 'IN_PROGRESS':
+      return 'warning';
+    case 'READY_FOR_PICKUP':
+      return 'purple';
+    case 'COMPLETED':
+      return 'success';
+    case 'CANCELLED':
+      return 'red';
+    default:
+      return 'secondary';
+  }
 }
 
 export function DashboardHome() {
@@ -176,12 +179,6 @@ export function OwnerDashboard() {
     enabled: !!orgId,
   });
 
-  const taskCountsQuery = useQuery({
-    queryKey: ['task-counts-by-status', orgId],
-    queryFn: () => vehicleTaskRepository.getCountByStatus(orgId),
-    enabled: !!orgId,
-  });
-
   const recentTasksQuery = useQuery({
     queryKey: ['recent-tasks', orgId],
     queryFn: () => vehicleTaskRepository.findByOrgId(orgId, { limit: 10 }),
@@ -209,14 +206,11 @@ export function OwnerDashboard() {
   const lowStockItems = (inventoryQuery.data ?? []).filter(
     (item) => item.currentStock <= item.lowStockThreshold,
   );
-  const taskCounts = taskCountsQuery.data;
   const recentTasks = recentTasksQuery.data ?? [];
   const recentMovements = recentMovementsQuery.data ?? [];
   const recentSales = recentSalesQuery.data ?? [];
 
-  const productNameById = new Map(
-    (inventoryQuery.data ?? []).map((p) => [p.id, p.name]),
-  );
+  const productNameById = new Map((inventoryQuery.data ?? []).map((p) => [p.id, p.name]));
 
   const activityItems: ActivityItem[] = [
     ...recentTasks.map((task) => ({
@@ -246,25 +240,25 @@ export function OwnerDashboard() {
     .slice(0, 10);
 
   const activityLoading =
-    recentTasksQuery.isLoading ||
-    recentSalesQuery.isLoading ||
-    recentMovementsQuery.isLoading;
+    recentTasksQuery.isLoading || recentSalesQuery.isLoading || recentMovementsQuery.isLoading;
 
-  const chartData = taskCounts
-    ? Object.entries(taskCounts).map(([status, count]) => ({
-        name: STATUS_LABELS[status] ?? status,
-        count,
-        fill: STATUS_COLORS[status] ?? '#6b7280',
-      }))
-    : [];
+  const ACTIVITY_PAGE_SIZE = 5;
+  const activityTotalPages = Math.max(1, Math.ceil(activityItems.length / ACTIVITY_PAGE_SIZE));
+  const [activityPage, setActivityPage] = useState(0);
+  const safeActivityPage = Math.min(activityPage, activityTotalPages - 1);
+  const pagedActivity = activityItems.slice(
+    safeActivityPage * ACTIVITY_PAGE_SIZE,
+    (safeActivityPage + 1) * ACTIVITY_PAGE_SIZE,
+  );
 
   if (loading) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="font-display text-3xl tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Your workshop command center.</p>
-        </div>
+        <PageHeader
+          eyebrow="Overview"
+          title="Dashboard"
+          description="Your workshop command center."
+        />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <Card key={i}>
@@ -288,170 +282,204 @@ export function OwnerDashboard() {
       transition={{ duration: 0.4 }}
       className="space-y-6"
     >
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Your workshop command center.</p>
-        </div>
-        <QuickActions />
-      </div>
+      <PageHeader
+        eyebrow="Overview"
+        title="Dashboard"
+        description="Your workshop command center."
+        action={<QuickActions />}
+      />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          icon={<Car className="h-5 w-5" />}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
+        <MetricCard
+          icon={<Car className="h-4 w-4" />}
+          tone="blue"
           label="Tasks Today"
           value={tasksToday}
           loading={tasksTodayQuery.isLoading}
         />
-        <StatCard
-          icon={<DollarSign className="h-5 w-5" />}
+        <MetricCard
+          icon={<DollarSign className="h-4 w-4" />}
+          tone="emerald"
           label="Revenue Today"
           value={`₹${revenueToday.toLocaleString('en-IN')}`}
           loading={revenueTodayQuery.isLoading}
         />
-        <StatCard
-          icon={<Clock className="h-5 w-5" />}
+        <MetricCard
+          icon={<Clock className="h-4 w-4" />}
+          tone="amber"
           label="Pending Approvals"
           value={pendingLeaves + pendingSalary}
           loading={pendingLeavesQuery.isLoading || pendingSalaryQuery.isLoading}
         />
-        <StatCard
-          icon={<AlertTriangle className="h-5 w-5" />}
+        <MetricCard
+          icon={<AlertTriangle className="h-4 w-4" />}
+          tone="rose"
           label="Low Stock Items"
           value={lowStockItems.length}
           loading={inventoryQuery.isLoading}
         />
       </div>
 
-      <div>
-        <h2 className="text-lg font-semibold mb-3">Inventory Overview</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <StatCard
-            icon={<Package className="h-5 w-5 text-blue-600" />}
-            label="Total Products"
-            value={inventoryDashboard.totalProducts}
-            loading={inventoryDashboard.isLoading}
-          />
-          <StatCard
-            icon={<AlertTriangle className="h-5 w-5 text-amber-600" />}
-            label="Low Stock"
-            value={inventoryDashboard.lowStockCount}
-            loading={inventoryDashboard.isLoading}
-          />
-          <StatCard
-            icon={<X className="h-5 w-5 text-red-600" />}
-            label="Out of Stock"
-            value={inventoryDashboard.outOfStockCount}
-            loading={inventoryDashboard.isLoading}
-          />
-          <StatCard
-            icon={<Clock className="h-5 w-5 text-purple-600" />}
-            label="Expiring Soon"
-            value={inventoryDashboard.expiringSoon}
-            loading={inventoryDashboard.isLoading}
-          />
-          <StatCard
-            icon={<ShoppingCart className="h-5 w-5 text-emerald-600" />}
-            label="Today's Movements"
-            value={inventoryDashboard.todayMovements}
-            loading={inventoryDashboard.isLoading}
-          />
-        </div>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="text-primary h-4 w-4" />
+            Inventory Overview
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <MiniStat
+              icon={<Package className="h-4 w-4" />}
+              tone="text-blue-500"
+              label="Total Products"
+              value={inventoryDashboard.totalProducts}
+              loading={inventoryDashboard.isLoading}
+            />
+            <MiniStat
+              icon={<AlertTriangle className="h-4 w-4" />}
+              tone="text-amber-500"
+              label="Low Stock"
+              value={inventoryDashboard.lowStockCount}
+              loading={inventoryDashboard.isLoading}
+            />
+            <MiniStat
+              icon={<X className="h-4 w-4" />}
+              tone="text-red-500"
+              label="Out of Stock"
+              value={inventoryDashboard.outOfStockCount}
+              loading={inventoryDashboard.isLoading}
+            />
+            <MiniStat
+              icon={<Clock className="h-4 w-4" />}
+              tone="text-purple-500"
+              label="Expiring Soon"
+              value={inventoryDashboard.expiringSoon}
+              loading={inventoryDashboard.isLoading}
+            />
+            <MiniStat
+              icon={<ShoppingCart className="h-4 w-4" />}
+              tone="text-emerald-500"
+              label="Today's Movements"
+              value={inventoryDashboard.todayMovements}
+              loading={inventoryDashboard.isLoading}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Tasks by Status
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {taskCountsQuery.isLoading ? (
-              <Skeleton className="h-64 w-full" />
-            ) : chartData.length === 0 ? (
-              <EmptyState
-                title="No data"
-                description="No vehicle tasks found."
-              />
-            ) : (
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip
-                    contentStyle={{
-                      borderRadius: '8px',
-                      border: '1px solid hsl(var(--border))',
-                      background: 'hsl(var(--card))',
-                    }}
-                  />
-                  <Bar dataKey="count" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              Recent Activity
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {activityLoading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Skeleton key={i} className="h-12 w-full" />
-                ))}
-              </div>
-            ) : activityItems.length === 0 ? (
-              <EmptyState
-                title="No activity"
-                description="Recent stock movements, sales and tasks will appear here."
-              />
-            ) : (
-              <div className="space-y-3">
-                {activityItems.map((item) => (
-                  <ActivityRow key={`${item.kind}-${item.id}`} item={item} />
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="text-primary h-4 w-4" />
+            Recent Activity
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {activityLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : activityItems.length === 0 ? (
+            <EmptyState
+              title="No activity"
+              description="Recent stock movements, sales and tasks will appear here."
+            />
+          ) : (
+            <div className="space-y-2">
+              {pagedActivity.map((item) => (
+                <ActivityRow key={`${item.kind}-${item.id}`} item={item} />
+              ))}
+            </div>
+          )}
+          {!activityLoading && activityItems.length > 0 && (
+            <PaginationControls
+              page={safeActivityPage}
+              totalPages={activityTotalPages}
+              onPageChange={setActivityPage}
+              itemCount={activityItems.length}
+              itemLabel="items"
+            />
+          )}
+        </CardContent>
+      </Card>
     </motion.div>
   );
 }
 
-function StatCard({
+const STAT_TONES: Record<string, string> = {
+  blue: 'bg-blue-500/15 text-blue-500',
+  emerald: 'bg-emerald-500/15 text-emerald-500',
+  amber: 'bg-amber-500/15 text-amber-500',
+  rose: 'bg-rose-500/15 text-rose-500',
+};
+
+function MetricCard({
   icon,
+  tone,
   label,
   value,
   loading,
 }: {
   icon: React.ReactNode;
+  tone: keyof typeof STAT_TONES;
   label: string;
   value: string | number;
   loading: boolean;
 }) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-muted-foreground text-sm font-medium">{label}</CardTitle>
-        <span className="text-muted-foreground">{icon}</span>
-      </CardHeader>
-      <CardContent>
+    <div className="border-border bg-card flex flex-col rounded-2xl border p-5 shadow-sm shadow-black/5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
+          {label}
+        </span>
+        <span
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${STAT_TONES[tone]}`}
+        >
+          {icon}
+        </span>
+      </div>
+      {loading ? (
+        <Skeleton className="mt-3 h-9 w-20" />
+      ) : (
+        <p className="mt-3 text-3xl font-semibold tracking-tight">{value}</p>
+      )}
+    </div>
+  );
+}
+
+function MiniStat({
+  icon,
+  tone,
+  label,
+  value,
+  loading,
+}: {
+  icon: React.ReactNode;
+  tone: string;
+  label: string;
+  value: string | number;
+  loading: boolean;
+}) {
+  return (
+    <div className="border-border/60 flex items-center gap-3 rounded-xl border p-3">
+      <span
+        className={`bg-muted/60 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${tone}`}
+      >
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-muted-foreground truncate text-[10px] font-bold tracking-wider uppercase">
+          {label}
+        </p>
         {loading ? (
-          <Skeleton className="h-8 w-20" />
+          <Skeleton className="mt-1 h-5 w-12" />
         ) : (
-          <p className="font-display text-2xl tracking-tight">{value}</p>
+          <p className="text-lg font-bold tracking-tight">{value}</p>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

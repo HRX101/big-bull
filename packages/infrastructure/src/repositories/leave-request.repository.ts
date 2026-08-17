@@ -73,7 +73,10 @@ export class FirestoreLeaveRequestRepository implements LeaveRequestRepository {
     return mapLeave(saved.id, saved.data()!);
   }
 
-  async update(id: string, data: { status: LeaveRequest['status']; reviewedBy: string; reviewedAt: Date }) {
+  async update(
+    id: string,
+    data: { status: LeaveRequest['status']; reviewedBy: string; reviewedAt: Date },
+  ) {
     const ref = doc(getFirebaseDb(), COLLECTIONS.leaveRequests, id);
     await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
     const saved = await getDoc(ref);

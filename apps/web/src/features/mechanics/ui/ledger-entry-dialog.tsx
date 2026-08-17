@@ -26,7 +26,12 @@ interface LedgerEntryDialogProps {
   type: 'CREDIT' | 'DEBIT';
 }
 
-export function LedgerEntryDialog({ open, onOpenChange, mechanicId, type }: LedgerEntryDialogProps) {
+export function LedgerEntryDialog({
+  open,
+  onOpenChange,
+  mechanicId,
+  type,
+}: LedgerEntryDialogProps) {
   const addEntry = useAddLedgerEntry();
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -42,7 +47,15 @@ export function LedgerEntryDialog({ open, onOpenChange, mechanicId, type }: Ledg
 
   useEffect(() => {
     if (open) {
-      reset({ mechanicId, type, amount: 0, itemCount: 0, description: '', fromDate: '', toDate: '' });
+      reset({
+        mechanicId,
+        type,
+        amount: 0,
+        itemCount: 0,
+        description: '',
+        fromDate: '',
+        toDate: '',
+      });
     }
   }, [open, mechanicId, type, reset]);
 
@@ -78,16 +91,14 @@ export function LedgerEntryDialog({ open, onOpenChange, mechanicId, type }: Ledg
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       onClick={(e) => {
         if (e.target === overlayRef.current) onOpenChange(false);
       }}
     >
-      <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <Card className="max-h-[90vh] w-full max-w-md overflow-y-auto">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>
-            {isCredit ? 'Enter Sales (CREDIT)' : 'Issue Items (DEBIT)'}
-          </CardTitle>
+          <CardTitle>{isCredit ? 'Enter Sales (CREDIT)' : 'Issue Items (DEBIT)'}</CardTitle>
           <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
             <X className="h-4 w-4" />
           </Button>
@@ -107,33 +118,42 @@ export function LedgerEntryDialog({ open, onOpenChange, mechanicId, type }: Ledg
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="amount">
-                Total Amount (₹)
-              </Label>
-              <Input id="amount" type="number" step="0.01" min="0" {...register('amount', { valueAsNumber: true })} />
+              <Label htmlFor="amount">Total Amount (₹)</Label>
+              <Input
+                id="amount"
+                type="number"
+                step="0.01"
+                min="0"
+                {...register('amount', { valueAsNumber: true })}
+              />
               {errors.amount && <p className="text-destructive text-sm">{errors.amount.message}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="itemCount">
                 {isCredit ? 'Item Count Sold' : 'Quantity / Item Count'}
               </Label>
-              <Input id="itemCount" type="number" min="0" {...register('itemCount', { valueAsNumber: true })} />
-              {errors.itemCount && <p className="text-destructive text-sm">{errors.itemCount.message}</p>}
+              <Input
+                id="itemCount"
+                type="number"
+                min="0"
+                {...register('itemCount', { valueAsNumber: true })}
+              />
+              {errors.itemCount && (
+                <p className="text-destructive text-sm">{errors.itemCount.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Input id="description" {...register('description')} />
-              {errors.description && <p className="text-destructive text-sm">{errors.description.message}</p>}
+              {errors.description && (
+                <p className="text-destructive text-sm">{errors.description.message}</p>
+              )}
             </div>
             {addEntry.isError && (
               <p className="text-destructive text-sm">{addEntry.error.message}</p>
             )}
             <Button type="submit" className="w-full" disabled={addEntry.isPending}>
-              {addEntry.isPending
-                ? 'Saving…'
-                : isCredit
-                  ? 'Record Sales'
-                  : 'Issue Items'}
+              {addEntry.isPending ? 'Saving…' : isCredit ? 'Record Sales' : 'Issue Items'}
             </Button>
           </form>
         </CardContent>

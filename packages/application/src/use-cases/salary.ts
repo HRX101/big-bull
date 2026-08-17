@@ -1,7 +1,12 @@
 import type { SalaryRecord } from '@car-spa/domain';
 import { salaryRecordSchema } from '@car-spa/domain';
 import { err, ok, type Result } from '@car-spa/shared';
-import type { AuditRepository, LeaveRequestRepository, SalaryRecordRepository, UserRepository } from '../ports';
+import type {
+  AuditRepository,
+  LeaveRequestRepository,
+  SalaryRecordRepository,
+  UserRepository,
+} from '../ports';
 
 export function calculateSalary(
   fullSalary: number,
@@ -25,11 +30,7 @@ export class CreateSalaryRecordUseCase {
     private readonly auditRepo: AuditRepository,
   ) {}
 
-  async execute(
-    input: unknown,
-    orgId: string,
-    actorId: string,
-  ): Promise<Result<SalaryRecord>> {
+  async execute(input: unknown, orgId: string, actorId: string): Promise<Result<SalaryRecord>> {
     const parsed = salaryRecordSchema.safeParse(input);
     if (!parsed.success) {
       return err(new Error(parsed.error.errors[0]?.message ?? 'Invalid input'));
@@ -43,7 +44,7 @@ export class CreateSalaryRecordUseCase {
         return err(new Error('Salary record already exists for this month/year'));
       }
 
-      const { perDayRate, deduction, payableAmount } = calculateSalary(
+      const calculated = calculateSalary(
         parsed.data.fullSalary,
         parsed.data.workingDays,
         parsed.data.leaveDays,
@@ -57,9 +58,9 @@ export class CreateSalaryRecordUseCase {
         fullSalary: parsed.data.fullSalary,
         workingDays: parsed.data.workingDays,
         leaveDays: parsed.data.leaveDays,
-        perDayRate,
-        deduction,
-        payableAmount,
+        perDayRate: parsed.data.perDayRate ?? calculated.perDayRate,
+        deduction: parsed.data.deduction ?? calculated.deduction,
+        payableAmount: parsed.data.payableAmount ?? calculated.payableAmount,
         status: 'PENDING',
         receiptUrl: null,
         notes: parsed.data.notes || null,
@@ -73,14 +74,12 @@ export class CreateSalaryRecordUseCase {
         action: 'salaryRecord.create',
         resourceType: 'salaryRecord',
         resourceId: record.id,
-        metadata: { employeeId: parsed.data.employeeId, amount: payableAmount },
+        metadata: { employeeId: parsed.data.employeeId, amount: record.payableAmount },
       });
 
       return ok(record);
     } catch (error) {
-      return err(
-        error instanceof Error ? error : new Error('Failed to create salary record'),
-      );
+      return err(error instanceof Error ? error : new Error('Failed to create salary record'));
     }
   }
 }
@@ -122,9 +121,7 @@ export class ApproveSalaryRecordUseCase {
 
       return ok(updated);
     } catch (error) {
-      return err(
-        error instanceof Error ? error : new Error('Failed to update salary record'),
-      );
+      return err(error instanceof Error ? error : new Error('Failed to update salary record'));
     }
   }
 }

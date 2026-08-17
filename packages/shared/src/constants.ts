@@ -16,12 +16,17 @@ export const COLLECTIONS = {
   posSaleItems: 'posSaleItems',
   mechanics: 'mechanics',
   mechanicLedgerEntries: 'mechanicLedgerEntries',
+  supplierPurchaseEntries: 'supplierPurchaseEntries',
   leaveRequests: 'leaveRequests',
   salaryRecords: 'salaryRecords',
   storeSettings: 'storeSettings',
   notificationLogs: 'notificationLogs',
+  notificationTemplates: 'notificationTemplates',
+  whatsappLogs: 'whatsappLogs',
+  whatsappDedupe: 'whatsappDedupe',
   drafts: 'drafts',
   serializedItems: 'serializedItems',
+  sequences: 'sequences',
 } as const;
 
 export const DEFAULT_ORG_SLUG = 'big-bull-car-spa';
@@ -32,6 +37,7 @@ export const AUTH_ROUTES = {
   forgotPassword: '/auth/forgot-password',
   verifyEmail: '/auth/verify-email',
   onboarding: '/auth/onboarding',
+  authAction: '/auth/action',
 } as const;
 
 export const PROTECTED_ROUTES = {
@@ -74,7 +80,12 @@ export type SalaryStatus = (typeof SALARY_STATUSES)[number];
 export const PAYMENT_MODES = ['CASH', 'UPI', 'CARD', 'NET_BANKING', 'OTHER'] as const;
 export type PaymentMode = (typeof PAYMENT_MODES)[number];
 
-export const STOCK_MOVEMENT_TYPES = ['RESTOCK_IN', 'MANUAL_OUT', 'POS_SALE', 'VEHICLE_TASK_USE'] as const;
+export const STOCK_MOVEMENT_TYPES = [
+  'RESTOCK_IN',
+  'MANUAL_OUT',
+  'POS_SALE',
+  'VEHICLE_TASK_USE',
+] as const;
 export type StockMovementType = (typeof STOCK_MOVEMENT_TYPES)[number];
 
 export const UNITS = ['piece', 'litre', 'kg', 'box', 'pack', 'set', 'pair', 'metre'] as const;

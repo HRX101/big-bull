@@ -49,7 +49,8 @@ export function useEmployeeLeaveDays(employeeId: string, month: number, year: nu
         const overlapStart = from > start ? from : start;
         const overlapEnd = to < end ? to : end;
         if (overlapStart <= overlapEnd) {
-          total += Math.floor((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+          total +=
+            Math.floor((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
         }
       }
       return total;
@@ -82,7 +83,12 @@ export function useApproveSalary() {
   return useMutation({
     mutationFn: async ({ salaryId, status }: { salaryId: string; status: 'APPROVED' | 'PAID' }) => {
       if (!session?.orgId || !session?.userId) throw new Error('No session');
-      const result = await approveSalaryRecordUseCase.execute(salaryId, status, session.orgId, session.userId);
+      const result = await approveSalaryRecordUseCase.execute(
+        salaryId,
+        status,
+        session.orgId,
+        session.userId,
+      );
       if (!result.success) throw new Error(result.error?.message ?? 'Failed');
       return result.value;
     },

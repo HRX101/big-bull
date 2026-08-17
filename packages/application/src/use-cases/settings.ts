@@ -17,11 +17,7 @@ export class UpdateStoreSettingsUseCase {
     private readonly auditRepo: AuditRepository,
   ) {}
 
-  async execute(
-    input: unknown,
-    orgId: string,
-    actorId: string,
-  ): Promise<Result<StoreSettings>> {
+  async execute(input: unknown, orgId: string, actorId: string): Promise<Result<StoreSettings>> {
     const parsed = storeSettingsSchema.safeParse(input);
     if (!parsed.success) {
       return err(new Error(parsed.error.errors[0]?.message ?? 'Invalid input'));
@@ -38,17 +34,17 @@ export class UpdateStoreSettingsUseCase {
         logoUrl: parsed.data.logoUrl || null,
         whatsappProvider: parsed.data.whatsappProvider,
         whatsappApiKey:
-          parsed.data.whatsappProvider === 'NONE'
-            ? null
-            : parsed.data.whatsappApiKey || null,
+          parsed.data.whatsappProvider === 'NONE' ? null : parsed.data.whatsappApiKey || null,
         whatsappPhoneNumberId:
           parsed.data.whatsappProvider === 'NONE'
             ? null
             : parsed.data.whatsappPhoneNumberId || null,
         whatsappTemplateId:
-          parsed.data.whatsappProvider === 'NONE'
-            ? null
-            : parsed.data.whatsappTemplateId || null,
+          parsed.data.whatsappProvider === 'NONE' ? null : parsed.data.whatsappTemplateId || null,
+        whatsappTwilioFromNumber:
+          parsed.data.whatsappProvider === 'TWILIO'
+            ? parsed.data.whatsappTwilioFromNumber || null
+            : null,
         workingDaysPerMonth: parsed.data.workingDaysPerMonth,
         defaultLeaveType: parsed.data.defaultLeaveType,
       });
@@ -63,9 +59,7 @@ export class UpdateStoreSettingsUseCase {
 
       return ok(settings);
     } catch (error) {
-      return err(
-        error instanceof Error ? error : new Error('Failed to update settings'),
-      );
+      return err(error instanceof Error ? error : new Error('Failed to update settings'));
     }
   }
 }

@@ -4,6 +4,7 @@ import {
   productRepository,
   customerRepository,
   posSaleRepository,
+  serializedItemRepository,
   createPOSSaleUseCase,
 } from '@car-spa/infrastructure';
 import { useAuthStore } from '@/features/authentication/stores/auth-store';
@@ -13,6 +14,14 @@ export function useInventoryItems(orgId: string) {
   return useQuery({
     queryKey: ['products', orgId],
     queryFn: () => productRepository.findByOrgId(orgId, { limit: 500 }),
+    enabled: !!orgId,
+  });
+}
+
+export function useAllSerializedItems(orgId: string) {
+  return useQuery({
+    queryKey: ['serializedItems', orgId],
+    queryFn: () => serializedItemRepository.findByOrgId(orgId, { limit: 500 }),
     enabled: !!orgId,
   });
 }
@@ -53,6 +62,7 @@ export function useCreateSale() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['posSales'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['serializedItems'] });
       queryClient.invalidateQueries({ queryKey: ['dailyTotal'] });
     },
   });

@@ -2,11 +2,12 @@ import type { AuthCredentials, AuthRepository, SignUpData } from '@car-spa/appli
 import type { AuthSession } from '@car-spa/domain';
 import {
   createUserWithEmailAndPassword,
+  getRedirectResult,
   onAuthStateChanged,
   sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,
   signOut,
   updateProfile,
 } from 'firebase/auth';
@@ -17,7 +18,6 @@ export class FirebaseAuthRepository implements AuthRepository {
   async signIn(credentials: AuthCredentials) {
     const auth = getFirebaseAuth();
     const result = await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
-    await result.user.getIdToken(true);
     return mapFirebaseUserToSession(result.user);
   }
 
@@ -29,8 +29,12 @@ export class FirebaseAuthRepository implements AuthRepository {
   }
 
   async signInWithGoogle() {
-    const auth = getFirebaseAuth();
-    const result = await signInWithPopup(auth, googleProvider);
+    await signInWithRedirect(getFirebaseAuth(), googleProvider);
+  }
+
+  async getRedirectResult() {
+    const result = await getRedirectResult(getFirebaseAuth());
+    if (!result?.user) return null;
     await result.user.getIdToken(true);
     return mapFirebaseUserToSession(result.user);
   }
@@ -78,7 +82,7 @@ export class FirebaseAuthRepository implements AuthRepository {
         return;
       }
       try {
-        await user.getIdToken(true);
+        await user.getIdToken();
       } catch (error) {
         const code = (error as { code?: string } | null)?.code ?? '';
         if (code === 'auth/user-token-expired' || code === 'auth/invalid-user-token') {

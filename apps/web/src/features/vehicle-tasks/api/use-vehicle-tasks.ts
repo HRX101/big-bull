@@ -13,7 +13,8 @@ import {
 } from '@car-spa/infrastructure';
 import { useAuthStore } from '@/features/authentication/stores/auth-store';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { TaskStatus } from '@car-spa/shared';
+import { type TaskStatus } from '@car-spa/shared';
+import type { VehicleTask } from '@car-spa/domain';
 
 export function useVehicleTasks(orgId: string, status?: TaskStatus) {
   return useQuery({
@@ -47,7 +48,26 @@ export function useChangeTaskStatus() {
       if (!session?.orgId || !session?.userId) throw new Error('No session');
       return changeTaskStatusUseCase.execute(input, session.orgId, session.userId);
     },
-    onSuccess: () => {
+    onMutate: async (input) => {
+      const orgId = session?.orgId;
+      if (!orgId) return;
+      const { taskId, toStatus } = input as { taskId: string; toStatus: TaskStatus };
+      await queryClient.cancelQueries({ queryKey: ['vehicle-tasks', orgId] });
+      const previous = queryClient.getQueriesData<VehicleTask[]>({
+        queryKey: ['vehicle-tasks', orgId],
+      });
+      queryClient.setQueriesData<VehicleTask[]>({ queryKey: ['vehicle-tasks', orgId] }, (old) =>
+        old?.map((t) => (t.id === taskId ? { ...t, status: toStatus } : t)),
+      );
+      return { previous };
+    },
+    onError: (_error, _variables, context) => {
+      if (!context?.previous) return;
+      for (const [key, data] of context.previous) {
+        queryClient.setQueryData(key, data);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['vehicle-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['task-events'] });
     },

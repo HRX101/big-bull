@@ -80,7 +80,7 @@ export function CustomerDialog({ open, onOpenChange, onSuccess }: CustomerDialog
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       onClick={(e) => {
         if (e.target === overlayRef.current) onOpenChange(false);
       }}
@@ -120,7 +120,9 @@ export function CustomerDialog({ open, onOpenChange, onSuccess }: CustomerDialog
             <div className="space-y-2">
               <Label htmlFor="address">Address (optional)</Label>
               <Input id="address" {...register('address')} />
-              {errors.address && <p className="text-destructive text-sm">{errors.address.message}</p>}
+              {errors.address && (
+                <p className="text-destructive text-sm">{errors.address.message}</p>
+              )}
             </div>
             {createCustomer.isError && (
               <p className="text-destructive text-sm">{createCustomer.error.message}</p>

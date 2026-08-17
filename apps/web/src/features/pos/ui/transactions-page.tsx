@@ -2,18 +2,30 @@
 
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, ReceiptText, Search, Printer, Banknote, Wallet, TrendingUp } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  ReceiptText,
+  Search,
+  Printer,
+  Banknote,
+  Wallet,
+  TrendingUp,
+  type LucideIcon,
+} from 'lucide-react';
 import { useAuthStore } from '@/features/authentication/stores/auth-store';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/shared/empty-state';
+import { PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
 import { useAllSales, useCustomers } from '../api/use-pos';
 import { ReceiptModal } from './receipt-modal';
 import type { POSSale } from '@car-spa/domain';
+import { cn } from '@/lib/utils';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
 
 const PAYMENT_LABELS: Record<string, string> = {
   CASH: 'Cash',
@@ -25,6 +37,39 @@ const PAYMENT_LABELS: Record<string, string> = {
 
 function formatRupee(amount: number) {
   return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  iconClass,
+}: {
+  label: string;
+  value: string;
+  icon: LucideIcon;
+  iconClass: string;
+}) {
+  return (
+    <div className="group bg-card relative overflow-hidden rounded-2xl border border-slate-200 p-4 shadow-sm transition-shadow hover:shadow-md dark:border-slate-800">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-muted-foreground text-xs font-medium">{label}</p>
+          <p className="mt-1 truncate text-xl font-bold tracking-tight text-slate-900 tabular-nums dark:text-white">
+            {value}
+          </p>
+        </div>
+        <span
+          className={cn(
+            'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110',
+            iconClass,
+          )}
+        >
+          <Icon className="h-5 w-5" />
+        </span>
+      </div>
+    </div>
+  );
 }
 
 export function TransactionsPage() {
@@ -45,13 +90,24 @@ export function TransactionsPage() {
       (s) =>
         s.receiptNumber.toLowerCase().includes(lower) ||
         s.id.toLowerCase().includes(lower) ||
-        (s.customerId ? customers.find((c) => c.id === s.customerId)?.name.toLowerCase().includes(lower) : false),
+        (s.customerId
+          ? customers
+              .find((c) => c.id === s.customerId)
+              ?.name.toLowerCase()
+              .includes(lower)
+          : false),
     );
   }, [sales, search, customers]);
 
   const totalRevenue = useMemo(() => sales.reduce((sum, s) => sum + s.totalAmount, 0), [sales]);
-  const cashTotal = useMemo(() => sales.filter((s) => s.paymentMode === 'CASH').reduce((sum, s) => sum + s.totalAmount, 0), [sales]);
-  const upiTotal = useMemo(() => sales.filter((s) => s.paymentMode === 'UPI').reduce((sum, s) => sum + s.totalAmount, 0), [sales]);
+  const cashTotal = useMemo(
+    () => sales.filter((s) => s.paymentMode === 'CASH').reduce((sum, s) => sum + s.totalAmount, 0),
+    [sales],
+  );
+  const upiTotal = useMemo(
+    () => sales.filter((s) => s.paymentMode === 'UPI').reduce((sum, s) => sum + s.totalAmount, 0),
+    [sales],
+  );
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages - 1);
@@ -63,57 +119,43 @@ export function TransactionsPage() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6">
-      <div>
-        <h1 className="font-display text-3xl tracking-tight">Transactions</h1>
-        <p className="text-muted-foreground text-sm mt-1">Complete sales history and receipts</p>
-      </div>
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-6"
+    >
+      <PageHeader
+        eyebrow="Billing"
+        title="Transactions"
+        description="Complete sales history and receipts"
+      />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-              <ReceiptText className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-muted-foreground text-xs">Total Transactions</p>
-              <p className="text-xl font-bold">{sales.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
-              <TrendingUp className="h-5 w-5 text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-muted-foreground text-xs">Total Revenue</p>
-              <p className="text-xl font-bold">{formatRupee(totalRevenue)}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
-              <Banknote className="h-5 w-5 text-amber-600" />
-            </div>
-            <div>
-              <p className="text-muted-foreground text-xs">Cash</p>
-              <p className="text-xl font-bold">{formatRupee(cashTotal)}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500/10">
-              <Wallet className="h-5 w-5 text-indigo-600" />
-            </div>
-            <div>
-              <p className="text-muted-foreground text-xs">UPI</p>
-              <p className="text-xl font-bold">{formatRupee(upiTotal)}</p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard
+          label="Total Transactions"
+          value={String(sales.length)}
+          icon={ReceiptText}
+          iconClass="bg-blue-500/10 text-blue-600 dark:bg-blue-400/15 dark:text-blue-400"
+        />
+        <StatCard
+          label="Total Revenue"
+          value={formatRupee(totalRevenue)}
+          icon={TrendingUp}
+          iconClass="bg-emerald-500/10 text-emerald-600 dark:bg-emerald-400/15 dark:text-emerald-400"
+        />
+        <StatCard
+          label="Cash"
+          value={formatRupee(cashTotal)}
+          icon={Banknote}
+          iconClass="bg-amber-500/10 text-amber-600 dark:bg-amber-400/15 dark:text-amber-400"
+        />
+        <StatCard
+          label="UPI"
+          value={formatRupee(upiTotal)}
+          icon={Wallet}
+          iconClass="bg-indigo-500/10 text-indigo-600 dark:bg-indigo-400/15 dark:text-indigo-400"
+        />
       </div>
 
       <Card>
@@ -124,7 +166,10 @@ export function TransactionsPage() {
               placeholder="Search by receipt number, transaction ID, or customer…"
               className="pl-10"
               value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(0);
+              }}
             />
           </div>
 
@@ -135,42 +180,55 @@ export function TransactionsPage() {
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <EmptyState title="No transactions found" description="Completed sales will appear here." />
+            <EmptyState
+              title="No transactions found"
+              description="Completed sales will appear here."
+            />
           ) : (
             <>
               <div className="space-y-2">
                 {paged.map((sale) => (
-                <div
-                  key={sale.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3 text-sm"
-                >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-semibold">{sale.receiptNumber}</span>
-                      <span className="text-muted-foreground text-xs">#{sale.id.slice(0, 8)}</span>
+                  <div
+                    key={sale.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3 text-sm"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-semibold">{sale.receiptNumber}</span>
+                        <span className="text-muted-foreground text-xs">
+                          #{sale.id.slice(0, 8)}
+                        </span>
+                      </div>
+                      <p className="text-muted-foreground mt-0.5 text-xs">
+                        {new Date(sale.createdAt).toLocaleString('en-IN', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                        {' · '}
+                        {customerNameFor(sale.customerId) ?? 'Walk-in'}
+                        {' · '}
+                        {sale.items.reduce((sum, i) => sum + i.quantity, 0)} item(s)
+                      </p>
                     </div>
-                    <p className="text-muted-foreground mt-0.5 text-xs">
-                      {new Date(sale.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                      {' · '}{customerNameFor(sale.customerId) ?? 'Walk-in'}
-                      {' · '}{sale.items.reduce((sum, i) => sum + i.quantity, 0)} item(s)
-                    </p>
+                    <div className="flex items-center gap-3">
+                      <span className="bg-muted rounded-full px-2 py-0.5 text-xs font-medium">
+                        {PAYMENT_LABELS[sale.paymentMode] ?? sale.paymentMode}
+                      </span>
+                      <span className="font-bold">{formatRupee(sale.totalAmount)}</span>
+                      <button
+                        onClick={() => setSelectedSale(sale)}
+                        className="text-muted-foreground hover:text-foreground hover:bg-muted rounded p-1.5"
+                        aria-label="View receipt"
+                        title="View / Print receipt"
+                      >
+                        <Printer className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">
-                      {PAYMENT_LABELS[sale.paymentMode] ?? sale.paymentMode}
-                    </span>
-                    <span className="font-bold">{formatRupee(sale.totalAmount)}</span>
-                    <button
-                      onClick={() => setSelectedSale(sale)}
-                      className="text-muted-foreground hover:text-foreground p-1.5 rounded hover:bg-muted"
-                      aria-label="View receipt"
-                      title="View / Print receipt"
-                    >
-                      <Printer className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                ))}
               </div>
               {totalPages > 1 && (
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">

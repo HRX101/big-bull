@@ -6,14 +6,33 @@ function getAdminApp() {
   const apps = getApps();
   if (apps.length > 0) return apps[0]!;
 
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? 'big-bull-car-spa';
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
-  if (!serviceAccountJson) {
-    throw new Error('FIREBASE_SERVICE_ACCOUNT environment variable is not configured');
+
+  // Prefer an explicit service account; otherwise fall back to Application
+  // Default Credentials (Cloud Functions/App Engine/Cloud Run, or
+  // GOOGLE_APPLICATION_CREDENTIALS locally).
+  return serviceAccountJson
+    ? initializeApp({
+        credential: cert(JSON.parse(serviceAccountJson) as ServiceAccount),
+        projectId,
+      })
+    : initializeApp({ projectId });
+}
+
+function friendlyError(error: unknown): string {
+  const message = error instanceof Error ? error.message : 'Internal error';
+
+  if (/credential|service account|GOOGLE_APPLICATION_CREDENTIALS/i.test(message)) {
+    return [
+      'Access sync needs Firebase Admin credentials.',
+      'Add FIREBASE_SERVICE_ACCOUNT (the service-account JSON from',
+      'Firebase Console > Project Settings > Service accounts) to your',
+      'apps/web/.env.local and restart the dev server.',
+    ].join(' ');
   }
 
-  return initializeApp({
-    credential: cert(JSON.parse(serviceAccountJson) as ServiceAccount),
-  });
+  return message;
 }
 
 export async function POST(request: NextRequest) {
@@ -56,9 +75,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal error' },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: friendlyError(error) }, { status: 500 });
   }
 }

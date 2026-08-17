@@ -6,13 +6,16 @@ import {
   collection,
   deleteDoc,
   doc,
+  documentId,
   getDoc,
   getDocs,
   limit as firestoreLimit,
   query,
+  runTransaction,
   serverTimestamp,
   updateDoc,
   where,
+  writeBatch,
 } from 'firebase/firestore';
 import { getFirebaseDb } from '../firebase/client';
 import { fromFirestoreDate } from '../firebase/mappers';
@@ -51,6 +54,19 @@ export class FirestoreProductRepository implements ProductRepository {
     return mapProduct(snapshot.id, snapshot.data());
   }
 
+  async findByIds(ids: string[]) {
+    if (ids.length === 0) return [];
+    const db = getFirebaseDb();
+    const results: Product[] = [];
+    for (let i = 0; i < ids.length; i += 10) {
+      const chunk = ids.slice(i, i + 10);
+      const q = query(collection(db, COLLECTIONS.products), where(documentId(), 'in', chunk));
+      const snapshot = await getDocs(q);
+      results.push(...snapshot.docs.map((d) => mapProduct(d.id, d.data())));
+    }
+    return results;
+  }
+
   async findByCategoryId(categoryId: string) {
     const q = query(
       collection(getFirebaseDb(), COLLECTIONS.products),
@@ -61,20 +77,14 @@ export class FirestoreProductRepository implements ProductRepository {
   }
 
   async findByOrgId(orgId: string, options?: { limit?: number }) {
-    let q = query(
-      collection(getFirebaseDb(), COLLECTIONS.products),
-      where('orgId', '==', orgId),
-    );
+    let q = query(collection(getFirebaseDb(), COLLECTIONS.products), where('orgId', '==', orgId));
     if (options?.limit) q = query(q, firestoreLimit(options.limit));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => mapProduct(d.id, d.data()));
   }
 
   async findBySku(sku: string) {
-    const q = query(
-      collection(getFirebaseDb(), COLLECTIONS.products),
-      where('sku', '==', sku),
-    );
+    const q = query(collection(getFirebaseDb(), COLLECTIONS.products), where('sku', '==', sku));
     const snapshot = await getDocs(q);
     const first = snapshot.docs[0];
     if (!first) return null;
@@ -82,19 +92,13 @@ export class FirestoreProductRepository implements ProductRepository {
   }
 
   async search(orgId: string, queryStr: string) {
-    const q = query(
-      collection(getFirebaseDb(), COLLECTIONS.products),
-      where('orgId', '==', orgId),
-    );
+    const q = query(collection(getFirebaseDb(), COLLECTIONS.products), where('orgId', '==', orgId));
     const snapshot = await getDocs(q);
     const lower = queryStr.toLowerCase();
     const products = snapshot.docs.map((d) => mapProduct(d.id, d.data()));
 
     const categoriesSnap = await getDocs(
-      query(
-        collection(getFirebaseDb(), COLLECTIONS.categories),
-        where('orgId', '==', orgId),
-      ),
+      query(collection(getFirebaseDb(), COLLECTIONS.categories), where('orgId', '==', orgId)),
     );
     const categoryMap = new Map<string, string>();
     categoriesSnap.docs.forEach((d) => {
@@ -116,8 +120,106 @@ export class FirestoreProductRepository implements ProductRepository {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
-    const saved = await getDoc(ref);
-    return mapProduct(saved.id, saved.data()!);
+    return {
+      id: ref.id,
+      ...data,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Product;
+  }
+
+  async createWithSequence(input: {
+    orgId: string;
+    codePrefix: string;
+    actorId?: string;
+    data: Omit<Product, 'id' | 'orgId' | 'sku' | 'createdAt' | 'updatedAt'>;
+  }) {
+    const db = getFirebaseDb();
+    const seqRef = doc(collection(db, COLLECTIONS.sequences), `${input.orgId}_${input.codePrefix}`);
+    const productRef = doc(collection(db, COLLECTIONS.products));
+    const seedMarker = 'SEQUENCE_NEEDS_SEED';
+    const initialStock = Number(input.data.currentStock) || 0;
+    const movementRef = doc(collection(db, COLLECTIONS.stockMovements));
+    try {
+      return await runTransaction(db, async (tx) => {
+        const snap = await tx.get(seqRef);
+        if (!snap.exists()) throw new Error(seedMarker);
+        const count = Number(snap.data().count) || 0;
+        const sku = `${input.codePrefix}-${String(count + 1).padStart(4, '0')}`;
+        tx.update(seqRef, { count: count + 1 });
+        tx.set(productRef, {
+          ...input.data,
+          orgId: input.orgId,
+          sku,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+        if (initialStock > 0) {
+          tx.set(movementRef, {
+            orgId: input.orgId,
+            productId: productRef.id,
+            type: 'RESTOCK_IN',
+            quantity: initialStock,
+            note: 'Initial stock',
+            referenceId: null,
+            supplierId: input.data.supplierId || null,
+            actorId: input.actorId || null,
+            serialNumbers: null,
+            createdAt: serverTimestamp(),
+          });
+        }
+        return {
+          id: productRef.id,
+          ...input.data,
+          orgId: input.orgId,
+          sku,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        } as Product;
+      });
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== seedMarker) throw error;
+      const count = await this.countWithPrefix(input.orgId, input.codePrefix);
+      const sku = `${input.codePrefix}-${String(count + 1).padStart(4, '0')}`;
+      const batch = writeBatch(db);
+      batch.set(seqRef, { orgId: input.orgId, prefix: input.codePrefix, count: count + 1 });
+      batch.set(productRef, {
+        ...input.data,
+        orgId: input.orgId,
+        sku,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      if (initialStock > 0) {
+        batch.set(movementRef, {
+          orgId: input.orgId,
+          productId: productRef.id,
+          type: 'RESTOCK_IN',
+          quantity: initialStock,
+          note: 'Initial stock',
+          referenceId: null,
+          supplierId: input.data.supplierId || null,
+          actorId: input.actorId || null,
+          serialNumbers: null,
+          createdAt: serverTimestamp(),
+        });
+      }
+      await batch.commit();
+      return {
+        id: productRef.id,
+        ...input.data,
+        orgId: input.orgId,
+        sku,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as Product;
+    }
+  }
+
+  private async countWithPrefix(orgId: string, prefix: string) {
+    const q = query(collection(getFirebaseDb(), COLLECTIONS.products), where('orgId', '==', orgId));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.filter((d) => String(d.data().sku || '').startsWith(`${prefix}-`)).length;
   }
 
   async update(id: string, data: Partial<Product>) {
@@ -131,16 +233,25 @@ export class FirestoreProductRepository implements ProductRepository {
     await deleteDoc(doc(getFirebaseDb(), COLLECTIONS.products, id));
   }
 
+  async deleteMany(ids: string[]) {
+    if (ids.length === 0) return;
+    const db = getFirebaseDb();
+    for (let i = 0; i < ids.length; i += 500) {
+      const batch = writeBatch(db);
+      for (const id of ids.slice(i, i + 500)) {
+        batch.delete(doc(db, COLLECTIONS.products, id));
+      }
+      await batch.commit();
+    }
+  }
+
   async updateCurrentStock(id: string, quantity: number) {
     const ref = doc(getFirebaseDb(), COLLECTIONS.products, id);
     await updateDoc(ref, { currentStock: quantity, updatedAt: serverTimestamp() });
   }
 
   async getLowStock(orgId: string, threshold: number) {
-    const q = query(
-      collection(getFirebaseDb(), COLLECTIONS.products),
-      where('orgId', '==', orgId),
-    );
+    const q = query(collection(getFirebaseDb(), COLLECTIONS.products), where('orgId', '==', orgId));
     const snapshot = await getDocs(q);
     return snapshot.docs
       .map((d) => mapProduct(d.id, d.data()))
@@ -148,10 +259,7 @@ export class FirestoreProductRepository implements ProductRepository {
   }
 
   async getStockValue(orgId: string) {
-    const q = query(
-      collection(getFirebaseDb(), COLLECTIONS.products),
-      where('orgId', '==', orgId),
-    );
+    const q = query(collection(getFirebaseDb(), COLLECTIONS.products), where('orgId', '==', orgId));
     const snapshot = await getDocs(q);
     const products = snapshot.docs.map((d) => mapProduct(d.id, d.data()));
     const byCategory: Record<string, number> = {};
@@ -173,10 +281,18 @@ export class FirestoreProductRepository implements ProductRepository {
   }
 
   async bulkCreate(data: Array<Omit<Product, 'id' | 'createdAt' | 'updatedAt'>>) {
+    if (data.length === 0) return [];
+    const db = getFirebaseDb();
     const results: Product[] = [];
-    for (const item of data) {
-      const product = await this.create(item);
-      results.push(product);
+    for (let i = 0; i < data.length; i += 500) {
+      const batch = writeBatch(db);
+      const chunk = data.slice(i, i + 500);
+      for (const item of chunk) {
+        const ref = doc(collection(db, COLLECTIONS.products));
+        batch.set(ref, { ...item, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+        results.push({ id: ref.id, ...item, createdAt: new Date(), updatedAt: new Date() });
+      }
+      await batch.commit();
     }
     return results;
   }

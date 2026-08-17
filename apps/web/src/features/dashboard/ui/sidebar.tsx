@@ -13,13 +13,17 @@ import {
   UsersRound,
   Wrench,
   Truck,
+  PanelLeftClose,
+  PanelLeftOpen,
+  type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PROTECTED_ROUTES, hasPermission } from '@car-spa/shared';
 import { useAuth } from '@/features/authentication/hooks/use-auth';
 import { useSidebarStore } from '@/features/dashboard/stores/use-sidebar-store';
+import { BrandLogo } from '@/components/shared/brand-logo';
 
-const allNavItems = [
+const allNavItems: { href: string; label: string; icon: LucideIcon }[] = [
   { href: PROTECTED_ROUTES.dashboard, label: 'Dashboard', icon: LayoutDashboard },
   { href: PROTECTED_ROUTES.vehicleTasks, label: 'Vehicle Tasks', icon: Car },
   { href: PROTECTED_ROUTES.inventory, label: 'Inventory', icon: Package },
@@ -31,11 +35,11 @@ const allNavItems = [
   { href: PROTECTED_ROUTES.settings, label: 'Settings', icon: Settings },
 ];
 
-function SidebarContent() {
+function SidebarContent({ collapsed }: { collapsed: boolean }) {
   const pathname = usePathname();
   const { session } = useAuth();
   const role = session?.role ?? 'employee';
-  const { setMobileOpen } = useSidebarStore();
+  const { setMobileOpen, toggleCollapsed } = useSidebarStore();
 
   const navItems = allNavItems.filter((item) => {
     if (item.href === PROTECTED_ROUTES.employees) {
@@ -52,42 +56,94 @@ function SidebarContent() {
 
   return (
     <>
-      <div className="mb-8 px-2">
-        <p className="font-display text-2xl tracking-tight">Big Bull Car Spa</p>
-        <p className="text-muted-foreground text-xs">Powered by Nexarise</p>
+      <div
+        className={cn(
+          'mb-6 flex h-10 items-center gap-2.5 px-2',
+          collapsed && 'justify-center px-0',
+        )}
+      >
+        <BrandLogo className="h-10 w-10 shrink-0 rounded-lg shadow-md shadow-black/20" />
+        {!collapsed && (
+          <div className="min-w-0">
+            <p className="truncate text-sm leading-tight font-bold tracking-tight text-white">
+              Big Bull Car Spa
+            </p>
+            <p className="text-[9px] font-medium tracking-widest text-slate-400 uppercase">
+              Powered by Nexarise
+            </p>
+          </div>
+        )}
       </div>
+
+      {!collapsed && (
+        <p className="mb-2 px-3 text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+          Main Menu
+        </p>
+      )}
+
       <nav className="flex flex-1 flex-col gap-1" aria-label="Main navigation">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = pathname === item.href || pathname.startsWith(item.href + '/');
           const label =
-            item.href === PROTECTED_ROUTES.employees && role !== 'owner'
-              ? 'My Portal'
-              : item.label;
+            item.href === PROTECTED_ROUTES.employees && role !== 'owner' ? 'My Portal' : item.label;
           return (
             <Link
               key={item.href}
               href={item.href}
+              title={collapsed ? label : undefined}
               onClick={() => setMobileOpen(false)}
               className={cn(
-                'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
+                'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                collapsed && 'justify-center px-0',
                 active
-                  ? 'bg-muted text-foreground'
-                  : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+                  ? 'bg-sky-500/15 text-white'
+                  : 'text-slate-400 hover:bg-white/5 hover:text-white',
               )}
             >
-              <Icon className="h-4 w-4" />
-              {label}
+              <span
+                className={cn(
+                  'absolute top-1/2 left-0 h-5 w-1 -translate-y-1/2 rounded-r-full transition-opacity',
+                  active ? 'bg-sky-400 opacity-100' : 'opacity-0',
+                )}
+                aria-hidden="true"
+              />
+              <Icon
+                className={cn(
+                  'h-4 w-4 shrink-0',
+                  active ? 'text-sky-400' : 'text-slate-500 group-hover:text-white',
+                )}
+              />
+              {!collapsed && label}
             </Link>
           );
         })}
       </nav>
+
+      <button
+        type="button"
+        onClick={toggleCollapsed}
+        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        className={cn(
+          'mt-4 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-white/5 hover:text-white',
+          collapsed && 'justify-center px-0',
+        )}
+      >
+        {collapsed ? (
+          <PanelLeftOpen className="h-4 w-4 shrink-0" />
+        ) : (
+          <>
+            <PanelLeftClose className="h-4 w-4 shrink-0" />
+            <span>Collapse</span>
+          </>
+        )}
+      </button>
     </>
   );
 }
 
 export function Sidebar() {
-  const { mobileOpen, setMobileOpen } = useSidebarStore();
+  const { mobileOpen, setMobileOpen, collapsed } = useSidebarStore();
 
   useEffect(() => {
     if (mobileOpen) {
@@ -106,19 +162,24 @@ export function Sidebar() {
 
   return (
     <>
-      <aside className="border-border/60 bg-card/40 hidden w-60 shrink-0 flex-col border-r p-4 lg:flex">
-        <SidebarContent />
+      <aside
+        className={cn(
+          'from-navy-light to-navy dark:from-navy-darker dark:to-navy-dark hidden shrink-0 flex-col border-r border-white/5 bg-gradient-to-b p-4 transition-[width] duration-300 ease-in-out lg:flex',
+          collapsed ? 'w-[68px]' : 'w-60',
+        )}
+      >
+        <SidebarContent collapsed={collapsed} />
       </aside>
 
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div
-            className="bg-black/50 absolute inset-0"
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             aria-hidden="true"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="bg-background relative flex h-full w-64 max-w-[85vw] flex-col overflow-y-auto border-r p-4">
-            <SidebarContent />
+          <aside className="from-navy-light to-navy dark:from-navy-darker dark:to-navy-dark relative flex h-full w-64 max-w-[85vw] flex-col overflow-y-auto border-r border-white/5 bg-gradient-to-b p-4">
+            <SidebarContent collapsed={false} />
           </aside>
         </div>
       )}

@@ -1,16 +1,17 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { calculateSalary } from '@car-spa/application';
 import { salaryRecordSchema } from '@car-spa/domain';
+import { getStoreSettingsUseCase } from '@car-spa/infrastructure';
 import { useForm } from 'react-hook-form';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCreateSalary, useEmployeeLeaveDays } from '../api/use-salary';
 import type { EmployeeWithMembership } from '../api/use-employees';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { X, RefreshCw } from 'lucide-react';
 import type { z } from 'zod';
 
@@ -20,15 +21,31 @@ interface SalaryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   employees: EmployeeWithMembership[];
+  orgId: string;
   onSuccess?: () => void;
 }
 
-export function SalaryDialog({ open, onOpenChange, employees, onSuccess }: SalaryDialogProps) {
+export function SalaryDialog({
+  open,
+  onOpenChange,
+  employees,
+  orgId,
+  onSuccess,
+}: SalaryDialogProps) {
   const createSalary = useCreateSalary();
   const overlayRef = useRef<HTMLDivElement>(null);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [manualEdit, setManualEdit] = useState<'perDayRate' | 'deduction' | 'payableAmount' | null>(
+    null,
+  );
+
+  const { data: storeSettings } = useQuery({
+    queryKey: ['storeSettings', orgId],
+    queryFn: () => getStoreSettingsUseCase.execute(orgId),
+    enabled: !!orgId,
+  });
 
   const {
     register,
@@ -36,6 +53,7 @@ export function SalaryDialog({ open, onOpenChange, employees, onSuccess }: Salar
     reset,
     watch,
     setValue,
+    getValues,
     formState: { errors },
   } = useForm<SalaryFormData>({
     resolver: zodResolver(salaryRecordSchema),
@@ -46,6 +64,9 @@ export function SalaryDialog({ open, onOpenChange, employees, onSuccess }: Salar
       fullSalary: 0,
       workingDays: 26,
       leaveDays: 0,
+      perDayRate: 0,
+      deduction: 0,
+      payableAmount: 0,
       notes: '',
     },
   });
@@ -53,6 +74,9 @@ export function SalaryDialog({ open, onOpenChange, employees, onSuccess }: Salar
   const fullSalary = watch('fullSalary');
   const workingDays = watch('workingDays');
   const leaveDays = watch('leaveDays');
+  const perDayRate = watch('perDayRate');
+  const deduction = watch('deduction');
+  const payableAmount = watch('payableAmount');
 
   const { data: autoLeaveDays, isFetching: leaveDaysLoading } = useEmployeeLeaveDays(
     selectedEmployeeId,
@@ -81,14 +105,71 @@ export function SalaryDialog({ open, onOpenChange, employees, onSuccess }: Salar
     return () => document.removeEventListener('keydown', handleEscape);
   }, [open, onOpenChange]);
 
-  const preview = useMemo(() => {
-    if (!fullSalary || !workingDays) return null;
-    try {
-      return calculateSalary(Number(fullSalary), Number(workingDays), Number(leaveDays || 0));
-    } catch {
-      return null;
-    }
+  const round2 = useCallback((n: number) => {
+    return Math.round((n + Number.EPSILON) * 100) / 100;
+  }, []);
+
+  const setNum = useCallback(
+    (name: 'perDayRate' | 'deduction' | 'payableAmount', value: number) => {
+      const rounded = round2(value);
+      const current = Number(getValues(name));
+      if (Math.abs(current - rounded) > 0.001) setValue(name, rounded);
+    },
+    [round2, getValues, setValue],
+  );
+
+  useEffect(() => {
+    setManualEdit(null);
   }, [fullSalary, workingDays, leaveDays]);
+
+  useEffect(() => {
+    const fs = Number(fullSalary) || 0;
+    const wd = Number(workingDays) || 0;
+    const ld = Number(leaveDays) || 0;
+
+    if (fs <= 0 || wd <= 0) {
+      setNum('perDayRate', 0);
+      setNum('deduction', 0);
+      setNum('payableAmount', fs);
+      return;
+    }
+
+    const basePerDay = fs / wd;
+    let nextPerDay: number;
+    let nextDeduction: number;
+    let nextPayable: number;
+
+    if (manualEdit === 'perDayRate') {
+      nextPerDay = Number(perDayRate) || 0;
+      nextDeduction = ld * nextPerDay;
+      nextPayable = fs - nextDeduction;
+    } else if (manualEdit === 'deduction') {
+      nextDeduction = Number(deduction) || 0;
+      nextPayable = fs - nextDeduction;
+      nextPerDay = ld > 0 ? nextDeduction / ld : basePerDay;
+    } else if (manualEdit === 'payableAmount') {
+      nextPayable = Number(payableAmount) || 0;
+      nextDeduction = fs - nextPayable;
+      nextPerDay = ld > 0 ? nextDeduction / ld : basePerDay;
+    } else {
+      nextPerDay = basePerDay;
+      nextDeduction = ld * basePerDay;
+      nextPayable = fs - nextDeduction;
+    }
+
+    setNum('perDayRate', nextPerDay);
+    setNum('deduction', nextDeduction);
+    setNum('payableAmount', nextPayable);
+  }, [
+    fullSalary,
+    workingDays,
+    leaveDays,
+    perDayRate,
+    deduction,
+    payableAmount,
+    manualEdit,
+    setNum,
+  ]);
 
   if (!open) return null;
 
@@ -102,12 +183,12 @@ export function SalaryDialog({ open, onOpenChange, employees, onSuccess }: Salar
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       onClick={(e) => {
         if (e.target === overlayRef.current) onOpenChange(false);
       }}
     >
-      <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <Card className="max-h-[90vh] w-full max-w-lg overflow-y-auto">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Generate Salary</CardTitle>
           <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
@@ -129,9 +210,9 @@ export function SalaryDialog({ open, onOpenChange, employees, onSuccess }: Salar
                     if (emp?.membership?.salaryAmount != null) {
                       setValue('fullSalary', emp.membership.salaryAmount);
                     }
-                    if (emp?.membership?.minWorkDays != null) {
-                      setValue('workingDays', emp.membership.minWorkDays);
-                    }
+                    const defaultWorkingDays =
+                      storeSettings?.workingDaysPerMonth ?? emp?.membership?.minWorkDays ?? 26;
+                    setValue('workingDays', defaultWorkingDays);
                   },
                 })}
               >
@@ -160,9 +241,7 @@ export function SalaryDialog({ open, onOpenChange, employees, onSuccess }: Salar
                     onChange: (e) => setSelectedMonth(Number(e.target.value)),
                   })}
                 />
-                {errors.month && (
-                  <p className="text-destructive text-sm">{errors.month.message}</p>
-                )}
+                {errors.month && <p className="text-destructive text-sm">{errors.month.message}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="salary-year">Year</Label>
@@ -176,9 +255,7 @@ export function SalaryDialog({ open, onOpenChange, employees, onSuccess }: Salar
                     onChange: (e) => setSelectedYear(Number(e.target.value)),
                   })}
                 />
-                {errors.year && (
-                  <p className="text-destructive text-sm">{errors.year.message}</p>
-                )}
+                {errors.year && <p className="text-destructive text-sm">{errors.year.message}</p>}
               </div>
             </div>
 
@@ -236,29 +313,62 @@ export function SalaryDialog({ open, onOpenChange, employees, onSuccess }: Salar
               />
             </div>
 
-            {preview && (
-              <div className="bg-muted space-y-1 rounded-md px-4 py-3 text-sm">
-                <p className="font-medium text-xs uppercase tracking-wide text-muted-foreground">
-                  Preview
-                </p>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Per Day Rate</span>
-                  <span className="font-medium">₹{preview.perDayRate.toLocaleString('en-IN')}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Deduction</span>
-                  <span className="font-medium text-red-600">
-                    -₹{preview.deduction.toLocaleString('en-IN')}
-                  </span>
-                </div>
-                <div className="flex justify-between border-t pt-1">
-                  <span className="font-medium">Payable Amount</span>
-                  <span className="font-bold text-lg">
-                    ₹{preview.payableAmount.toLocaleString('en-IN')}
-                  </span>
-                </div>
+            <div className="bg-muted space-y-3 rounded-md px-4 py-3 text-sm">
+              <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                Salary Breakdown
+              </p>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">Per Day Rate</span>
+                <Input
+                  id="salary-perday"
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  className="h-8 w-36 text-right"
+                  {...register('perDayRate', {
+                    valueAsNumber: true,
+                    onChange: () => setManualEdit('perDayRate'),
+                  })}
+                />
               </div>
-            )}
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">Deduction</span>
+                <Input
+                  id="salary-deduction"
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  className="h-8 w-36 text-right text-red-600"
+                  {...register('deduction', {
+                    valueAsNumber: true,
+                    onChange: () => setManualEdit('deduction'),
+                  })}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-2 border-t pt-2">
+                <span className="font-medium">Payable Amount</span>
+                <Input
+                  id="salary-payable"
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  className="h-8 w-36 text-right text-base font-bold"
+                  {...register('payableAmount', {
+                    valueAsNumber: true,
+                    onChange: () => setManualEdit('payableAmount'),
+                  })}
+                />
+              </div>
+              {errors.perDayRate && (
+                <p className="text-destructive text-sm">{errors.perDayRate.message}</p>
+              )}
+              {errors.deduction && (
+                <p className="text-destructive text-sm">{errors.deduction.message}</p>
+              )}
+              {errors.payableAmount && (
+                <p className="text-destructive text-sm">{errors.payableAmount.message}</p>
+              )}
+            </div>
 
             {createSalary.isError && (
               <p className="text-destructive text-sm">{createSalary.error.message}</p>

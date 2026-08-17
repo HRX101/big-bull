@@ -1,66 +1,58 @@
 'use client';
 
-import { useTheme } from 'next-themes';
-import { Moon, Sun, LogOut, Settings, User, Menu } from 'lucide-react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { useSignOut } from '@/features/authentication/hooks/use-auth-mutations';
-import { useAuth } from '@/features/authentication/hooks/use-auth';
+import { Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useSidebarStore } from '@/features/dashboard/stores/use-sidebar-store';
-import { PROTECTED_ROUTES } from '@car-spa/shared';
+import { ThemeToggle } from '@/features/dashboard/ui/theme-toggle';
+import { ProfileMenu } from '@/features/dashboard/ui/profile-menu';
+import { BrandLogo } from '@/components/shared/brand-logo';
+import { cn } from '@/lib/utils';
+
+const iconButtonClass =
+  'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 disabled:pointer-events-none disabled:opacity-50';
 
 export function TopBar() {
-  const { session } = useAuth();
-  const { theme, setTheme } = useTheme();
-  const signOut = useSignOut();
-  const { toggleMobile } = useSidebarStore();
+  const { toggleMobile, collapsed, toggleCollapsed } = useSidebarStore();
 
   return (
-    <header className="border-border/60 flex h-14 shrink-0 items-center justify-between border-b px-4 sm:px-6">
-      <div className="flex min-w-0 items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Open navigation menu"
-          className="lg:hidden"
-          onClick={() => toggleMobile()}
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
-        <span className="text-muted-foreground hidden text-sm md:block">Organization</span>
-        <span className="border-border truncate rounded-md border px-2 py-1 text-sm">
-          {process.env.NEXT_PUBLIC_DEFAULT_ORG_NAME ?? 'Big Bull Car Spa'}
-        </span>
-      </div>
-      <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Toggle theme"
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-        >
-          {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-        </Button>
-        <Button variant="ghost" size="icon" asChild aria-label="Settings">
-          <Link href={PROTECTED_ROUTES.settings}>
-            <Settings className="h-4 w-4" />
-          </Link>
-        </Button>
-        <div className="border-border hidden items-center gap-2 rounded-md border px-3 py-1.5 text-sm sm:flex">
-          <User className="text-muted-foreground h-4 w-4 shrink-0" />
-          <span className="max-w-[120px] truncate">{session?.displayName}</span>
-          <span className="text-muted-foreground">({session?.role})</span>
+    <>
+      <header className="from-navy-light to-navy dark:from-navy-darker dark:to-navy-dark z-20 flex h-14 shrink-0 items-center justify-between border-b border-white/10 bg-gradient-to-r px-4 sm:px-6">
+        <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
+          <button
+            type="button"
+            aria-label="Open navigation menu"
+            className={cn(iconButtonClass, 'lg:hidden')}
+            onClick={() => toggleMobile()}
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className={cn(iconButtonClass, 'hidden lg:inline-flex')}
+            onClick={toggleCollapsed}
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="h-4 w-4" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" />
+            )}
+          </button>
+          <span className="hidden md:block lg:hidden">
+            <BrandLogo className="h-7 w-7 rounded-md" />
+          </span>
+          <span className="hidden text-[10px] font-bold tracking-wider text-slate-500 uppercase lg:block">
+            Workspace
+          </span>
+          <span className="max-w-[130px] truncate rounded-md border border-white/10 bg-white/10 px-2 py-1 text-xs font-medium text-slate-100 sm:max-w-none">
+            {process.env.NEXT_PUBLIC_DEFAULT_ORG_NAME ?? 'Big Bull Car Spa'}
+          </span>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Sign out"
-          onClick={() => signOut.mutate()}
-          disabled={signOut.isPending}
-        >
-          <LogOut className="h-4 w-4" />
-        </Button>
-      </div>
-    </header>
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+          <ThemeToggle />
+          <ProfileMenu />
+        </div>
+      </header>
+    </>
   );
 }

@@ -25,17 +25,17 @@ Presentation → Application → Domain → Infrastructure → Firebase
 
 ### Modules (all implemented)
 
-| Module | Description | Owner | Employee |
-|--------|-------------|-------|----------|
-| Dashboard | Today's stats, task status chart, recent activity | ✓ | ✓ |
-| Vehicle Tasks | Kanban board, multi-step wizard, status change with notes | ✓ | ✓ |
-| Inventory | Categories with flexible attributes, items, stock movements | ✓ | Read |
-| POS | Cart-based selling, auto-decrement stock | ✓ | ✓ |
-| Customers | Unified list, dedup by phone, spend/visit history | ✓ | ✓ |
-| Employees | Add/remove, toggle active, leave requests | ✓ | Self-only |
-| Mechanics | Ledger (DEBIT/CREDIT), balance tracking, enter sales | ✓ | Read |
-| Payroll | Salary generation with auto-deduction, approve/paid workflow | ✓ | Read |
-| Settings | Store config, services, password change | ✓ | Limited |
+| Module        | Description                                                  | Owner | Employee  |
+| ------------- | ------------------------------------------------------------ | ----- | --------- |
+| Dashboard     | Today's stats, task status chart, recent activity            | ✓     | ✓         |
+| Vehicle Tasks | Kanban board, multi-step wizard, status change with notes    | ✓     | ✓         |
+| Inventory     | Categories with flexible attributes, items, stock movements  | ✓     | Read      |
+| POS           | Cart-based selling, auto-decrement stock                     | ✓     | ✓         |
+| Customers     | Unified list, dedup by phone, spend/visit history            | ✓     | ✓         |
+| Employees     | Add/remove, toggle active, leave requests                    | ✓     | Self-only |
+| Mechanics     | Ledger (DEBIT/CREDIT), balance tracking, enter sales         | ✓     | Read      |
+| Payroll       | Salary generation with auto-deduction, approve/paid workflow | ✓     | Read      |
+| Settings      | Store config, services, password change                      | ✓     | Limited   |
 
 ### Roles & Access
 
@@ -73,21 +73,22 @@ docker-compose up
 
 ## Scripts
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start Next.js dev server |
-| `npm run build` | Build all workspaces |
-| `npm test` | Unit tests (Vitest) |
-| `npm run test:integration` | Firestore rules tests |
-| `npm run test:e2e` | Playwright tests |
-| `npm run typecheck` | TypeScript check |
-| `npm run lint` | ESLint |
+| Command                    | Description              |
+| -------------------------- | ------------------------ |
+| `npm run dev`              | Start Next.js dev server |
+| `npm run build`            | Build all workspaces     |
+| `npm test`                 | Unit tests (Vitest)      |
+| `npm run test:integration` | Firestore rules tests    |
+| `npm run test:e2e`         | Playwright tests         |
+| `npm run typecheck`        | TypeScript check         |
+| `npm run lint`             | ESLint                   |
 
 ## Environment Variables
 
 See [.env.example](.env.example) for all required and optional variables.
 
 Key variables:
+
 - `NEXT_PUBLIC_FIREBASE_*` — Firebase project credentials (required)
 - `NEXT_PUBLIC_USE_FIREBASE_EMULATORS` — set `true` for emulator development
 - WhatsApp API keys (optional) — for customer notifications
@@ -102,6 +103,7 @@ Customer status update notifications are sent via Firebase Cloud Function when a
 The `onTaskStatusChange` function triggers on `taskStatusEvents` creation, looks up customer phone, and sends a template message.
 
 **Setup:**
+
 1. Create a WhatsApp Business Account at [developers.facebook.com](https://developers.facebook.com)
 2. Get API Key and Phone Number ID
 3. Create template `vehicle_task_update` with body params: `{{1}}` (name), `{{2}}` (status), `{{3}}` (note)

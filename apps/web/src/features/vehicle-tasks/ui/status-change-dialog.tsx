@@ -26,7 +26,12 @@ const STATUS_FLOW: Record<TaskStatus, TaskStatus[]> = {
   CANCELLED: [],
 };
 
-export function StatusChangeDialog({ task, open, onOpenChange, onSuccess }: StatusChangeDialogProps) {
+export function StatusChangeDialog({
+  task,
+  open,
+  onOpenChange,
+  onSuccess,
+}: StatusChangeDialogProps) {
   const changeStatus = useChangeTaskStatus();
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -57,8 +62,7 @@ export function StatusChangeDialog({ task, open, onOpenChange, onSuccess }: Stat
   const nextStatuses = STATUS_FLOW[task.status];
   const selectedStatus = watch('toStatus');
 
-  const blockedByPayment =
-    selectedStatus === 'COMPLETED' && task.dueAmount > 0;
+  const blockedByPayment = selectedStatus === 'COMPLETED' && task.dueAmount > 0;
 
   const onSubmit = handleSubmit(async (data) => {
     const result = await changeStatus.mutateAsync(data);
@@ -71,7 +75,7 @@ export function StatusChangeDialog({ task, open, onOpenChange, onSuccess }: Stat
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       onClick={(e) => {
         if (e.target === overlayRef.current) onOpenChange(false);
       }}
@@ -88,7 +92,9 @@ export function StatusChangeDialog({ task, open, onOpenChange, onSuccess }: Stat
             <div className="flex items-center gap-2 text-sm">
               <span className="bg-muted rounded-md px-2 py-1 font-medium">{task.status}</span>
               <ArrowRight className="text-muted-foreground h-4 w-4" />
-              <span className="bg-primary/10 text-primary rounded-md px-2 py-1 font-medium">{selectedStatus}</span>
+              <span className="bg-primary/10 text-primary rounded-md px-2 py-1 font-medium">
+                {selectedStatus}
+              </span>
             </div>
 
             {nextStatuses.length > 0 ? (
@@ -118,7 +124,9 @@ export function StatusChangeDialog({ task, open, onOpenChange, onSuccess }: Stat
                 placeholder="Describe the reason for this status change..."
                 {...register('note')}
               />
-              {errors.note && <p className="text-destructive text-sm">{errors.note.message as string}</p>}
+              {errors.note && (
+                <p className="text-destructive text-sm">{errors.note.message as string}</p>
+              )}
             </div>
 
             {blockedByPayment && (
@@ -132,7 +140,11 @@ export function StatusChangeDialog({ task, open, onOpenChange, onSuccess }: Stat
               <p className="text-destructive text-sm">{changeStatus.error.message}</p>
             )}
 
-            <Button type="submit" className="w-full" disabled={changeStatus.isPending || nextStatuses.length === 0 || blockedByPayment}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={changeStatus.isPending || nextStatuses.length === 0 || blockedByPayment}
+            >
               {changeStatus.isPending ? 'Updating…' : 'Confirm'}
             </Button>
           </form>

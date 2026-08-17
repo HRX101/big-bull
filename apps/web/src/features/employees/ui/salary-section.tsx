@@ -1,7 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Check, DollarSign, RefreshCw, CalendarDays, PiggyBank, Wallet, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Plus,
+  Check,
+  DollarSign,
+  RefreshCw,
+  CalendarDays,
+  PiggyBank,
+  Wallet,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+} from 'lucide-react';
+import type { SalaryRecord } from '@car-spa/domain';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -9,6 +21,7 @@ import { EmptyState } from '@/components/shared/empty-state';
 import { useSalaryRecords, useMySalaryRecords, useApproveSalary } from '../api/use-salary';
 import { useEmployees } from '../api/use-employees';
 import { SalaryDialog } from './salary-dialog';
+import { PayslipModal } from './payslip-modal';
 
 const STATUS_BG: Record<string, string> = {
   PENDING: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
@@ -28,7 +41,15 @@ interface SalarySectionProps {
   employeeId?: string;
 }
 
-function SummaryCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function SummaryCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
   return (
     <Card>
       <CardContent className="p-4">
@@ -44,8 +65,9 @@ function SummaryCard({ icon, label, value }: { icon: React.ReactNode; label: str
 
 export function SalarySection({ orgId, isOwner, employeeId }: SalarySectionProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedSlip, setSelectedSlip] = useState<SalaryRecord | null>(null);
   const [page, setPage] = useState(1);
-  const PAGE_SIZE = 8;
+  const PAGE_SIZE = 5;
 
   const salaryQuery = useSalaryRecords(orgId);
   const mySalaryQuery = useMySalaryRecords(employeeId ?? '');
@@ -59,7 +81,7 @@ export function SalarySection({ orgId, isOwner, employeeId }: SalarySectionProps
 
   const employees = employeesQuery.data ?? [];
   const myMembership = !isOwner
-    ? employees.find((e) => e.id === employeeId)?.membership ?? null
+    ? (employees.find((e) => e.id === employeeId)?.membership ?? null)
     : null;
 
   const credited = salaryRecords.filter((r) => r.status === 'PAID');
@@ -140,15 +162,16 @@ export function SalarySection({ orgId, isOwner, employeeId }: SalarySectionProps
                   <th className="px-4 py-3 text-left font-medium">Status</th>
                   {!isOwner && <th className="px-4 py-3 text-left font-medium">Credited On</th>}
                   {isOwner && <th className="px-4 py-3 text-right font-medium">Actions</th>}
+                  <th className="px-4 py-3 text-right font-medium">Slip</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="divide-border divide-y">
                 {paginated.map((sr) => (
                   <tr key={sr.id} className="group hover:bg-muted/30">
                     {isOwner && (
                       <td className="px-4 py-3 font-medium">{getEmployeeName(sr.employeeId)}</td>
                     )}
-                    <td className="px-4 py-3 text-muted-foreground">
+                    <td className="text-muted-foreground px-4 py-3">
                       {new Date(sr.year, sr.month - 1).toLocaleDateString('en-IN', {
                         month: 'short',
                         year: 'numeric',
@@ -157,7 +180,7 @@ export function SalarySection({ orgId, isOwner, employeeId }: SalarySectionProps
                     <td className="px-4 py-3 text-right">
                       ₹{sr.fullSalary.toLocaleString('en-IN')}
                     </td>
-                    <td className="px-4 py-3 text-right text-muted-foreground">{sr.leaveDays}</td>
+                    <td className="text-muted-foreground px-4 py-3 text-right">{sr.leaveDays}</td>
                     <td className="px-4 py-3 text-right text-red-600">
                       -₹{sr.deduction.toLocaleString('en-IN')}
                     </td>
@@ -174,7 +197,7 @@ export function SalarySection({ orgId, isOwner, employeeId }: SalarySectionProps
                       </span>
                     </td>
                     {!isOwner && (
-                      <td className="px-4 py-3 text-muted-foreground">
+                      <td className="text-muted-foreground px-4 py-3">
                         {new Date(sr.createdAt).toLocaleDateString('en-IN', {
                           day: '2-digit',
                           month: 'short',
@@ -190,7 +213,9 @@ export function SalarySection({ orgId, isOwner, employeeId }: SalarySectionProps
                             size="sm"
                             className="text-green-600 hover:text-green-700"
                             disabled={approveSalary.isPending}
-                            onClick={() => approveSalary.mutate({ salaryId: sr.id, status: 'APPROVED' })}
+                            onClick={() =>
+                              approveSalary.mutate({ salaryId: sr.id, status: 'APPROVED' })
+                            }
                           >
                             {approveSalary.isPending ? (
                               <RefreshCw className="h-4 w-4 animate-spin" />
@@ -206,7 +231,9 @@ export function SalarySection({ orgId, isOwner, employeeId }: SalarySectionProps
                             size="sm"
                             className="text-blue-600 hover:text-blue-700"
                             disabled={approveSalary.isPending}
-                            onClick={() => approveSalary.mutate({ salaryId: sr.id, status: 'PAID' })}
+                            onClick={() =>
+                              approveSalary.mutate({ salaryId: sr.id, status: 'PAID' })
+                            }
                           >
                             {approveSalary.isPending ? (
                               <RefreshCw className="h-4 w-4 animate-spin" />
@@ -218,6 +245,17 @@ export function SalarySection({ orgId, isOwner, employeeId }: SalarySectionProps
                         )}
                       </td>
                     )}
+                    <td className="px-4 py-3 text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground hover:text-foreground"
+                        onClick={() => setSelectedSlip(sr)}
+                      >
+                        <FileText className="mr-1 h-4 w-4" />
+                        View
+                      </Button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -234,7 +272,9 @@ export function SalarySection({ orgId, isOwner, employeeId }: SalarySectionProps
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="text-sm text-muted-foreground">Page {safePage} of {totalPages}</span>
+              <span className="text-muted-foreground text-sm">
+                Page {safePage} of {totalPages}
+              </span>
               <Button
                 variant="outline"
                 size="sm"
@@ -253,8 +293,16 @@ export function SalarySection({ orgId, isOwner, employeeId }: SalarySectionProps
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           employees={employees}
+          orgId={orgId}
         />
       )}
+
+      <PayslipModal
+        record={selectedSlip}
+        employee={employees.find((e) => e.id === selectedSlip?.employeeId)}
+        orgId={orgId}
+        onClose={() => setSelectedSlip(null)}
+      />
     </div>
   );
 }
