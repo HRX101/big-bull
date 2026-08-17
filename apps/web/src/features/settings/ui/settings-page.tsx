@@ -366,10 +366,13 @@ export function SettingsPage() {
               {settingsSuccess && <p className="text-sm text-emerald-600">{settingsSuccess}</p>}
               {settingsError && <p className="text-destructive text-sm">{settingsError}</p>}
 
-              <Button type="submit" disabled={updateSettingsMutation.isPending}>
+              <Button type="submit" disabled={updateSettingsMutation.isPending || !canManageSettings}>
                 <Save className="h-4 w-4" />
                 {updateSettingsMutation.isPending ? 'Saving…' : 'Save settings'}
               </Button>
+              {!canManageSettings && (
+                <p className="text-muted-foreground text-xs">Only the owner can save store settings.</p>
+              )}
             </form>
           )}
         </CardContent>

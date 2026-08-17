@@ -1,6 +1,6 @@
 # Cloude Code ToolBox — MCP & Skills awareness
 
-_Generated: 2026-08-15T07:15:11.138Z_
+_Generated: 2026-08-17T18:20:49.947Z_
 
 ## How to use this report
 
@@ -13,9 +13,9 @@ _Generated: 2026-08-15T07:15:11.138Z_
 
 ## MCP — workspace
 
-Workspace `mcp.json` _(folder: car-spa-big-bull)_
+Workspace `mcp.json` _(folder: big-bull)_
 
-- **c:\Users\hrith\Desktop\big-bull\car-spa-big-bull\.mcp.json** — _File missing_
+- **c:\Users\hrith\Desktop\big-bull-new\big-bull\.mcp.json** — _File missing_
 
 _No active workspace servers in mcp.json._
 
