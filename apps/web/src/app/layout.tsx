@@ -31,6 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               (function () {
                 var STRIP = ['fdprocessedid'];
                 function strip(target) {
+                  if (!target || typeof target.removeAttribute !== 'function') return;
                   for (var i = 0; i < STRIP.length; i++) {
                     target.removeAttribute(STRIP[i]);
                   }

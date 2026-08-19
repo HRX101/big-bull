@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -30,7 +30,6 @@ import { ReceiptModal } from '@/features/pos/ui/receipt-modal';
 import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 
 export function QuickActions() {
-  const router = useRouter();
   const orgId = useAuthStore((s) => s.session?.orgId ?? '');
   const [airOpen, setAirOpen] = useState(false);
 
@@ -63,17 +62,17 @@ export function QuickActions() {
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
-        <QuickButton
+        <QuickActionLink
           icon={Car}
           chipClass="from-blue-500 to-sky-500"
           label="Vehicle Task"
-          onClick={() => router.push(PROTECTED_ROUTES.vehicleTasks)}
+          href={PROTECTED_ROUTES.vehicleTasks}
         />
-        <QuickButton
+        <QuickActionLink
           icon={ShoppingCart}
           chipClass="from-emerald-500 to-teal-500"
           label="POS Sale"
-          onClick={() => router.push(PROTECTED_ROUTES.pos)}
+          href={PROTECTED_ROUTES.pos}
         />
         <QuickButton
           icon={Wind}
@@ -81,25 +80,25 @@ export function QuickActions() {
           label="Air"
           onClick={() => setAirOpen(true)}
         />
-        <QuickButton
+        <QuickActionLink
           icon={Receipt}
           chipClass="from-indigo-500 to-blue-600"
           label="View Sales"
-          onClick={() => router.push(PROTECTED_ROUTES.transactions)}
+          href={PROTECTED_ROUTES.transactions}
         />
-        <QuickButton
+        <QuickActionLink
           icon={HandCoins}
           chipClass="from-amber-500 to-orange-600"
           label="To Be Paid"
           value={fmtCurrency(toBePaid)}
-          onClick={() => router.push(PROTECTED_ROUTES.suppliers)}
+          href={PROTECTED_ROUTES.suppliers}
         />
-        <QuickButton
+        <QuickActionLink
           icon={Banknote}
           chipClass="from-rose-500 to-red-600"
           label="To Get"
           value={fmtCurrency(toGet)}
-          onClick={() => router.push(PROTECTED_ROUTES.vehicleTasks)}
+          href={PROTECTED_ROUTES.vehicleTasks}
         />
       </div>
       {airOpen && <AirSaleDialog onClose={() => setAirOpen(false)} />}
@@ -107,9 +106,45 @@ export function QuickActions() {
   );
 }
 
+const chipClass =
+  'group border-border bg-card text-foreground active:scale-[0.98] hover:border-primary/50 inline-flex items-center gap-2 rounded-full border py-2 pr-4 pl-2 text-sm font-semibold shadow-sm shadow-black/5 transition-all hover:-translate-y-0.5 hover:shadow-md lg:py-1.5 lg:pl-1.5 touch-manipulation';
+
+function QuickActionLink({
+  icon: Icon,
+  chipClass: tone,
+  label,
+  value,
+  href,
+}: {
+  icon: LucideIcon;
+  chipClass: string;
+  label: string;
+  value?: string;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`${chipClass} ${value ? 'pr-3' : ''}`}
+    >
+      <span
+        className={`me-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-white shadow-sm lg:h-6 lg:w-6 ${tone}`}
+      >
+        <Icon className="h-4 w-4" />
+      </span>
+      {label}
+      {value && (
+        <span className="text-muted-foreground rounded-full bg-muted px-1.5 py-0.5 text-xs font-medium tabular-nums">
+          {value}
+        </span>
+      )}
+    </Link>
+  );
+}
+
 function QuickButton({
   icon: Icon,
-  chipClass,
+  chipClass: tone,
   label,
   value,
   onClick,
@@ -124,12 +159,12 @@ function QuickButton({
     <button
       type="button"
       onClick={onClick}
-      className="group border-border bg-card text-foreground hover:border-primary/50 inline-flex items-center gap-2 rounded-full border py-1.5 pr-4 pl-1.5 text-sm font-semibold shadow-sm shadow-black/5 transition-all hover:-translate-y-0.5 hover:shadow-md"
+      className={`${chipClass} ${value ? 'pr-3' : ''}`}
     >
       <span
-        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-white shadow-sm ${chipClass}`}
+        className={`me-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-white shadow-sm lg:h-6 lg:w-6 ${tone}`}
       >
-        <Icon className="h-3.5 w-3.5" />
+        <Icon className="h-4 w-4" />
       </span>
       {label}
       {value && (

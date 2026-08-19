@@ -292,8 +292,8 @@ function SupplierDetailPanel({ supplier }: { supplier: Supplier }) {
     <>
       <div className="space-y-6">
         <Card>
-          <CardContent className="flex flex-wrap items-start justify-between gap-4 px-5 pt-6 pb-5 sm:px-6 sm:pt-8 sm:pb-6">
-            <div className="min-w-0 flex-1">
+          <CardContent className="flex flex-col gap-4 px-5 pt-6 pb-5 sm:px-6 sm:pt-8 sm:pb-6 lg:flex-row lg:items-start lg:justify-between">
+            <div className="w-full min-w-0 lg:w-auto lg:flex-1">
               {editing ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -399,7 +399,7 @@ function SupplierDetailPanel({ supplier }: { supplier: Supplier }) {
               )}
             </div>
 
-            <div className="grid shrink-0 grid-cols-3 gap-4 text-right sm:gap-6">
+            <div className="grid w-full grid-cols-3 gap-3 text-right sm:gap-6 lg:w-auto">
               <div>
                 <p className="text-muted-foreground text-xs">Total Purchases</p>
                 <p className="font-semibold">{fmt(supplier.totalAmount)}</p>
@@ -418,12 +418,13 @@ function SupplierDetailPanel({ supplier }: { supplier: Supplier }) {
           </CardContent>
         </Card>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
           <Button
             onClick={() => {
               setPurchaseType('PURCHASE');
               setPurchaseDialogOpen(true);
             }}
+            className="w-full sm:w-auto"
           >
             <ArrowDownLeft className="mr-2 h-4 w-4" />
             Record Purchase
@@ -434,6 +435,7 @@ function SupplierDetailPanel({ supplier }: { supplier: Supplier }) {
               setPurchaseType('ADVANCE');
               setPurchaseDialogOpen(true);
             }}
+            className="w-full sm:w-auto"
           >
             <ArrowUpRight className="mr-2 h-4 w-4" />
             Record Advance
