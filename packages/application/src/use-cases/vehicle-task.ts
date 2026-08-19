@@ -30,12 +30,13 @@ export class CreateVehicleTaskUseCase {
       return err(new Error(parsed.error.errors[0]?.message ?? 'Invalid input'));
     }
     try {
-      const customer = await this.customerRepo.findById(parsed.data.customerId);
+      const [customer, vehicle] = await Promise.all([
+        this.customerRepo.findById(parsed.data.customerId),
+        this.vehicleRepo.findById(parsed.data.vehicleId),
+      ]);
       if (!customer) {
         return err(new Error('Customer not found'));
       }
-
-      const vehicle = await this.vehicleRepo.findById(parsed.data.vehicleId);
       if (!vehicle) {
         return err(new Error('Vehicle not found'));
       }
@@ -71,24 +72,28 @@ export class CreateVehicleTaskUseCase {
         whatsappStatus: 'NOT_APPLICABLE',
       });
 
-      await this.customerRepo.update(customer.id, {
-        visitCount: customer.visitCount + 1,
-        totalSpend: customer.totalSpend + parsed.data.totalAmount,
-      });
-
-      const draft = await this.draftRepo.findByUserAndType(actorId, 'vehicle-task');
-      if (draft) {
-        await this.draftRepo.delete(draft.id);
-      }
-
-      await this.auditRepo.log({
-        orgId,
-        actorId,
-        action: 'vehicleTask.create',
-        resourceType: 'vehicleTask',
-        resourceId: task.id,
-        metadata: { amount: task.totalAmount },
-      });
+      void Promise.all([
+        this.customerRepo
+          .update(customer.id, {
+            visitCount: customer.visitCount + 1,
+            totalSpend: customer.totalSpend + parsed.data.totalAmount,
+          })
+          .catch(() => {}),
+        (async () => {
+          const draft = await this.draftRepo.findByUserAndType(actorId, 'vehicle-task');
+          if (draft) await this.draftRepo.delete(draft.id);
+        })().catch(() => {}),
+        this.auditRepo
+          .log({
+            orgId,
+            actorId,
+            action: 'vehicleTask.create',
+            resourceType: 'vehicleTask',
+            resourceId: task.id,
+            metadata: { amount: task.totalAmount },
+          })
+          .catch(() => {}),
+      ]);
 
       return ok(task);
     } catch (error) {
@@ -138,14 +143,16 @@ export class ChangeTaskStatusUseCase {
         whatsappStatus: 'PENDING',
       });
 
-      await this.auditRepo.log({
-        orgId,
-        actorId,
-        action: 'vehicleTask.statusChange',
-        resourceType: 'taskStatusEvent',
-        resourceId: event.id,
-        metadata: { taskId: task.id, from: task.status, to: parsed.data.toStatus },
-      });
+      void this.auditRepo
+        .log({
+          orgId,
+          actorId,
+          action: 'vehicleTask.statusChange',
+          resourceType: 'taskStatusEvent',
+          resourceId: event.id,
+          metadata: { taskId: task.id, from: task.status, to: parsed.data.toStatus },
+        })
+        .catch(() => {});
 
       return ok(event);
     } catch (error) {
@@ -187,14 +194,16 @@ export class RecordTaskPaymentUseCase {
         paymentStatus,
       });
 
-      await this.auditRepo.log({
-        orgId,
-        actorId,
-        action: 'vehicleTask.paymentRecorded',
-        resourceType: 'vehicleTask',
-        resourceId: task.id,
-        metadata: { amount: parsed.data.amount, dueAmount },
-      });
+      void this.auditRepo
+        .log({
+          orgId,
+          actorId,
+          action: 'vehicleTask.paymentRecorded',
+          resourceType: 'vehicleTask',
+          resourceId: task.id,
+          metadata: { amount: parsed.data.amount, dueAmount },
+        })
+        .catch(() => {});
 
       return ok(updated);
     } catch (error) {

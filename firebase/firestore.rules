@@ -135,8 +135,8 @@ service cloud.firestore {
     match /suppliers/{docId} {
       allow get: if docBelongsToOrg();
       allow list: if isAuthenticated();
-      allow create: if requestBelongsToOrg() && isOwner();
-      allow update: if docBelongsToOrg() && isOwner();
+      allow create: if requestBelongsToOrg() && isEmployeeOrOwner();
+      allow update: if docBelongsToOrg() && isEmployeeOrOwner();
       allow delete: if docBelongsToOrg() && isOwner();
     }
 
@@ -157,7 +157,7 @@ service cloud.firestore {
     match /supplierPurchaseEntries/{docId} {
       allow get: if docBelongsToOrg();
       allow list: if isAuthenticated();
-      allow create: if requestBelongsToOrg() && isOwner();
+      allow create: if requestBelongsToOrg() && isEmployeeOrOwner();
       allow update, delete: if docBelongsToOrg() && isOwner();
     }
 

@@ -4,6 +4,7 @@ import { COLLECTIONS } from '@car-spa/shared';
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -22,6 +23,7 @@ function mapMembership(id: string, data: Record<string, unknown>): Membership {
     userId: String(data.userId),
     orgId: String(data.orgId),
     role: parseRole(data.role) ?? 'employee',
+    active: data.active !== false,
     salaryAmount: data.salaryAmount != null ? Number(data.salaryAmount) : null,
     minWorkDays: data.minWorkDays != null ? Number(data.minWorkDays) : null,
     createdAt: fromFirestoreDate(data.createdAt),
@@ -62,6 +64,7 @@ export class FirestoreMembershipRepository implements MembershipRepository {
       userId: data.userId,
       orgId: data.orgId,
       role: data.role,
+      active: true,
       salaryAmount: data.salaryAmount ?? null,
       minWorkDays: data.minWorkDays ?? null,
       createdAt: serverTimestamp(),
@@ -72,6 +75,7 @@ export class FirestoreMembershipRepository implements MembershipRepository {
       userId: data.userId,
       orgId: data.orgId,
       role: data.role,
+      active: true,
       salaryAmount: data.salaryAmount ?? null,
       minWorkDays: data.minWorkDays ?? null,
       createdAt: new Date(),
@@ -92,5 +96,9 @@ export class FirestoreMembershipRepository implements MembershipRepository {
     await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
     const saved = await getDoc(ref);
     return mapMembership(saved.id, saved.data()!);
+  }
+
+  async delete(id: string) {
+    await deleteDoc(doc(getFirebaseDb(), COLLECTIONS.memberships, id));
   }
 }

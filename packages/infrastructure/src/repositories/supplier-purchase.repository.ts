@@ -6,8 +6,6 @@ import {
   collection,
   getDoc,
   getDocs,
-  limit as firestoreLimit,
-  orderBy,
   query,
   serverTimestamp,
   where,
@@ -32,25 +30,25 @@ function mapEntry(id: string, data: Record<string, unknown>): SupplierPurchaseEn
 
 export class FirestoreSupplierPurchaseRepository implements SupplierPurchaseRepository {
   async findBySupplierId(supplierId: string, options?: { limit?: number }) {
-    let q = query(
+    const q = query(
       collection(getFirebaseDb(), COLLECTIONS.supplierPurchaseEntries),
       where('supplierId', '==', supplierId),
-      orderBy('createdAt', 'desc'),
     );
-    if (options?.limit) q = query(q, firestoreLimit(options.limit));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map((d) => mapEntry(d.id, d.data()));
+    const entries = snapshot.docs.map((d) => mapEntry(d.id, d.data()));
+    entries.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return options?.limit ? entries.slice(0, options.limit) : entries;
   }
 
   async findByOrgId(orgId: string, options?: { limit?: number }) {
-    let q = query(
+    const q = query(
       collection(getFirebaseDb(), COLLECTIONS.supplierPurchaseEntries),
       where('orgId', '==', orgId),
-      orderBy('createdAt', 'desc'),
     );
-    if (options?.limit) q = query(q, firestoreLimit(options.limit));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map((d) => mapEntry(d.id, d.data()));
+    const entries = snapshot.docs.map((d) => mapEntry(d.id, d.data()));
+    entries.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return options?.limit ? entries.slice(0, options.limit) : entries;
   }
 
   async create(data: Omit<SupplierPurchaseEntry, 'id' | 'createdAt'>) {

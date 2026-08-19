@@ -47,7 +47,8 @@ function fmt(n: number) {
 }
 
 function outstanding(supplier: Supplier) {
-  return supplier.totalAmount - supplier.advanceAmount;
+  const derived = supplier.totalAmount - supplier.advanceAmount;
+  return supplier.toBePaid != null && supplier.toBePaid !== 0 ? supplier.toBePaid : derived;
 }
 
 export function SuppliersPage() {
@@ -254,6 +255,8 @@ function SupplierDetailPanel({ supplier }: { supplier: Supplier }) {
   const [name, setName] = useState(supplier.name);
   const [phone, setPhone] = useState(supplier.contactPhone ?? '');
   const [notes, setNotes] = useState(supplier.notes ?? '');
+  const role = useAuthStore((s) => s.session?.role ?? null);
+  const canDelete = role === 'owner';
 
   useEffect(() => {
     setName(supplier.name);
@@ -357,26 +360,30 @@ function SupplierDetailPanel({ supplier }: { supplier: Supplier }) {
                       >
                         <Edit className="h-4 w-4" />
                       </button>
-                      <button
-                        onClick={() => {
-                          setConfirmType('archive');
-                          setConfirmOpen(true);
-                        }}
-                        className="text-muted-foreground hover:text-foreground hover:bg-muted rounded p-1.5"
-                        aria-label="Archive supplier"
-                      >
-                        <Archive className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setConfirmType('delete');
-                          setConfirmOpen(true);
-                        }}
-                        className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded p-1.5"
-                        aria-label="Delete supplier"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {canDelete && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setConfirmType('archive');
+                              setConfirmOpen(true);
+                            }}
+                            className="text-muted-foreground hover:text-foreground hover:bg-muted rounded p-1.5"
+                            aria-label="Archive supplier"
+                          >
+                            <Archive className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setConfirmType('delete');
+                              setConfirmOpen(true);
+                            }}
+                            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded p-1.5"
+                            aria-label="Delete supplier"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                   {supplier.contactPhone && (
@@ -394,15 +401,15 @@ function SupplierDetailPanel({ supplier }: { supplier: Supplier }) {
 
             <div className="grid shrink-0 grid-cols-3 gap-4 text-right sm:gap-6">
               <div>
-                <p className="text-muted-foreground text-xs">Total Amount</p>
+                <p className="text-muted-foreground text-xs">Total Purchases</p>
                 <p className="font-semibold">{fmt(supplier.totalAmount)}</p>
               </div>
               <div>
-                <p className="text-muted-foreground text-xs">Advance Amount</p>
+                <p className="text-muted-foreground text-xs">Advance Paid</p>
                 <p className="font-semibold text-emerald-600">{fmt(supplier.advanceAmount)}</p>
               </div>
               <div>
-                <p className="text-muted-foreground text-xs">Outstanding</p>
+                <p className="text-muted-foreground text-xs">To Be Paid</p>
                 <p className={`font-semibold ${due > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
                   {fmt(Math.abs(due))}
                 </p>
@@ -473,6 +480,16 @@ function SupplierDetailPanel({ supplier }: { supplier: Supplier }) {
                   <Skeleton key={i} className="h-10 w-full" />
                 ))}
               </div>
+            ) : purchasesQ.isError ? (
+              <div className="flex flex-col items-center gap-3 px-4 py-10">
+                <AlertTriangle className="text-destructive h-6 w-6" />
+                <p className="text-muted-foreground text-sm">
+                  Failed to load purchase history.
+                </p>
+                <Button variant="outline" size="sm" onClick={() => purchasesQ.refetch()}>
+                  Retry
+                </Button>
+              </div>
             ) : (
               <>
                 <div className="overflow-x-auto">
@@ -485,7 +502,7 @@ function SupplierDetailPanel({ supplier }: { supplier: Supplier }) {
                         <th className="px-4 py-3 text-right font-medium">Amount</th>
                         <th className="px-4 py-3 text-right font-medium">Running Total</th>
                         <th className="px-4 py-3 text-right font-medium">Running Advance</th>
-                        <th className="px-4 py-3 text-right font-medium">Outstanding</th>
+                        <th className="px-4 py-3 text-right font-medium">To Be Paid</th>
                       </tr>
                     </thead>
                     <tbody className="divide-border divide-y">
@@ -725,7 +742,7 @@ function CreateSupplierDialog() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
-  const [totalAmount, setTotalAmount] = useState('');
+  const [toBePaid, setToBePaid] = useState('');
   const [advanceAmount, setAdvanceAmount] = useState('');
   const [dirty, setDirty] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
@@ -745,7 +762,7 @@ function CreateSupplierDialog() {
       name: name.trim(),
       contactPhone: phone || undefined,
       notes: notes || undefined,
-      totalAmount: Number(totalAmount) || 0,
+      toBePaid: Number(toBePaid) || 0,
       advanceAmount: Number(advanceAmount) || 0,
     });
     if (!result.success) return;
@@ -753,7 +770,7 @@ function CreateSupplierDialog() {
     setName('');
     setPhone('');
     setNotes('');
-    setTotalAmount('');
+    setToBePaid('');
     setAdvanceAmount('');
     setDirty(false);
   };
@@ -815,15 +832,15 @@ function CreateSupplierDialog() {
               />
             </Field>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Total Amount" id="sup-create-total">
+              <Field label="To Be Paid" id="sup-create-tobe-paid">
                 <Input
-                  id="sup-create-total"
+                  id="sup-create-tobe-paid"
                   type="number"
                   min="0"
                   step="0.01"
-                  value={totalAmount}
+                  value={toBePaid}
                   onChange={(e) => {
-                    setTotalAmount(e.target.value);
+                    setToBePaid(e.target.value);
                     setDirty(true);
                   }}
                   placeholder="0.00"

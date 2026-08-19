@@ -107,6 +107,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     'inventory:create',
     'inventory:update',
     'supplier:read',
+    'supplier:create',
+    'supplier:update',
     'pos:read',
     'pos:create',
     'employee:read',

@@ -81,6 +81,7 @@ export interface MembershipRepository {
       minWorkDays?: number | null;
     },
   ): Promise<Membership>;
+  delete(id: string): Promise<void>;
 }
 
 export interface UserRepository {
@@ -88,6 +89,7 @@ export interface UserRepository {
   findByOrgId(orgId: string, options?: { limit?: number }): Promise<UserProfile[]>;
   upsert(profile: Omit<UserProfile, 'createdAt' | 'updatedAt'>): Promise<UserProfile>;
   update(id: string, data: Partial<UserProfile>): Promise<UserProfile>;
+  delete(id: string): Promise<void>;
 }
 
 export interface ClaimsService {
@@ -208,7 +210,7 @@ export interface SupplierRepository {
   delete(id: string): Promise<void>;
   updateAmounts(
     id: string,
-    delta: { totalAmount?: number; advanceAmount?: number },
+    delta: { totalAmount?: number; advanceAmount?: number; toBePaid?: number },
   ): Promise<Supplier>;
 }
 

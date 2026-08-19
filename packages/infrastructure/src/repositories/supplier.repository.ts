@@ -27,6 +27,10 @@ function mapSupplier(id: string, data: Record<string, unknown>): Supplier {
     notes: data.notes ? String(data.notes) : null,
     totalAmount: Number(data.totalAmount) || 0,
     advanceAmount: Number(data.advanceAmount) || 0,
+    toBePaid:
+      data.toBePaid != null && Number(data.toBePaid) !== 0
+        ? Number(data.toBePaid)
+        : (Number(data.totalAmount) || 0) - (Number(data.advanceAmount) || 0),
     createdAt: fromFirestoreDate(data.createdAt),
     updatedAt: fromFirestoreDate(data.updatedAt),
   };
@@ -86,11 +90,15 @@ export class FirestoreSupplierRepository implements SupplierRepository {
     await deleteDoc(doc(getFirebaseDb(), COLLECTIONS.suppliers, id));
   }
 
-  async updateAmounts(id: string, delta: { totalAmount?: number; advanceAmount?: number }) {
+  async updateAmounts(
+    id: string,
+    delta: { totalAmount?: number; advanceAmount?: number; toBePaid?: number },
+  ) {
     const ref = doc(getFirebaseDb(), COLLECTIONS.suppliers, id);
     const payload: Record<string, unknown> = { updatedAt: serverTimestamp() };
     if (delta.totalAmount !== undefined) payload.totalAmount = increment(delta.totalAmount);
     if (delta.advanceAmount !== undefined) payload.advanceAmount = increment(delta.advanceAmount);
+    if (delta.toBePaid !== undefined) payload.toBePaid = increment(delta.toBePaid);
     await updateDoc(ref, payload);
     const saved = await getDoc(ref);
     return mapSupplier(saved.id, saved.data()!);

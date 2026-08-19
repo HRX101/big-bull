@@ -13,6 +13,7 @@ export interface Membership {
   userId: string;
   orgId: string;
   role: UserRole;
+  active: boolean;
   salaryAmount: number | null;
   minWorkDays: number | null;
   createdAt: Date;
@@ -176,6 +177,7 @@ export interface Supplier {
   notes: string | null;
   totalAmount: number;
   advanceAmount: number;
+  toBePaid: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -230,6 +232,12 @@ export interface Mechanic {
   updatedAt: Date;
 }
 
+export interface MechanicLedgerItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+}
+
 export interface MechanicLedgerEntry {
   id: string;
   orgId: string;
@@ -240,6 +248,7 @@ export interface MechanicLedgerEntry {
   referenceType: string | null;
   referenceId: string | null;
   itemCount: number | null;
+  items: MechanicLedgerItem[] | null;
   actorId: string;
   createdAt: Date;
 }

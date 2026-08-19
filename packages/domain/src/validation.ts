@@ -124,7 +124,7 @@ export const supplierSchema = z.object({
   name: z.string().min(1, 'Supplier name is required'),
   contactPhone: z.string().optional().or(z.literal('')),
   notes: z.string().optional().or(z.literal('')),
-  totalAmount: z.number().min(0).default(0),
+  toBePaid: z.number().min(0).default(0),
   advanceAmount: z.number().min(0).default(0),
 });
 
@@ -164,6 +164,15 @@ export const mechanicLedgerEntrySchema = z.object({
   amount: z.number().positive('Amount must be positive'),
   description: z.string().min(1, 'Description is required'),
   itemCount: z.number().min(0).optional(),
+  items: z
+    .array(
+      z.object({
+        productId: z.string().min(1),
+        productName: z.string().min(1),
+        quantity: z.number().min(1, 'Quantity must be at least 1'),
+      }),
+    )
+    .optional(),
 });
 
 export const leaveRequestSchema = z.object({

@@ -10,6 +10,7 @@ import {
 } from '@car-spa/infrastructure';
 import { useAuthStore } from '@/features/authentication/stores/auth-store';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { createUserWithEmailAndPassword, type UserCredential } from 'firebase/auth';
 import type { Membership, UserProfile } from '@car-spa/domain';
 
@@ -107,9 +108,26 @@ export function useToggleEmployeeStatus() {
   return useMutation({
     mutationFn: async ({ membershipId, active }: { membershipId: string; active: boolean }) =>
       membershipRepository.update(membershipId, { active }),
-    onSuccess: () => {
+    onSuccess: (_data, { active }) => {
+      toast.success(active ? 'Employee activated' : 'Employee deactivated');
       queryClient.invalidateQueries({ queryKey: ['employees'] });
     },
+    onError: (error: Error) => toast.error(error.message || 'Failed to update employee status'),
+  });
+}
+
+export function useDeleteEmployee() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ userId, membershipId }: { userId: string; membershipId: string | null }) => {
+      if (membershipId) await membershipRepository.delete(membershipId);
+      await userRepository.delete(userId);
+    },
+    onSuccess: () => {
+      toast.success('Employee deleted');
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+    },
+    onError: (error: Error) => toast.error(error.message || 'Failed to delete employee'),
   });
 }
 

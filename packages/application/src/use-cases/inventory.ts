@@ -216,21 +216,23 @@ export class CreateSupplierUseCase {
         notes: parsed.data.notes || null,
         totalAmount: 0,
         advanceAmount: 0,
+        toBePaid: 0,
       });
 
-      if (parsed.data.totalAmount > 0) {
+      if (parsed.data.toBePaid > 0) {
         await this.purchaseRepo.create({
           orgId,
           supplierId: supplier.id,
           type: 'PURCHASE',
-          amount: parsed.data.totalAmount,
-          description: 'Opening purchase balance',
+          amount: parsed.data.toBePaid,
+          description: 'Opening balance to be paid',
           referenceType: 'OPENING',
           referenceId: null,
           actorId,
         });
         await this.supplierRepo.updateAmounts(supplier.id, {
-          totalAmount: parsed.data.totalAmount,
+          totalAmount: parsed.data.toBePaid,
+          toBePaid: parsed.data.toBePaid,
         });
       }
 
@@ -247,6 +249,7 @@ export class CreateSupplierUseCase {
         });
         await this.supplierRepo.updateAmounts(supplier.id, {
           advanceAmount: parsed.data.advanceAmount,
+          toBePaid: -parsed.data.advanceAmount,
         });
       }
 
@@ -259,7 +262,7 @@ export class CreateSupplierUseCase {
           resourceType: 'supplier',
           resourceId: supplier.id,
           metadata: {
-            totalAmount: parsed.data.totalAmount,
+            toBePaid: parsed.data.toBePaid,
             advanceAmount: parsed.data.advanceAmount,
           },
         })
@@ -303,6 +306,7 @@ export class AddSupplierPurchaseEntryUseCase {
       await this.supplierRepo.updateAmounts(supplier.id, {
         totalAmount: parsed.data.type === 'PURCHASE' ? parsed.data.amount : undefined,
         advanceAmount: parsed.data.type === 'ADVANCE' ? parsed.data.amount : undefined,
+        toBePaid: parsed.data.type === 'PURCHASE' ? parsed.data.amount : -parsed.data.amount,
       });
 
       void this.auditRepo

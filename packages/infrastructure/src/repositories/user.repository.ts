@@ -3,6 +3,7 @@ import type { UserProfile } from '@car-spa/domain';
 import { COLLECTIONS } from '@car-spa/shared';
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -70,5 +71,9 @@ export class FirestoreUserRepository implements UserRepository {
     await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
     const saved = await getDoc(ref);
     return mapUser(saved.id, saved.data()!);
+  }
+
+  async delete(id: string) {
+    await deleteDoc(doc(getFirebaseDb(), COLLECTIONS.users, id));
   }
 }

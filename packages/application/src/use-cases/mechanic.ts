@@ -64,6 +64,9 @@ export class AddMechanicLedgerEntryUseCase {
 
       const delta = parsed.data.type === 'DEBIT' ? parsed.data.amount : -parsed.data.amount;
 
+      const derivedItemCount =
+        parsed.data.itemCount ?? (parsed.data.items ? parsed.data.items.length : null);
+
       await this.mechanicRepo.updateBalance(mechanic.id, delta);
 
       const entry = await this.ledgerRepo.create({
@@ -74,7 +77,8 @@ export class AddMechanicLedgerEntryUseCase {
         description: parsed.data.description,
         referenceType: null,
         referenceId: null,
-        itemCount: parsed.data.itemCount ?? null,
+        itemCount: derivedItemCount,
+        items: parsed.data.items ?? null,
         actorId,
       });
 

@@ -13,21 +13,33 @@ import {
   ChevronRight,
   Store,
   Phone,
+  Trophy,
+  Package,
+  Repeat,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/shared/empty-state';
 import { PaginationControls } from '@/components/shared/pagination';
-import { useMechanics, useMechanicLedger, useDeleteMechanic } from '../api/use-mechanics';
+import { useMechanics, useMechanicLedger, useMechanicLedgerByOrgId, useDeleteMechanic } from '../api/use-mechanics';
 import { MechanicDialog } from './mechanic-dialog';
 import { LedgerEntryDialog } from './ledger-entry-dialog';
 import type { Mechanic, MechanicLedgerEntry } from '@car-spa/domain';
 
 const LEDGER_PAGE_SIZE = 5;
 const MECHANIC_PAGE_SIZE = 5;
+
+interface MechanicStats {
+  transactions: number;
+  totalCredit: number;
+  totalDebit: number;
+  itemsTaken: number;
+}
+
+const EMPTY_STATS: MechanicStats = { transactions: 0, totalCredit: 0, totalDebit: 0, itemsTaken: 0 };
 
 export function MechanicsPage() {
   const session = useAuthStore((s) => s.session);
@@ -45,10 +57,45 @@ export function MechanicsPage() {
 
   const mechanicsQuery = useMechanics(orgId);
   const ledgerQuery = useMechanicLedger(selectedMechanicId ?? '');
+  const orgLedgerQuery = useMechanicLedgerByOrgId(orgId);
   const deleteMechanic = useDeleteMechanic();
 
   const mechanics = mechanicsQuery.data ?? [];
-  const filtered = mechanics.filter(
+
+  const statsByMechanic = useMemo(() => {
+    const map = new Map<string, MechanicStats>();
+    for (const e of orgLedgerQuery.data ?? []) {
+      const s = map.get(e.mechanicId) ?? { ...EMPTY_STATS };
+      s.transactions += 1;
+      if (e.type === 'CREDIT') s.totalCredit += e.amount;
+      else {
+        s.totalDebit += e.amount;
+        const itemQty = e.items?.reduce((sum, i) => sum + i.quantity, 0) ?? e.itemCount ?? 0;
+        s.itemsTaken += itemQty;
+      }
+      map.set(e.mechanicId, s);
+    }
+    return map;
+  }, [orgLedgerQuery.data]);
+
+  const rankedMechanics = useMemo(() => {
+    const all = mechanicsQuery.data ?? [];
+    return [...all].sort((a, b) => {
+      const sa = statsByMechanic.get(a.id) ?? EMPTY_STATS;
+      const sb = statsByMechanic.get(b.id) ?? EMPTY_STATS;
+      if (sb.totalCredit !== sa.totalCredit) return sb.totalCredit - sa.totalCredit;
+      if (sb.transactions !== sa.transactions) return sb.transactions - sa.transactions;
+      return sb.itemsTaken - sa.itemsTaken;
+    });
+  }, [mechanicsQuery.data, statsByMechanic]);
+
+  const rankByMechanicId = useMemo(() => {
+    const map = new Map<string, number>();
+    rankedMechanics.forEach((m, i) => map.set(m.id, i + 1));
+    return map;
+  }, [rankedMechanics]);
+
+  const filtered = rankedMechanics.filter(
     (m) => !searchQuery || m.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
   const selectedMechanic = mechanics.find((m) => m.id === selectedMechanicId);
@@ -121,6 +168,8 @@ export function MechanicsPage() {
                 <MechanicCard
                   key={mechanic.id}
                   mechanic={mechanic}
+                  rank={rankByMechanicId.get(mechanic.id) ?? null}
+                  stats={statsByMechanic.get(mechanic.id) ?? EMPTY_STATS}
                   selected={selectedMechanicId === mechanic.id}
                   onSelect={() => {
                     setSelectedMechanicId(mechanic.id);
@@ -191,6 +240,45 @@ export function MechanicsPage() {
                   </p>
                 </div>
               </CardContent>
+              {(statsByMechanic.get(selectedMechanic.id) ?? EMPTY_STATS) && (
+                <CardContent className="border-t px-4 py-3">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="flex items-center gap-2">
+                      <Repeat className="text-muted-foreground h-4 w-4" />
+                      <div>
+                        <p className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
+                          Transactions
+                        </p>
+                        <p className="text-sm font-semibold">
+                          {statsByMechanic.get(selectedMechanic.id)?.transactions ?? 0}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ArrowUpRight className="text-emerald-600 h-4 w-4" />
+                      <div>
+                        <p className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
+                          Sales Entered
+                        </p>
+                        <p className="text-sm font-semibold">
+                          ₹{(statsByMechanic.get(selectedMechanic.id)?.totalCredit ?? 0).toLocaleString('en-IN')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Package className="text-amber-600 h-4 w-4" />
+                      <div>
+                        <p className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
+                          Items Taken
+                        </p>
+                        <p className="text-sm font-semibold">
+                          {statsByMechanic.get(selectedMechanic.id)?.itemsTaken ?? 0}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              )}
             </Card>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -301,12 +389,16 @@ export function MechanicsPage() {
 
 function MechanicCard({
   mechanic,
+  rank,
+  stats,
   selected,
   onSelect,
   onEdit,
   onDelete,
 }: {
   mechanic: Mechanic;
+  rank: number | null;
+  stats: MechanicStats;
   selected: boolean;
   onSelect: () => void;
   onEdit: () => void;
@@ -329,7 +421,26 @@ function MechanicCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <p className="truncate font-medium">{mechanic.name}</p>
+          <div className="flex items-center gap-2">
+            {rank != null && (
+              <span
+                className={`inline-flex h-5 items-center gap-1 rounded-full px-1.5 text-[10px] font-bold ${
+                  rank === 1
+                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                    : rank === 2
+                      ? 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                      : rank === 3
+                        ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+                        : 'bg-muted text-muted-foreground'
+                }`}
+                title={`Rank #${rank}`}
+              >
+                {rank === 1 && <Trophy className="h-3 w-3" />}
+                #{rank}
+              </span>
+            )}
+            <p className="truncate font-medium">{mechanic.name}</p>
+          </div>
           <p className="text-muted-foreground flex items-center gap-1 text-xs">
             <Store className="h-3 w-3" />
             {mechanic.storeName}
@@ -364,12 +475,22 @@ function MechanicCard({
           </button>
         </div>
       </div>
-      <div
-        className={`mt-2 text-sm font-semibold ${mechanic.balance >= 0 ? 'text-red-600' : 'text-green-600'}`}
-      >
-        ₹{Math.abs(mechanic.balance).toLocaleString('en-IN')}
-        <span className="text-muted-foreground ml-1 text-xs font-normal">
-          {mechanic.balance >= 0 ? 'Dr' : 'Cr'}
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        <span
+          className={`text-sm font-semibold ${mechanic.balance >= 0 ? 'text-red-600' : 'text-green-600'}`}
+        >
+          ₹{Math.abs(mechanic.balance).toLocaleString('en-IN')}
+          <span className="text-muted-foreground ml-1 text-xs font-normal">
+            {mechanic.balance >= 0 ? 'Dr' : 'Cr'}
+          </span>
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <Repeat className="h-3 w-3" />
+          {stats.transactions} txns
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <Package className="h-3 w-3" />
+          {stats.itemsTaken} items
         </span>
       </div>
     </div>
@@ -429,12 +550,27 @@ function LedgerRows({
                 {entry.type}
               </span>
             </td>
-            <td className="max-w-xs truncate px-4 py-3">
-              {entry.description}
-              {entry.itemCount != null && (
-                <span className="text-muted-foreground ml-1 text-xs">
-                  ({entry.itemCount} items)
-                </span>
+            <td className="max-w-xs px-4 py-3">
+              <p className="truncate">{entry.description}</p>
+              {entry.type === 'DEBIT' && entry.items && entry.items.length > 0 ? (
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {entry.items.map((item) => (
+                    <span
+                      key={item.productId}
+                      className="bg-muted text-muted-foreground inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px]"
+                    >
+                      <Package className="h-3 w-3" />
+                      {item.productName} × {item.quantity}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                entry.itemCount != null &&
+                entry.itemCount > 0 && (
+                  <span className="text-muted-foreground ml-1 text-xs">
+                    ({entry.itemCount} items)
+                  </span>
+                )
               )}
             </td>
             <td

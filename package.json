@@ -17,6 +17,7 @@
     "test:integration": "npm run test:integration --workspace=@car-spa/infrastructure",
     "test:e2e": "playwright test",
     "emulators": "firebase emulators:start --import=./firebase/emulator-data --export-on-exit=./firebase/emulator-data",
+    "backfill:supplier": "node scripts/backfill-supplier-opening.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

@@ -61,6 +61,14 @@ export function useMechanicLedger(mechanicId: string) {
   });
 }
 
+export function useMechanicLedgerByOrgId(orgId: string) {
+  return useQuery({
+    queryKey: ['mechanic-ledger', 'org', orgId],
+    queryFn: () => mechanicLedgerRepository.findByOrgId(orgId, { limit: 500 }),
+    enabled: !!orgId,
+  });
+}
+
 export function useAddLedgerEntry() {
   const queryClient = useQueryClient();
   const session = useAuthStore((s) => s.session);

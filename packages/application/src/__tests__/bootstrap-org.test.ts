@@ -54,10 +54,12 @@ describe('BootstrapDefaultOrgUseCase', () => {
         userId: 'user-1',
         orgId: 'org-1',
         role: 'owner' as const,
+        active: true,
         createdAt: new Date(),
         updatedAt: new Date(),
       }),
       update: vi.fn(),
+      delete: vi.fn(),
     };
 
     const userRepo: UserRepository = {
@@ -65,6 +67,7 @@ describe('BootstrapDefaultOrgUseCase', () => {
       findByOrgId: vi.fn().mockResolvedValue([]),
       upsert: vi.fn().mockResolvedValue({}),
       update: vi.fn(),
+      delete: vi.fn(),
     };
 
     const claimsService: ClaimsService = {

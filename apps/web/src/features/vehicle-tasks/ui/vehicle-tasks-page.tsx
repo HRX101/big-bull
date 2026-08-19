@@ -232,29 +232,18 @@ export function VehicleTasksPage() {
     if (result.success) toast.success(STATUS_LABELS[toStatus] ?? 'Status updated');
   }
 
-  async function handleComplete(task: VehicleTask) {
+  function handleComplete(task: VehicleTask) {
     if (completingId) return;
     if (task.dueAmount > 0) {
       setCollectPaymentTask(task);
       return;
     }
-    await completeTask(task);
+    setCompletingId(task.id);
+    void runCompletion(task).finally(() => setCompletingId(null));
   }
 
-  async function completeTask(task: VehicleTask) {
-    if (completingId) return;
-    setCompletingId(task.id);
+  async function runCompletion(task: VehicleTask): Promise<boolean> {
     try {
-      const statusResult = await changeStatus.mutateAsync({
-        taskId: task.id,
-        toStatus: 'COMPLETED',
-        note: 'Task completed and receipt generated',
-      });
-      if (!statusResult.success) {
-        toast.error(statusResult.error.message);
-        return;
-      }
-
       const taskServices = services.filter((s) => task.serviceIds.includes(s.id));
       let items: { itemId: string; itemName: string; quantity: number; unitPrice: number }[];
       if (taskServices.length > 0) {
@@ -273,14 +262,26 @@ export function VehicleTasksPage() {
         items = [{ itemId: '', itemName: 'Service', quantity: 1, unitPrice: task.totalAmount }];
       }
 
-      const saleResult = await createSale.mutateAsync({
-        customerId: task.customerId,
-        items,
-        paymentMode: task.paymentMode,
-      });
+      const [statusResult, saleResult] = await Promise.all([
+        changeStatus.mutateAsync({
+          taskId: task.id,
+          toStatus: 'COMPLETED',
+          note: 'Task completed and receipt generated',
+        }),
+        createSale.mutateAsync({
+          customerId: task.customerId,
+          items,
+          paymentMode: task.paymentMode,
+        }),
+      ]);
+
+      if (!statusResult.success) {
+        toast.error(statusResult.error.message);
+        return false;
+      }
       if (!saleResult.success) {
         toast.error(saleResult.error.message);
-        return;
+        return false;
       }
 
       const customer = customerById.get(task.customerId);
@@ -288,10 +289,10 @@ export function VehicleTasksPage() {
       toast.success('Task completed', {
         description: `${customer?.name ?? 'Customer'} · ${task.totalAmount.toLocaleString('en-IN')} received`,
       });
+      return true;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to complete task');
-    } finally {
-      setCompletingId(null);
+      return false;
     }
   }
 
@@ -299,16 +300,18 @@ export function VehicleTasksPage() {
     if (!collectPaymentTask || completingId) return;
     setCompletingId(collectPaymentTask.id);
     try {
-      const paymentResult = await recordTaskPayment.mutateAsync({
-        taskId: collectPaymentTask.id,
-        amount,
-      });
+      const [paymentResult] = await Promise.all([
+        recordTaskPayment.mutateAsync({
+          taskId: collectPaymentTask.id,
+          amount,
+        }),
+        runCompletion(collectPaymentTask),
+      ]);
       if (!paymentResult.success) {
         toast.error(paymentResult.error.message);
         return;
       }
       setCollectPaymentTask(null);
-      await completeTask(collectPaymentTask);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to collect payment');
     } finally {

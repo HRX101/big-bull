@@ -39,6 +39,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/shared/empty-state';
 import { PageHeader } from '@/components/shared/page-header';
+import { QuickActions } from './quick-actions';
 import type { AuditLogEntry, Vehicle, VehicleTask } from '@car-spa/domain';
 
 const PENDING_TASK_STATUSES: TaskStatus[] = ['RECEIVED', 'IN_PROGRESS', 'READY_FOR_PICKUP'];
@@ -277,6 +278,7 @@ export function EmployeeDashboard() {
         eyebrow="Team"
         title="Team Dashboard"
         description="Pending work and activity across the workshop."
+        action={<QuickActions />}
       />
 
       <Card>

@@ -6,6 +6,7 @@ import {
   Plus,
   UserCheck,
   UserX,
+  Trash2,
   Calendar,
   Check,
   X,
@@ -20,9 +21,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/shared/empty-state';
 import { PageHeader } from '@/components/shared/page-header';
 import { PaginationControls } from '@/components/shared/pagination';
+import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 import {
   useEmployees,
   useToggleEmployeeStatus,
+  useDeleteEmployee,
   useLeaveRequests,
   useMyLeaveRequests,
   useReviewLeaveRequest,
@@ -31,6 +34,7 @@ import { AddEmployeeDialog } from './add-employee-dialog';
 import { LeaveRequestDialog } from './leave-request-dialog';
 import { SalarySection } from './salary-section';
 import type { UserProfile, Membership } from '@car-spa/domain';
+import type { EmployeeWithMembership } from '../api/use-employees';
 
 type Tab = 'employees' | 'leave-requests' | 'salary';
 
@@ -54,9 +58,11 @@ export function EmployeesPage() {
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [leavePage, setLeavePage] = useState(0);
   const [employeePage, setEmployeePage] = useState(0);
+  const [deleteEmployee, setDeleteEmployee] = useState<EmployeeWithMembership | null>(null);
 
   const employeesQuery = useEmployees(orgId);
   const toggleStatus = useToggleEmployeeStatus();
+  const deleteEmp = useDeleteEmployee();
   const leaveRequestsQuery = useLeaveRequests(orgId);
   const myLeaveRequestsQuery = useMyLeaveRequests(userId);
   const reviewLeaveRequest = useReviewLeaveRequest();
@@ -202,9 +208,11 @@ export function EmployeesPage() {
                     key={emp.id}
                     employee={emp}
                     membership={emp.membership}
+                    isSelf={emp.id === userId}
                     onToggleStatus={(membershipId, active) =>
                       toggleStatus.mutate({ membershipId, active })
                     }
+                    onDelete={() => setDeleteEmployee(emp)}
                   />
                 ))}
               </div>
@@ -365,6 +373,30 @@ export function EmployeesPage() {
       <AddEmployeeDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
 
       <LeaveRequestDialog open={leaveDialogOpen} onOpenChange={setLeaveDialogOpen} />
+
+      <ConfirmDialog
+        open={deleteEmployee !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteEmployee(null);
+        }}
+        onConfirm={async () => {
+          if (!deleteEmployee) return;
+          await deleteEmp.mutateAsync({
+            userId: deleteEmployee.id,
+            membershipId: deleteEmployee.membership?.id ?? null,
+          });
+          setDeleteEmployee(null);
+        }}
+        title="Delete Employee"
+        description={
+          deleteEmployee
+            ? `Permanently remove "${deleteEmployee.displayName}" from your team? They will no longer be able to sign in to this workspace.`
+            : ''
+        }
+        confirmLabel="Delete"
+        variant="destructive"
+        loading={deleteEmp.isPending}
+      />
     </div>
   );
 }
@@ -372,15 +404,17 @@ export function EmployeesPage() {
 function EmployeeCard({
   employee,
   membership,
+  isSelf,
   onToggleStatus,
+  onDelete,
 }: {
   employee: UserProfile;
   membership: Membership | null;
+  isSelf: boolean;
   onToggleStatus: (membershipId: string, active: boolean) => void;
+  onDelete: () => void;
 }) {
-  const isActive = membership
-    ? (membership as Membership & { active?: boolean }).active !== false
-    : true;
+  const isActive = membership ? membership.active !== false : true;
 
   return (
     <Card className="hover:border-muted-foreground/30 transition-colors">
@@ -409,17 +443,29 @@ function EmployeeCard({
               {isActive ? 'Active' : 'Inactive'}
             </span>
           </div>
-          {membership && (
+          {membership && !isSelf && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => onToggleStatus(membership.id, !isActive)}
+              aria-label={isActive ? 'Deactivate employee' : 'Activate employee'}
             >
               {isActive ? (
                 <UserX className="h-4 w-4 text-red-500" />
               ) : (
                 <UserCheck className="h-4 w-4 text-green-500" />
               )}
+            </Button>
+          )}
+          {!isSelf && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onDelete}
+              aria-label="Delete employee"
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
             </Button>
           )}
         </div>

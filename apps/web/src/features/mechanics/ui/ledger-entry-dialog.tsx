@@ -9,8 +9,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAddLedgerEntry } from '../api/use-mechanics';
-import { useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { useProducts } from '@/features/inventory/api/use-inventory';
+import { useAuthStore } from '@/features/authentication/stores/auth-store';
+import { useEffect, useRef, useState } from 'react';
+import { Plus, Trash2, X } from 'lucide-react';
+import type { Product } from '@car-spa/domain';
 
 const ledgerFormSchema = mechanicLedgerEntrySchema.extend({
   fromDate: z.string().optional(),
@@ -26,6 +29,11 @@ interface LedgerEntryDialogProps {
   type: 'CREDIT' | 'DEBIT';
 }
 
+interface ItemRow {
+  productId: string;
+  quantity: number;
+}
+
 export function LedgerEntryDialog({
   open,
   onOpenChange,
@@ -34,6 +42,9 @@ export function LedgerEntryDialog({
 }: LedgerEntryDialogProps) {
   const addEntry = useAddLedgerEntry();
   const overlayRef = useRef<HTMLDivElement>(null);
+  const orgId = useAuthStore((s) => s.session?.orgId ?? '');
+  const productsQ = useProducts(orgId);
+  const products = productsQ.data ?? [];
 
   const {
     register,
@@ -44,6 +55,8 @@ export function LedgerEntryDialog({
     resolver: zodResolver(ledgerFormSchema),
     defaultValues: { mechanicId, type, amount: 0, itemCount: 0, description: '' },
   });
+
+  const [rows, setRows] = useState<ItemRow[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -56,6 +69,7 @@ export function LedgerEntryDialog({
         fromDate: '',
         toDate: '',
       });
+      setRows([]);
     }
   }, [open, mechanicId, type, reset]);
 
@@ -71,17 +85,43 @@ export function LedgerEntryDialog({
 
   const isCredit = type === 'CREDIT';
 
+  const productName = (productId: string) =>
+    products.find((p) => p.id === productId)?.name ?? 'Unknown product';
+
+  const upsertRow = (productId: string, quantity: number) => {
+    setRows((prev) => {
+      const existing = prev.find((r) => r.productId === productId);
+      if (existing) {
+        return prev.map((r) =>
+          r.productId === productId ? { ...r, quantity: Math.max(1, Math.floor(quantity) || 1) } : r,
+        );
+      }
+      return [...prev, { productId, quantity: Math.max(1, Math.floor(quantity) || 1) }];
+    });
+  };
+
+  const totalItemCount = rows.reduce((sum, r) => sum + r.quantity, 0);
+
+  const buildItemsInput = () =>
+    rows
+      .filter((r) => r.productId && r.quantity > 0)
+      .map((r) => ({ productId: r.productId, productName: productName(r.productId), quantity: r.quantity }));
+
   const onSubmit = handleSubmit(async (data) => {
     let description = data.description;
     if (isCredit && data.fromDate && data.toDate) {
       const dateRange = `Sales from ${data.fromDate} to ${data.toDate}`;
       description = description ? `${dateRange}: ${description}` : dateRange;
     }
+    const items = isCredit ? undefined : buildItemsInput();
+    const trackedItemCount =
+      isCredit || !items || items.length === 0 ? (data.itemCount ?? null) : totalItemCount;
     const result = await addEntry.mutateAsync({
       mechanicId: data.mechanicId,
       type: data.type,
       amount: data.amount,
-      itemCount: data.itemCount ?? null,
+      itemCount: trackedItemCount,
+      items,
       description,
     });
     if (!result.success) throw new Error(result.error?.message);
@@ -128,20 +168,104 @@ export function LedgerEntryDialog({
               />
               {errors.amount && <p className="text-destructive text-sm">{errors.amount.message}</p>}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="itemCount">
-                {isCredit ? 'Item Count Sold' : 'Quantity / Item Count'}
-              </Label>
-              <Input
-                id="itemCount"
-                type="number"
-                min="0"
-                {...register('itemCount', { valueAsNumber: true })}
-              />
-              {errors.itemCount && (
-                <p className="text-destructive text-sm">{errors.itemCount.message}</p>
-              )}
-            </div>
+            {isCredit ? (
+              <div className="space-y-2">
+                <Label htmlFor="itemCount">Item Count Sold</Label>
+                <Input
+                  id="itemCount"
+                  type="number"
+                  min="0"
+                  {...register('itemCount', { valueAsNumber: true })}
+                />
+                {errors.itemCount && (
+                  <p className="text-destructive text-sm">{errors.itemCount.message}</p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <Label>Products Taken</Label>
+                {productsQ.isLoading ? (
+                  <p className="text-muted-foreground text-sm">Loading products…</p>
+                ) : products.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">
+                    No products available. Add products in Inventory first.
+                  </p>
+                ) : (
+                  <>
+                    {rows.length === 0 && (
+                      <p className="text-muted-foreground text-xs">
+                        Pick the products this mechanic is taking and their quantities.
+                      </p>
+                    )}
+                    {rows.map((row) => (
+                      <div key={row.productId} className="flex items-end gap-2">
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <Label className="text-xs">Product</Label>
+                          <select
+                            value={row.productId}
+                            onChange={(e) => {
+                              const next = e.target.value;
+                              setRows((prev) =>
+                                prev.map((r) => (r.productId === row.productId ? { ...r, productId: next } : r)),
+                              );
+                            }}
+                            className="border-input bg-input ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-lg border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
+                          >
+                            {products.map((p: Product) => (
+                              <option key={p.id} value={p.id}>
+                                {p.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="w-24 space-y-1">
+                          <Label className="text-xs">Qty</Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            value={row.quantity}
+                            onChange={(e) => upsertRow(row.productId, Number(e.target.value))}
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive"
+                          onClick={() =>
+                            setRows((prev) => prev.filter((r) => r.productId !== row.productId))
+                          }
+                          aria-label="Remove item"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const firstAvailable = products.find(
+                          (p) => !rows.some((r) => r.productId === p.id),
+                        );
+                        const target = firstAvailable ?? products[0];
+                        if (target)
+                          setRows((prev) => [...prev, { productId: target.id, quantity: 1 }]);
+                      }}
+                    >
+                      <Plus className="mr-1 h-4 w-4" />
+                      Add Item
+                    </Button>
+                    {rows.length > 0 && (
+                      <p className="text-muted-foreground text-xs">
+                        Total items tracked: {totalItemCount}
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Input id="description" {...register('description')} />

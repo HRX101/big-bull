@@ -26,6 +26,13 @@ function mapEntry(id: string, data: Record<string, unknown>): MechanicLedgerEntr
     referenceType: data.referenceType ? String(data.referenceType) : null,
     referenceId: data.referenceId ? String(data.referenceId) : null,
     itemCount: data.itemCount != null ? Number(data.itemCount) : null,
+    items: Array.isArray(data.items)
+      ? (data.items as Array<Record<string, unknown>>).map((it) => ({
+          productId: String(it.productId),
+          productName: String(it.productName ?? ''),
+          quantity: Number(it.quantity) || 0,
+        }))
+      : null,
     actorId: String(data.actorId),
     createdAt: fromFirestoreDate(data.createdAt),
   };

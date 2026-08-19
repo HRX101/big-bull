@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Car,
   ShoppingCart,
@@ -13,12 +13,14 @@ import {
   CreditCard,
   Receipt,
   AlertTriangle,
+  HandCoins,
+  Banknote,
   type LucideIcon,
 } from 'lucide-react';
 import { PROTECTED_ROUTES, PAYMENT_MODES } from '@car-spa/shared';
 import type { PaymentMode } from '@car-spa/shared';
 import type { Customer, POSSale } from '@car-spa/domain';
-import { customerRepository } from '@car-spa/infrastructure';
+import { customerRepository, supplierRepository, vehicleTaskRepository } from '@car-spa/infrastructure';
 import { useAuthStore } from '@/features/authentication/stores/auth-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,7 +31,34 @@ import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 
 export function QuickActions() {
   const router = useRouter();
+  const orgId = useAuthStore((s) => s.session?.orgId ?? '');
   const [airOpen, setAirOpen] = useState(false);
+
+  const toBePaidQuery = useQuery({
+    queryKey: ['quick-to-be-paid', orgId],
+    queryFn: async () => {
+      const suppliers = await supplierRepository.findByOrgId(orgId, { limit: 500 });
+      return suppliers.reduce((sum, s) => {
+        const derived = s.totalAmount - s.advanceAmount;
+        return sum + (s.toBePaid != null && s.toBePaid !== 0 ? s.toBePaid : derived);
+      }, 0);
+    },
+    enabled: !!orgId,
+  });
+
+  const toGetQuery = useQuery({
+    queryKey: ['quick-to-get', orgId],
+    queryFn: async () => {
+      const tasks = await vehicleTaskRepository.findByOrgId(orgId, { limit: 500 });
+      return tasks.reduce((sum, t) => sum + (t.dueAmount > 0 ? t.dueAmount : 0), 0);
+    },
+    enabled: !!orgId,
+  });
+
+  const toBePaid = toBePaidQuery.data ?? 0;
+  const toGet = toGetQuery.data ?? 0;
+  const fmtCurrency = (n: number) =>
+    `₹${Math.max(0, n).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 
   return (
     <>
@@ -58,6 +87,20 @@ export function QuickActions() {
           label="View Sales"
           onClick={() => router.push(PROTECTED_ROUTES.transactions)}
         />
+        <QuickButton
+          icon={HandCoins}
+          chipClass="from-amber-500 to-orange-600"
+          label="To Be Paid"
+          value={fmtCurrency(toBePaid)}
+          onClick={() => router.push(PROTECTED_ROUTES.suppliers)}
+        />
+        <QuickButton
+          icon={Banknote}
+          chipClass="from-rose-500 to-red-600"
+          label="To Get"
+          value={fmtCurrency(toGet)}
+          onClick={() => router.push(PROTECTED_ROUTES.vehicleTasks)}
+        />
       </div>
       {airOpen && <AirSaleDialog onClose={() => setAirOpen(false)} />}
     </>
@@ -68,11 +111,13 @@ function QuickButton({
   icon: Icon,
   chipClass,
   label,
+  value,
   onClick,
 }: {
   icon: LucideIcon;
   chipClass: string;
   label: string;
+  value?: string;
   onClick: () => void;
 }) {
   return (
@@ -87,6 +132,11 @@ function QuickButton({
         <Icon className="h-3.5 w-3.5" />
       </span>
       {label}
+      {value && (
+        <span className="text-muted-foreground rounded-full bg-muted px-1.5 py-0.5 text-xs font-medium tabular-nums">
+          {value}
+        </span>
+      )}
     </button>
   );
 }
