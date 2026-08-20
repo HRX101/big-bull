@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Car,
   ShoppingCart,
@@ -13,14 +13,12 @@ import {
   CreditCard,
   Receipt,
   AlertTriangle,
-  HandCoins,
-  Banknote,
   type LucideIcon,
 } from 'lucide-react';
 import { PROTECTED_ROUTES, PAYMENT_MODES } from '@car-spa/shared';
 import type { PaymentMode } from '@car-spa/shared';
 import type { Customer, POSSale } from '@car-spa/domain';
-import { customerRepository, supplierRepository, vehicleTaskRepository } from '@car-spa/infrastructure';
+import { customerRepository } from '@car-spa/infrastructure';
 import { useAuthStore } from '@/features/authentication/stores/auth-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,34 +28,7 @@ import { ReceiptModal } from '@/features/pos/ui/receipt-modal';
 import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 
 export function QuickActions() {
-  const orgId = useAuthStore((s) => s.session?.orgId ?? '');
   const [airOpen, setAirOpen] = useState(false);
-
-  const toBePaidQuery = useQuery({
-    queryKey: ['quick-to-be-paid', orgId],
-    queryFn: async () => {
-      const suppliers = await supplierRepository.findByOrgId(orgId, { limit: 500 });
-      return suppliers.reduce((sum, s) => {
-        const derived = s.totalAmount - s.advanceAmount;
-        return sum + (s.toBePaid != null && s.toBePaid !== 0 ? s.toBePaid : derived);
-      }, 0);
-    },
-    enabled: !!orgId,
-  });
-
-  const toGetQuery = useQuery({
-    queryKey: ['quick-to-get', orgId],
-    queryFn: async () => {
-      const tasks = await vehicleTaskRepository.findByOrgId(orgId, { limit: 500 });
-      return tasks.reduce((sum, t) => sum + (t.dueAmount > 0 ? t.dueAmount : 0), 0);
-    },
-    enabled: !!orgId,
-  });
-
-  const toBePaid = toBePaidQuery.data ?? 0;
-  const toGet = toGetQuery.data ?? 0;
-  const fmtCurrency = (n: number) =>
-    `₹${Math.max(0, n).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 
   return (
     <>
@@ -85,20 +56,6 @@ export function QuickActions() {
           chipClass="from-indigo-500 to-blue-600"
           label="View Sales"
           href={PROTECTED_ROUTES.transactions}
-        />
-        <QuickActionLink
-          icon={HandCoins}
-          chipClass="from-amber-500 to-orange-600"
-          label="To Be Paid"
-          value={fmtCurrency(toBePaid)}
-          href={PROTECTED_ROUTES.suppliers}
-        />
-        <QuickActionLink
-          icon={Banknote}
-          chipClass="from-rose-500 to-red-600"
-          label="To Get"
-          value={fmtCurrency(toGet)}
-          href={PROTECTED_ROUTES.vehicleTasks}
         />
       </div>
       {airOpen && <AirSaleDialog onClose={() => setAirOpen(false)} />}

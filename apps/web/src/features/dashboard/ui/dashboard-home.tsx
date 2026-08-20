@@ -33,6 +33,7 @@ import { EmptyState } from '@/components/shared/empty-state';
 import { PageHeader } from '@/components/shared/page-header';
 import { PaginationControls } from '@/components/shared/pagination';
 import { QuickActions } from './quick-actions';
+import { DueOverview } from './due-overview';
 import { EmployeeDashboard } from './employee-dashboard';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -288,6 +289,8 @@ export function OwnerDashboard() {
         description="Your workshop command center."
         action={<QuickActions />}
       />
+
+      <DueOverview />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
         <MetricCard
