@@ -3,12 +3,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { salaryRecordSchema } from '@car-spa/domain';
 import { getStoreSettingsUseCase } from '@car-spa/infrastructure';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { NumericInput } from '@/components/ui/numeric-input';
 import { useCreateSalary, useEmployeeLeaveDays } from '../api/use-salary';
 import type { EmployeeWithMembership } from '../api/use-employees';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -54,6 +54,7 @@ export function SalaryDialog({
     watch,
     setValue,
     getValues,
+    control,
     formState: { errors },
   } = useForm<SalaryFormData>({
     resolver: zodResolver(salaryRecordSchema),
@@ -101,8 +102,14 @@ export function SalaryDialog({
     function handleEscape(e: KeyboardEvent) {
       if (e.key === 'Escape') onOpenChange(false);
     }
-    if (open) document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
+    if (open) {
+      document.addEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = '';
+    };
   }, [open, onOpenChange]);
 
   const round2 = useCallback((n: number) => {
@@ -183,12 +190,12 @@ export function SalaryDialog({
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 backdrop-blur-sm sm:items-center"
       onClick={(e) => {
         if (e.target === overlayRef.current) onOpenChange(false);
       }}
     >
-      <Card className="max-h-[90vh] w-full max-w-lg overflow-y-auto">
+      <Card className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-b-none sm:rounded-b-lg">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Generate Salary</CardTitle>
           <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
@@ -231,29 +238,41 @@ export function SalaryDialog({
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="salary-month">Month</Label>
-                <Input
-                  id="salary-month"
-                  type="number"
-                  min={1}
-                  max={12}
-                  {...register('month', {
-                    valueAsNumber: true,
-                    onChange: (e) => setSelectedMonth(Number(e.target.value)),
-                  })}
+                <Controller
+                  name="month"
+                  control={control}
+                  render={({ field }) => (
+                    <NumericInput
+                      id="salary-month"
+                      min={1}
+                      max={12}
+                      value={field.value}
+                      onChange={(v) => {
+                        field.onChange(v);
+                        setSelectedMonth(v);
+                      }}
+                    />
+                  )}
                 />
                 {errors.month && <p className="text-destructive text-sm">{errors.month.message}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="salary-year">Year</Label>
-                <Input
-                  id="salary-year"
-                  type="number"
-                  min={2020}
-                  max={2100}
-                  {...register('year', {
-                    valueAsNumber: true,
-                    onChange: (e) => setSelectedYear(Number(e.target.value)),
-                  })}
+                <Controller
+                  name="year"
+                  control={control}
+                  render={({ field }) => (
+                    <NumericInput
+                      id="salary-year"
+                      min={2020}
+                      max={2100}
+                      value={field.value}
+                      onChange={(v) => {
+                        field.onChange(v);
+                        setSelectedYear(v);
+                      }}
+                    />
+                  )}
                 />
                 {errors.year && <p className="text-destructive text-sm">{errors.year.message}</p>}
               </div>
@@ -261,11 +280,12 @@ export function SalaryDialog({
 
             <div className="space-y-2">
               <Label htmlFor="salary-full">Full Salary (₹)</Label>
-              <Input
-                id="salary-full"
-                type="number"
-                step="0.01"
-                {...register('fullSalary', { valueAsNumber: true })}
+              <Controller
+                name="fullSalary"
+                control={control}
+                render={({ field }) => (
+                  <NumericInput id="salary-full" value={field.value} onChange={field.onChange} />
+                )}
               />
               {errors.fullSalary && (
                 <p className="text-destructive text-sm">{errors.fullSalary.message}</p>
@@ -275,10 +295,12 @@ export function SalaryDialog({
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="salary-working">Working Days</Label>
-                <Input
-                  id="salary-working"
-                  type="number"
-                  {...register('workingDays', { valueAsNumber: true })}
+                <Controller
+                  name="workingDays"
+                  control={control}
+                  render={({ field }) => (
+                    <NumericInput id="salary-working" value={field.value} onChange={field.onChange} />
+                  )}
                 />
                 {errors.workingDays && (
                   <p className="text-destructive text-sm">{errors.workingDays.message}</p>
@@ -291,11 +313,12 @@ export function SalaryDialog({
                     <RefreshCw className="text-muted-foreground h-3 w-3 animate-spin" />
                   )}
                 </div>
-                <Input
-                  id="salary-leave"
-                  type="number"
-                  step="0.5"
-                  {...register('leaveDays', { valueAsNumber: true })}
+                <Controller
+                  name="leaveDays"
+                  control={control}
+                  render={({ field }) => (
+                    <NumericInput id="salary-leave" step="0.5" value={field.value} onChange={field.onChange} />
+                  )}
                 />
                 {errors.leaveDays && (
                   <p className="text-destructive text-sm">{errors.leaveDays.message}</p>
@@ -319,44 +342,59 @@ export function SalaryDialog({
               </p>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-muted-foreground">Per Day Rate</span>
-                <Input
-                  id="salary-perday"
-                  type="number"
-                  step="0.01"
-                  min={0}
-                  className="h-8 w-36 text-right"
-                  {...register('perDayRate', {
-                    valueAsNumber: true,
-                    onChange: () => setManualEdit('perDayRate'),
-                  })}
+                <Controller
+                  name="perDayRate"
+                  control={control}
+                  render={({ field }) => (
+                    <NumericInput
+                      id="salary-perday"
+                      min={0}
+                      className="h-8 w-36 text-right"
+                      value={field.value ?? 0}
+                      onChange={(v) => {
+                        field.onChange(v);
+                        setManualEdit('perDayRate');
+                      }}
+                    />
+                  )}
                 />
               </div>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-muted-foreground">Deduction</span>
-                <Input
-                  id="salary-deduction"
-                  type="number"
-                  step="0.01"
-                  min={0}
-                  className="h-8 w-36 text-right text-red-600"
-                  {...register('deduction', {
-                    valueAsNumber: true,
-                    onChange: () => setManualEdit('deduction'),
-                  })}
+                <Controller
+                  name="deduction"
+                  control={control}
+                  render={({ field }) => (
+                    <NumericInput
+                      id="salary-deduction"
+                      min={0}
+                      className="h-8 w-36 text-right text-red-600"
+                      value={field.value ?? 0}
+                      onChange={(v) => {
+                        field.onChange(v);
+                        setManualEdit('deduction');
+                      }}
+                    />
+                  )}
                 />
               </div>
               <div className="flex items-center justify-between gap-2 border-t pt-2">
                 <span className="font-medium">Payable Amount</span>
-                <Input
-                  id="salary-payable"
-                  type="number"
-                  step="0.01"
-                  min={0}
-                  className="h-8 w-36 text-right text-base font-bold"
-                  {...register('payableAmount', {
-                    valueAsNumber: true,
-                    onChange: () => setManualEdit('payableAmount'),
-                  })}
+                <Controller
+                  name="payableAmount"
+                  control={control}
+                  render={({ field }) => (
+                    <NumericInput
+                      id="salary-payable"
+                      min={0}
+                      className="h-8 w-36 text-right text-base font-bold"
+                      value={field.value ?? 0}
+                      onChange={(v) => {
+                        field.onChange(v);
+                        setManualEdit('payableAmount');
+                      }}
+                    />
+                  )}
                 />
               </div>
               {errors.perDayRate && (

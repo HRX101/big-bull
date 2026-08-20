@@ -153,7 +153,7 @@ export interface Product {
   updatedAt: Date;
 }
 
-export type StockMovementType = 'RESTOCK_IN' | 'MANUAL_OUT' | 'POS_SALE' | 'VEHICLE_TASK_USE';
+export type StockMovementType = 'RESTOCK_IN' | 'MANUAL_OUT' | 'POS_SALE' | 'VEHICLE_TASK_USE' | 'MECHANIC_ISSUE';
 
 export interface StockMovement {
   id: string;

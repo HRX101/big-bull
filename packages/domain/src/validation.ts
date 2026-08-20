@@ -113,7 +113,7 @@ export const productSchema = z.object({
 
 export const stockMovementSchema = z.object({
   productId: z.string().min(1, 'Product is required'),
-  type: z.enum(['RESTOCK_IN', 'MANUAL_OUT', 'POS_SALE', 'VEHICLE_TASK_USE']),
+  type: z.enum(['RESTOCK_IN', 'MANUAL_OUT', 'POS_SALE', 'VEHICLE_TASK_USE', 'MECHANIC_ISSUE']),
   quantity: z.number().min(1, 'Quantity must be at least 1'),
   note: z.string().min(1, 'Note is required'),
   referenceId: z.string().optional().or(z.literal('')),

@@ -85,6 +85,7 @@ export const STOCK_MOVEMENT_TYPES = [
   'MANUAL_OUT',
   'POS_SALE',
   'VEHICLE_TASK_USE',
+  'MECHANIC_ISSUE',
 ] as const;
 export type StockMovementType = (typeof STOCK_MOVEMENT_TYPES)[number];
 

@@ -158,6 +158,8 @@ export const addMechanicLedgerEntryUseCase = new AddMechanicLedgerEntryUseCase(
   mechanicRepository,
   mechanicLedgerRepository,
   auditRepository,
+  productRepository,
+  stockMovementRepository,
 );
 export const createLeaveRequestUseCase = new CreateLeaveRequestUseCase(
   leaveRequestRepository,

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Store, Lock, Save, Sun, Moon, Tags, X } from 'lucide-react';
@@ -19,6 +19,7 @@ import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { NumericInput } from '@/components/ui/numeric-input';
 import { Label } from '@/components/ui/label';
 import { useAuthStore } from '@/features/authentication/stores/auth-store';
 import { useCategories } from '@/features/inventory/api/use-inventory';
@@ -230,11 +231,12 @@ export function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="taxRate">Tax rate (%)</Label>
-                  <Input
-                    id="taxRate"
-                    type="number"
-                    step="0.01"
-                    {...settingsForm.register('taxRate', { valueAsNumber: true })}
+                  <Controller
+                    name="taxRate"
+                    control={settingsForm.control}
+                    render={({ field }) => (
+                      <NumericInput id="taxRate" value={field.value} onChange={field.onChange} />
+                    )}
                   />
                   {settingsForm.formState.errors.taxRate && (
                     <p className="text-destructive text-sm">
@@ -339,10 +341,12 @@ export function SettingsPage() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="workingDaysPerMonth">Working days / month</Label>
-                  <Input
-                    id="workingDaysPerMonth"
-                    type="number"
-                    {...settingsForm.register('workingDaysPerMonth', { valueAsNumber: true })}
+                  <Controller
+                    name="workingDaysPerMonth"
+                    control={settingsForm.control}
+                    render={({ field }) => (
+                      <NumericInput id="workingDaysPerMonth" value={field.value} onChange={field.onChange} />
+                    )}
                   />
                   {settingsForm.formState.errors.workingDaysPerMonth && (
                     <p className="text-destructive text-sm">

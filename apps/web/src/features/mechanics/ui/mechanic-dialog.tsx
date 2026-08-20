@@ -56,8 +56,14 @@ export function MechanicDialog({
     function handleEscape(e: KeyboardEvent) {
       if (e.key === 'Escape') onOpenChange(false);
     }
-    if (open) document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
+    if (open) {
+      document.addEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = '';
+    };
   }, [open, onOpenChange]);
 
   if (!open) return null;
@@ -80,12 +86,12 @@ export function MechanicDialog({
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 backdrop-blur-sm sm:items-center"
       onClick={(e) => {
         if (e.target === overlayRef.current) onOpenChange(false);
       }}
     >
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md rounded-b-none sm:rounded-b-lg">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>{editingMechanic ? 'Edit Mechanic' : 'Add Mechanic'}</CardTitle>
           <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>

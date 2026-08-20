@@ -130,7 +130,8 @@ export class RecordStockMovementUseCase {
       const isOut =
         parsed.data.type === 'MANUAL_OUT' ||
         parsed.data.type === 'POS_SALE' ||
-        parsed.data.type === 'VEHICLE_TASK_USE';
+        parsed.data.type === 'VEHICLE_TASK_USE' ||
+        parsed.data.type === 'MECHANIC_ISSUE';
       const currentStock = product.currentStock;
       if (isOut && currentStock < parsed.data.quantity)
         return err(new Error(`Insufficient stock. Available: ${currentStock}`));
