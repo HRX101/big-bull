@@ -141,6 +141,10 @@ export interface VehicleTaskRepository {
     options?: { status?: TaskStatus; limit?: number; offset?: string },
   ): Promise<VehicleTask[]>;
   create(data: Omit<VehicleTask, 'id' | 'createdAt' | 'updatedAt'>): Promise<VehicleTask>;
+  createWithEvent(
+    data: Omit<VehicleTask, 'id' | 'createdAt' | 'updatedAt'>,
+    event: Omit<TaskStatusEvent, 'id' | 'createdAt' | 'taskId'>,
+  ): Promise<{ task: VehicleTask; event: TaskStatusEvent }>;
   update(id: string, data: Partial<VehicleTask>): Promise<VehicleTask>;
   getCountByStatus(orgId: string): Promise<Record<TaskStatus, number>>;
 }

@@ -1,5 +1,5 @@
 import type { VehicleTaskRepository } from '@car-spa/application';
-import type { VehicleTask } from '@car-spa/domain';
+import type { TaskStatusEvent, VehicleTask } from '@car-spa/domain';
 import { COLLECTIONS, type TaskStatus } from '@car-spa/shared';
 import {
   addDoc,
@@ -13,6 +13,7 @@ import {
   serverTimestamp,
   updateDoc,
   where,
+  writeBatch,
 } from 'firebase/firestore';
 import { getFirebaseDb } from '../firebase/client';
 import { fromFirestoreDate } from '../firebase/mappers';
@@ -74,6 +75,33 @@ export class FirestoreVehicleTaskRepository implements VehicleTaskRepository {
     });
     const saved = await getDoc(ref);
     return mapVehicleTask(saved.id, saved.data()!);
+  }
+
+  async createWithEvent(
+    data: Omit<VehicleTask, 'id' | 'createdAt' | 'updatedAt'>,
+    event: Omit<TaskStatusEvent, 'id' | 'createdAt' | 'taskId'>,
+  ): Promise<{ task: VehicleTask; event: TaskStatusEvent }> {
+    const db = getFirebaseDb();
+    const batch = writeBatch(db);
+    const taskRef = doc(collection(db, COLLECTIONS.vehicleTasks));
+    const eventRef = doc(collection(db, COLLECTIONS.taskStatusEvents));
+    batch.set(taskRef, { ...data, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    batch.set(eventRef, {
+      ...event,
+      taskId: taskRef.id,
+      createdAt: serverTimestamp(),
+    });
+    await batch.commit();
+    const now = new Date();
+    return {
+      task: { id: taskRef.id, ...data, createdAt: now, updatedAt: now } as VehicleTask,
+      event: {
+        id: eventRef.id,
+        ...event,
+        taskId: taskRef.id,
+        createdAt: now,
+      } as TaskStatusEvent,
+    };
   }
 
   async update(id: string, data: Partial<VehicleTask>) {

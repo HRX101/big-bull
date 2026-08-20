@@ -114,7 +114,6 @@ export const createVehicleTaskUseCase = new CreateVehicleTaskUseCase(
   vehicleTaskRepository,
   customerRepository,
   vehicleRepository,
-  taskStatusEventRepository,
   auditRepository,
   draftRepository,
 );

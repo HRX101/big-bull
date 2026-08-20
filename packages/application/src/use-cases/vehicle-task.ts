@@ -19,7 +19,6 @@ export class CreateVehicleTaskUseCase {
     private readonly taskRepo: VehicleTaskRepository,
     private readonly customerRepo: CustomerRepository,
     private readonly vehicleRepo: VehicleRepository,
-    private readonly eventRepo: TaskStatusEventRepository,
     private readonly auditRepo: AuditRepository,
     private readonly draftRepo: DraftRepository,
   ) {}
@@ -45,32 +44,32 @@ export class CreateVehicleTaskUseCase {
       const paymentStatus =
         dueAmount <= 0 ? 'FULL' : parsed.data.paidAmount > 0 ? 'PARTIAL' : 'PENDING';
 
-      const task = await this.taskRepo.create({
-        orgId,
-        customerId: parsed.data.customerId,
-        vehicleId: parsed.data.vehicleId,
-        serviceIds: parsed.data.serviceIds,
-        status: 'RECEIVED',
-        paymentMode: parsed.data.paymentMode,
-        paymentStatus,
-        totalAmount: parsed.data.totalAmount,
-        paidAmount: parsed.data.paidAmount,
-        dueAmount,
-        notes: parsed.data.notes || null,
-        assignedTo: null,
-        receiptUrl: null,
-        createdBy: actorId,
-      });
-
-      await this.eventRepo.create({
-        orgId,
-        taskId: task.id,
-        fromStatus: null,
-        toStatus: 'RECEIVED',
-        note: 'Task created',
-        actorId,
-        whatsappStatus: 'NOT_APPLICABLE',
-      });
+      const { task, event } = await this.taskRepo.createWithEvent(
+        {
+          orgId,
+          customerId: parsed.data.customerId,
+          vehicleId: parsed.data.vehicleId,
+          serviceIds: parsed.data.serviceIds,
+          status: 'RECEIVED',
+          paymentMode: parsed.data.paymentMode,
+          paymentStatus,
+          totalAmount: parsed.data.totalAmount,
+          paidAmount: parsed.data.paidAmount,
+          dueAmount,
+          notes: parsed.data.notes || null,
+          assignedTo: null,
+          receiptUrl: null,
+          createdBy: actorId,
+        },
+        {
+          orgId,
+          fromStatus: null,
+          toStatus: 'RECEIVED',
+          note: 'Task created',
+          actorId,
+          whatsappStatus: 'NOT_APPLICABLE',
+        },
+      );
 
       void Promise.all([
         this.customerRepo
