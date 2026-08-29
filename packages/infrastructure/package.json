@@ -17,8 +17,8 @@
     "@car-spa/application": "*",
     "@car-spa/domain": "*",
     "@car-spa/shared": "*",
-    "firebase": "^11.6.0",
-    "zod": "^3.24.2"
+    "firebase": "^12.18.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^4.0.1",
